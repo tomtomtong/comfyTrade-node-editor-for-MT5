@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MT5 Node-Based Strategy Builder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <h1>MT5 Strategy Builder</h1>
+        <div id="connectionStatus" class="status disconnected">Disconnected</div>
+      </div>
+      <div class="toolbar-right">
+        <button id="connectBtn" class="btn btn-primary">Connect MT5</button>
+        <button id="executeGraphBtn" class="btn btn-success">Execute Strategy</button>
+        <button id="saveGraphBtn" class="btn btn-secondary">Save</button>
+        <button id="loadGraphBtn" class="btn btn-secondary">Load</button>
+        <button id="clearGraphBtn" class="btn btn-danger">Clear</button>
+      </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Left Sidebar - Node Palette -->
+      <div class="sidebar left-sidebar">
+        <h3>Node Library</h3>
+        
+        <div class="node-category">
+          <h4>Data Sources</h4>
+          <button class="node-btn" data-type="market-data">Market Data</button>
+          <button class="node-btn" data-type="constant">Constant Value</button>
+        </div>
+
+        <div class="node-category">
+          <h4>Indicators</h4>
+          <button class="node-btn" data-type="indicator-ma">Moving Average</button>
+          <button class="node-btn" data-type="indicator-rsi">RSI</button>
+        </div>
+
+        <div class="node-category">
+          <h4>Logic</h4>
+          <button class="node-btn" data-type="compare">Compare</button>
+          <button class="node-btn" data-type="logic-and">AND Gate</button>
+          <button class="node-btn" data-type="logic-or">OR Gate</button>
+        </div>
+
+        <div class="node-category">
+          <h4>Trading</h4>
+          <button class="node-btn" data-type="trade-signal">Trade Signal</button>
+          <button class="node-btn" data-type="stop-loss">Stop Loss</button>
+          <button class="node-btn" data-type="take-profit">Take Profit</button>
+        </div>
+      </div>
+
+      <!-- Center - Node Editor Canvas -->
+      <div class="editor-container">
+        <canvas id="nodeCanvas"></canvas>
+        <div class="canvas-hint">
+          Click nodes from the left panel to add them to the canvas
+        </div>
+      </div>
+
+      <!-- Right Sidebar - Properties & Info -->
+      <div class="sidebar right-sidebar">
+        <div class="properties-panel">
+          <h3>Properties</h3>
+          <div id="nodeProperties">
+            <p class="no-selection">Select a node to edit properties</p>
+          </div>
+        </div>
+
+        <div class="account-panel">
+          <h3>Account Info</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="label">Balance:</span>
+              <span id="balance">-</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Equity:</span>
+              <span id="equity">-</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Profit:</span>
+              <span id="profit" class="profit">-</span>
+            </div>
+          </div>
+          <button id="refreshAccountBtn" class="btn btn-secondary btn-small">Refresh</button>
+        </div>
+
+        <div class="positions-panel">
+          <h3>Open Positions</h3>
+          <div id="positionsList" class="positions-list">
+            <p class="no-data">No open positions</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection Modal -->
+    <div id="connectionModal" class="modal">
+      <div class="modal-content">
+        <h2>Connect to MT5</h2>
+        <div class="form-group">
+          <label>Server:</label>
+          <input type="text" id="server" value="localhost">
+        </div>
+        <div class="form-group">
+          <label>Port:</label>
+          <input type="text" id="port" value="5555">
+        </div>
+        <div class="modal-buttons">
+          <button id="confirmConnectBtn" class="btn btn-primary">Connect</button>
+          <button id="cancelConnectBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+  </div>
+
+  <script src="node-editor.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
