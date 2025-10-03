@@ -6,10 +6,13 @@ An Electron desktop application for executing trading strategies on MetaTrader 5
 
 - Connect to MetaTrader 5 terminal
 - View real-time account information
+- **Symbol Input with Dropdown**: Manual entry and MT5 symbol fetching
 - Execute trading strategies with customizable parameters
 - Monitor open positions
 - Close positions directly from the app
 - Auto-refresh account and position data
+- Node-based strategy builder with symbol selection
+- Quick symbol selection buttons for major pairs
 
 ## Installation
 
@@ -63,9 +66,24 @@ void OnTick() {
 1. Launch the application
 2. Enter your MT5 server details (default: localhost:5555)
 3. Click "Connect"
-4. Configure your trading strategy parameters
-5. Click "Execute Trade" to place orders
-6. Monitor positions in the positions table
+4. **Symbol Selection**: 
+   - Use the "New Trade" button to open the trade modal
+   - Type symbol names manually (e.g., EURUSD, GBPUSD)
+   - Use the dropdown arrow to browse available symbols from MT5
+   - Click quick symbol buttons for major currency pairs
+   - Search symbols by name or description
+5. Configure your trading strategy parameters
+6. Click "Execute Trade" to place orders
+7. Monitor positions in the positions table
+
+### Symbol Input Features
+
+- **Manual Entry**: Type any symbol name directly
+- **Dropdown Browse**: Click the dropdown arrow to see all available symbols
+- **Search**: Type to filter symbols by name or description
+- **Quick Selection**: Use preset buttons for major pairs (EURUSD, GBPUSD, etc.)
+- **Keyboard Navigation**: Use arrow keys and Enter to navigate the dropdown
+- **Node Integration**: Symbol inputs are also available in market data and trade signal nodes
 
 ## Configuration
 

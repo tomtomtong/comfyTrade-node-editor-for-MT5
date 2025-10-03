@@ -104,9 +104,8 @@ class NodeEditor {
   }
 
   onKeyDown(e) {
-    // Delete selected node with Delete or Backspace key
-    if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedNode) {
-      // Prevent backspace from navigating back in browser
+    // Delete selected node with Delete key only
+    if (e.key === 'Delete' && this.selectedNode) {
       e.preventDefault();
       this.deleteSelectedNode();
     }
@@ -191,7 +190,7 @@ class NodeEditor {
         params: {}
       },
       'trade-signal': {
-        title: 'Trade Signal',
+        title: 'Trade',
         inputs: ['condition'],
         outputs: [],
         params: { 

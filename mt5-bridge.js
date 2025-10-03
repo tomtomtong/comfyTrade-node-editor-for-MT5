@@ -238,6 +238,41 @@ class MT5Bridge {
     return response.data;
   }
 
+  async getSymbols(group = '*') {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    const response = await this.sendMessage('getSymbols', { group });
+    return response.data;
+  }
+
+  async searchSymbols(query) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    const response = await this.sendMessage('searchSymbols', { query });
+    return response.data;
+  }
+
+  async executeOrder(orderData) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log('Executing order:', orderData);
+    const response = await this.sendMessage('executeOrder', {
+      symbol: orderData.symbol,
+      type: orderData.type,
+      volume: orderData.volume,
+      stopLoss: orderData.stopLoss || 0,
+      takeProfit: orderData.takeProfit || 0
+    });
+
+    return response.data;
+  }
+
   shutdown() {
     if (this.ws) {
       this.ws.close();

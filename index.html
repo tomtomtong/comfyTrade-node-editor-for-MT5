@@ -16,6 +16,7 @@
       </div>
       <div class="toolbar-right">
         <button id="connectBtn" class="btn btn-primary">Connect MT5</button>
+        <button id="tradeBtn" class="btn btn-success">New Trade</button>
         <button id="executeGraphBtn" class="btn btn-success">Execute Strategy</button>
         <button id="saveGraphBtn" class="btn btn-secondary">Save</button>
         <button id="loadGraphBtn" class="btn btn-secondary">Load</button>
@@ -50,7 +51,7 @@
 
         <div class="node-category">
           <h4>Trading</h4>
-          <button class="node-btn" data-type="trade-signal">Trade Signal</button>
+          <button class="node-btn" data-type="trade-signal">Trade</button>
           <button class="node-btn" data-type="stop-loss">Stop Loss</button>
           <button class="node-btn" data-type="take-profit">Take Profit</button>
         </div>
@@ -60,7 +61,8 @@
       <div class="editor-container">
         <canvas id="nodeCanvas"></canvas>
         <div class="canvas-hint">
-          Click nodes from the left panel to add them to the canvas
+          Click nodes from the left panel to add them to the canvas<br>
+          Select a node and press Delete key to remove it
         </div>
       </div>
 
@@ -120,9 +122,51 @@
       </div>
     </div>
 
+    <!-- Trade Modal -->
+    <div id="tradeModal" class="modal">
+      <div class="modal-content trade-modal">
+        <h2>Execute Trade</h2>
+        <div class="form-group">
+          <label>Symbol:</label>
+          <div id="symbolInputContainer"></div>
+          <div class="quick-symbols">
+            <button class="quick-symbol-btn" data-symbol="EURUSD">EURUSD</button>
+            <button class="quick-symbol-btn" data-symbol="GBPUSD">GBPUSD</button>
+            <button class="quick-symbol-btn" data-symbol="USDJPY">USDJPY</button>
+            <button class="quick-symbol-btn" data-symbol="AUDUSD">AUDUSD</button>
+            <button class="quick-symbol-btn" data-symbol="USDCAD">USDCAD</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Order Type:</label>
+          <select id="tradeType">
+            <option value="BUY">Buy</option>
+            <option value="SELL">Sell</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Volume:</label>
+          <input type="number" id="tradeVolume" step="0.01" min="0.01" value="0.1">
+        </div>
+        <div class="form-group">
+          <label>Stop Loss (optional):</label>
+          <input type="number" id="tradeStopLoss" step="0.00001" placeholder="0 for none">
+        </div>
+        <div class="form-group">
+          <label>Take Profit (optional):</label>
+          <input type="number" id="tradeTakeProfit" step="0.00001" placeholder="0 for none">
+        </div>
+        <div class="modal-buttons">
+          <button id="confirmTradeBtn" class="btn btn-primary">Execute Trade</button>
+          <button id="cancelTradeBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <div id="messageBox" class="message-box"></div>
   </div>
 
+  <script src="symbol-input.js"></script>
   <script src="node-editor.js"></script>
   <script src="renderer.js"></script>
 </body>

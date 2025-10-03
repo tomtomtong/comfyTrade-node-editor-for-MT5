@@ -220,6 +220,71 @@ class MT5Bridge:
             "time": datetime.fromtimestamp(tick.time).isoformat()
         }
     
+    def get_symbols(self, group="*"):
+        """Get available symbols from MT5"""
+        if not self.connected_to_mt5:
+            return {"error": "Not connected to MT5"}
+        
+        symbols = mt5.symbols_get(group=group)
+        if symbols is None:
+            return {"error": "Failed to get symbols"}
+        
+        result = []
+        for symbol in symbols:
+            # Only include visible symbols or commonly traded ones
+            if symbol.visible or symbol.name in ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD']:
+                result.append({
+                    "name": symbol.name,
+                    "description": symbol.description if hasattr(symbol, 'description') else symbol.name,
+                    "currency_base": symbol.currency_base,
+                    "currency_profit": symbol.currency_profit,
+                    "digits": symbol.digits,
+                    "point": symbol.point,
+                    "visible": symbol.visible
+                })
+        
+        # Sort by name for better UX
+        result.sort(key=lambda x: x['name'])
+        return result
+    
+    def search_symbols(self, query):
+        """Search symbols by name or description"""
+        if not self.connected_to_mt5:
+            return {"error": "Not connected to MT5"}
+        
+        if not query or len(query) < 2:
+            return []
+        
+        symbols = mt5.symbols_get()
+        if symbols is None:
+            return {"error": "Failed to get symbols"}
+        
+        query_lower = query.lower()
+        result = []
+        
+        for symbol in symbols:
+            name_match = query_lower in symbol.name.lower()
+            desc_match = hasattr(symbol, 'description') and query_lower in symbol.description.lower()
+            
+            if name_match or desc_match:
+                result.append({
+                    "name": symbol.name,
+                    "description": symbol.description if hasattr(symbol, 'description') else symbol.name,
+                    "currency_base": symbol.currency_base,
+                    "currency_profit": symbol.currency_profit,
+                    "digits": symbol.digits,
+                    "visible": symbol.visible
+                })
+        
+        # Sort by relevance (exact matches first, then partial matches)
+        result.sort(key=lambda x: (
+            0 if x['name'].lower() == query_lower else 1,
+            0 if x['name'].lower().startswith(query_lower) else 1,
+            x['name']
+        ))
+        
+        return result[:20]  # Limit to 20 results
+    
     async def handle_message(self, websocket, message):
         """Handle incoming WebSocket messages from Electron"""
         try:
@@ -266,6 +331,16 @@ class MT5Bridge:
                 
             elif action == 'getMarketData':
                 result = self.get_market_data(data.get('symbol'))
+                response['data'] = result
+            
+            elif action == 'getSymbols':
+                group = data.get('group', '*')
+                result = self.get_symbols(group)
+                response['data'] = result
+            
+            elif action == 'searchSymbols':
+                query = data.get('query', '')
+                result = self.search_symbols(query)
                 response['data'] = result
             
             else:

@@ -548,3 +548,203 @@ h4 {
   justify-content: flex-end;
   margin-top: 20px;
 }
+
+/* Symbol Input Component */
+.symbol-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.symbol-input {
+  flex: 1;
+  padding: 8px 35px 8px 12px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #333;
+  color: #e0e0e0;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.symbol-input:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.symbol-dropdown-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 2px;
+  transition: color 0.2s;
+}
+
+.symbol-dropdown-btn:hover {
+  color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.symbol-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #2d2d2d;
+  border: 1px solid #555;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 1000;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.symbol-search {
+  padding: 8px;
+  border-bottom: 1px solid #444;
+}
+
+.symbol-search-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #555;
+  border-radius: 3px;
+  background: #333;
+  color: #e0e0e0;
+  font-size: 12px;
+  outline: none;
+}
+
+.symbol-search-input:focus {
+  border-color: #4CAF50;
+}
+
+.symbol-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.symbol-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #333;
+  transition: background-color 0.2s;
+}
+
+.symbol-item:hover,
+.symbol-item.selected {
+  background: #3d3d3d;
+}
+
+.symbol-item.selected {
+  background: #4CAF50;
+  color: white;
+}
+
+.symbol-item.no-results {
+  color: #888;
+  cursor: default;
+  text-align: center;
+  font-style: italic;
+}
+
+.symbol-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.symbol-desc {
+  font-size: 12px;
+  color: #bbb;
+  margin-bottom: 2px;
+}
+
+.symbol-details {
+  font-size: 11px;
+  color: #888;
+}
+
+.symbol-loading {
+  padding: 12px;
+  text-align: center;
+  color: #888;
+  font-style: italic;
+}
+
+/* Trade Modal with Symbol Input */
+.trade-modal .symbol-input-wrapper {
+  margin-bottom: 15px;
+}
+
+.trade-modal .form-group {
+  margin-bottom: 15px;
+}
+
+.trade-modal .form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #ccc;
+  font-size: 14px;
+}
+
+.quick-symbols {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-symbol-btn {
+  padding: 4px 8px;
+  background: #444;
+  border: 1px solid #555;
+  border-radius: 3px;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-symbol-btn:hover {
+  background: #4CAF50;
+  border-color: #4CAF50;
+  color: white;
+}/
+* Node Properties Symbol Input */
+.node-symbol-input .symbol-input-wrapper {
+  width: 100%;
+}
+
+.node-symbol-input .symbol-input {
+  width: 100%;
+  font-size: 12px;
+  padding: 6px 30px 6px 8px;
+}
+
+.node-symbol-input .symbol-dropdown {
+  font-size: 12px;
+}
+
+.node-symbol-input .symbol-item {
+  padding: 6px 8px;
+}
+
+.node-symbol-input .symbol-name {
+  font-size: 12px;
+}
+
+.node-symbol-input .symbol-desc {
+  font-size: 10px;
+}
+
+.node-symbol-input .symbol-details {
+  font-size: 9px;
+}

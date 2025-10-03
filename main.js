@@ -115,3 +115,30 @@ ipcMain.handle('mt5:modifyPosition', async (event, { ticket, stopLoss, takeProfi
         return { success: false, error: error.message };
     }
 });
+
+ipcMain.handle('mt5:getSymbols', async (event, group) => {
+    try {
+        const symbols = await mt5Bridge.getSymbols(group);
+        return { success: true, data: symbols };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('mt5:searchSymbols', async (event, query) => {
+    try {
+        const symbols = await mt5Bridge.searchSymbols(query);
+        return { success: true, data: symbols };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('mt5:executeOrder', async (event, orderData) => {
+    try {
+        const result = await mt5Bridge.executeOrder(orderData);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});

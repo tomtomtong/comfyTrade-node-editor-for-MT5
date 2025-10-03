@@ -1,6 +1,7 @@
 // Main UI Controller
 let isConnected = false;
 let nodeEditor = null;
+let symbolInput = null;
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,6 +23,7 @@ function initializeNodeEditor() {
 function setupEventListeners() {
   // Toolbar buttons
   document.getElementById('connectBtn').addEventListener('click', showConnectionModal);
+  document.getElementById('tradeBtn').addEventListener('click', showTradeModal);
   document.getElementById('executeGraphBtn').addEventListener('click', executeNodeStrategy);
   document.getElementById('saveGraphBtn').addEventListener('click', saveGraph);
   document.getElementById('loadGraphBtn').addEventListener('click', loadGraph);
@@ -30,6 +32,8 @@ function setupEventListeners() {
   // Modal buttons
   document.getElementById('confirmConnectBtn').addEventListener('click', handleConnect);
   document.getElementById('cancelConnectBtn').addEventListener('click', hideConnectionModal);
+  document.getElementById('confirmTradeBtn').addEventListener('click', handleExecuteTrade);
+  document.getElementById('cancelTradeBtn').addEventListener('click', hideTradeModal);
   
   // Account refresh
   document.getElementById('refreshAccountBtn').addEventListener('click', handleRefreshAccount);
@@ -63,6 +67,102 @@ function showConnectionModal() {
 
 function hideConnectionModal() {
   document.getElementById('connectionModal').classList.remove('show');
+}
+
+// Trade Modal
+function showTradeModal() {
+  if (!isConnected) {
+    showMessage('Please connect to MT5 first', 'error');
+    return;
+  }
+  
+  // Initialize symbol input if not already done
+  if (!symbolInput) {
+    initializeSymbolInput();
+  }
+  
+  document.getElementById('tradeModal').classList.add('show');
+}
+
+function hideTradeModal() {
+  document.getElementById('tradeModal').classList.remove('show');
+}
+
+function initializeSymbolInput() {
+  const container = document.getElementById('symbolInputContainer');
+  symbolInput = new SymbolInput(container, {
+    placeholder: 'Enter symbol (e.g., EURUSD)',
+    onSymbolSelect: (symbol, symbolData) => {
+      console.log('Selected symbol:', symbol, symbolData);
+    },
+    onSymbolChange: (symbol) => {
+      // Update market data display if needed
+      if (symbol && symbol.length >= 6) {
+        updateMarketDataPreview(symbol);
+      }
+    }
+  });
+  
+  // Quick symbol buttons
+  document.querySelectorAll('.quick-symbol-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const symbol = btn.dataset.symbol;
+      symbolInput.setValue(symbol);
+    });
+  });
+}
+
+async function updateMarketDataPreview(symbol) {
+  try {
+    const result = await window.mt5API.getMarketData(symbol);
+    if (result.success) {
+      // Could add a small market data preview here
+      console.log('Market data for', symbol, result.data);
+    }
+  } catch (error) {
+    console.error('Error getting market data:', error);
+  }
+}
+
+async function handleExecuteTrade() {
+  const symbol = symbolInput.getValue().toUpperCase();
+  const type = document.getElementById('tradeType').value;
+  const volume = parseFloat(document.getElementById('tradeVolume').value);
+  const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value) || 0;
+  const takeProfit = parseFloat(document.getElementById('tradeTakeProfit').value) || 0;
+  
+  if (!symbol) {
+    showMessage('Please enter a symbol', 'error');
+    return;
+  }
+  
+  if (!volume || volume <= 0) {
+    showMessage('Please enter a valid volume', 'error');
+    return;
+  }
+  
+  hideTradeModal();
+  showMessage('Executing trade...', 'info');
+  
+  try {
+    const result = await window.mt5API.executeOrder({
+      symbol,
+      type,
+      volume,
+      stopLoss,
+      takeProfit
+    });
+    
+    if (result.success && result.data.success) {
+      showMessage(`Trade executed successfully! Ticket: ${result.data.ticket}`, 'success');
+      handleRefreshAccount();
+      handleRefreshPositions();
+    } else {
+      showMessage('Trade failed: ' + (result.data?.error || result.error), 'error');
+    }
+  } catch (error) {
+    showMessage('Trade execution error: ' + error.message, 'error');
+  }
 }
 
 async function handleConnect() {
@@ -278,9 +378,7 @@ function updatePropertiesPanel(node) {
         <input type="text" value="${node.title}" disabled>
       </div>
       <p class="no-selection">This node has no parameters</p>
-      <div class="property-actions">
-        <button class="btn btn-danger btn-small">Delete Node</button>
-      </div>
+
     `;
     return;
   }
@@ -290,19 +388,56 @@ function updatePropertiesPanel(node) {
       <label>Node Type:</label>
       <input type="text" value="${node.title}" disabled>
     </div>
-    ${paramEntries.map(([key, value]) => `
-      <div class="property-item">
-        <label>${key}:</label>
-        <input type="text" 
-               value="${value}" 
-               data-param="${key}"
-               onchange="updateNodeParam('${key}', this.value)">
-      </div>
-    `).join('')}
-    <div class="property-actions">
-      <button class="btn btn-danger btn-small">Delete Node</button>
-    </div>
+    ${paramEntries.map(([key, value]) => {
+      if (key === 'symbol') {
+        return `
+          <div class="property-item">
+            <label>${key}:</label>
+            <div id="nodeSymbolInput-${node.id}" class="node-symbol-input"></div>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="property-item">
+            <label>${key}:</label>
+            <input type="text" 
+                   value="${value}" 
+                   data-param="${key}"
+                   onchange="updateNodeParam('${key}', this.value)">
+          </div>
+        `;
+      }
+    }).join('')}
+
   `;
+  
+  // Initialize symbol input for symbol parameters
+  paramEntries.forEach(([key, value]) => {
+    if (key === 'symbol') {
+      const container = document.getElementById(`nodeSymbolInput-${node.id}`);
+      if (container && isConnected) {
+        const nodeSymbolInput = new SymbolInput(container, {
+          placeholder: 'Enter symbol (e.g., EURUSD)',
+          onSymbolSelect: (symbol, symbolData) => {
+            updateNodeParam('symbol', symbol);
+          },
+          onSymbolChange: (symbol) => {
+            updateNodeParam('symbol', symbol);
+          }
+        });
+        nodeSymbolInput.setValue(value);
+      } else if (container) {
+        // Fallback to regular input if not connected
+        container.innerHTML = `
+          <input type="text" 
+                 value="${value}" 
+                 data-param="symbol"
+                 placeholder="Enter symbol (e.g., EURUSD)"
+                 onchange="updateNodeParam('symbol', this.value)">
+        `;
+      }
+    }
+  });
 }
 
 // Make updatePropertiesPanel available globally for node-editor.js
@@ -321,9 +456,9 @@ window.deleteSelectedNode = function() {
   }
 };
 
-// Add event delegation for delete button to prevent issues with dynamic content
-document.addEventListener('click', (e) => {
-  if (e.target.matches('.property-actions .btn-danger')) {
+// Add keyboard shortcut for deleting nodes (Delete key)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Delete' && nodeEditor && nodeEditor.selectedNode) {
     e.preventDefault();
     window.deleteSelectedNode();
   }
