@@ -1,6 +1,145 @@
 # Recent Changes
 
-## Pip-Based Loss Calculation with MT5 Contract Data (Latest)
+## Node System Improvements - Data Types & Connection Management (Latest)
+
+### Summary
+Completely overhauled the node system with a robust data type system, type validation for connections, and improved UI for managing connections. This update makes the node-based strategy builder much more mature and user-friendly.
+
+### Features Added
+
+#### 1. **Data Type System**
+Added 7 distinct data types with color coding:
+- **Trigger** (Green): Execution flow signals
+- **Price** (Blue): Market price data
+- **Number** (Orange): Numeric values
+- **Boolean** (Red): True/false conditions
+- **Signal** (Purple): Trading signals
+- **Indicator** (Cyan): Technical indicator values
+- **Any** (Gray): Universal compatibility
+
+#### 2. **Type Validation**
+- Connections are validated in real-time when created
+- Invalid type connections are prevented with error messages
+- Type compatibility rules:
+  - Exact match: Same types can connect
+  - `any` type: Compatible with everything
+  - `price` → `number`: Allowed conversion
+  - `indicator` → `number`: Allowed conversion
+  - Smart compatibility checking prevents logic errors
+
+#### 3. **Connection Disconnection UI**
+Three methods to remove connections:
+- **Right-Click**: Right-click on any connection line
+- **Ctrl+Click**: Hold Ctrl and left-click on connection
+- **Select & Delete**: Click to select (turns orange), press Delete key
+
+#### 4. **Visual Improvements**
+- **Socket Colors**: Each socket colored by its data type
+- **Connection Colors**: Lines colored based on data flowing through them
+- **Type Labels**: Small text showing type name on each socket
+- **Hover Effects**: Connections highlight orange with glow when hovered
+- **Selection State**: Selected connections show orange highlight
+- **Cursor Feedback**: Pointer cursor when hovering over connections
+- **Dashed Preview**: When creating connections, shows dashed line with type color
+
+#### 5. **Improved Node Configurations**
+Updated all nodes with proper type definitions:
+- **Market Data**: Now has `trigger` input, outputs `price` and `number` (volume)
+- **Indicators**: Accept `price`, output `indicator` type
+- **Compare**: Accepts two `number` inputs, outputs `boolean`
+- **Logic Gates**: Accept `boolean` inputs, output `boolean`
+- **Trade Signal**: Accepts `boolean` (signal) input
+- **Constant**: Outputs `number` type
+
+### Changes Made
+
+#### 1. **node-editor.js**
+- Added `dataTypes` object with color and name definitions
+- Added `inputTypes` and `outputTypes` arrays to all node configs
+- Implemented `areTypesCompatible()` method for type checking
+- Updated `addConnection()` with type validation
+- Added `removeConnection()` method
+- Added `getConnectionAtPoint()` for click detection on bezier curves
+- Updated `onMouseDown()` to handle connection clicks
+- Added `onContextMenu()` for right-click support
+- Updated `onMouseMove()` for hover detection and cursor changes
+- Updated `onKeyDown()` to support Delete key for connections
+- Enhanced `draw()` to show type colors and hover states
+- Updated socket drawing with colored circles and type labels
+- Added `selectedConnection` state tracking
+- Added `hoveredConnection` state tracking
+
+#### 2. **index.html**
+- Updated canvas hint to explain new connection features
+- Added information about color-coded data types
+
+#### 3. **NODE_SYSTEM_SPEC.md** (New File)
+- Comprehensive technical documentation
+- Data type system explanation
+- Node configurations with types
+- Connection management guide
+- Trigger flow execution details
+- User interface features
+- Error handling
+- Performance considerations
+- API reference
+
+### Technical Details
+
+#### Type Compatibility Matrix
+```
+From/To  | trigger | price | number | boolean | signal | indicator | any
+---------|---------|-------|--------|---------|--------|-----------|-----
+trigger  |    ✓    |   ✗   |   ✗    |    ✗    |   ✗    |     ✗     |  ✓
+price    |    ✗    |   ✓   |   ✓    |    ✗    |   ✗    |     ✗     |  ✓
+number   |    ✗    |   ✗   |   ✓    |    ✗    |   ✗    |     ✗     |  ✓
+boolean  |    ✗    |   ✗   |   ✗    |    ✓    |   ✗    |     ✗     |  ✓
+indicator|    ✗    |   ✗   |   ✓    |    ✗    |   ✗    |     ✓     |  ✓
+any      |    ✓    |   ✓   |   ✓    |    ✓    |   ✓    |     ✓     |  ✓
+```
+
+#### Connection Detection Algorithm
+- Uses bezier curve sampling (20 samples per curve)
+- 10px threshold for user-friendly clicking
+- Efficient O(n) search through all connections
+- Hover detection updates every frame
+
+### Benefits
+
+1. **Type Safety**: Prevents logic errors at design time
+2. **Better UX**: Color coding makes data flow visually clear
+3. **Easy Editing**: Multiple ways to disconnect unwanted connections
+4. **Professional Feel**: Smooth interactions and visual feedback
+5. **Self-Documenting**: Type labels show what data each socket expects
+6. **Flexible**: `any` type provides escape hatch when needed
+7. **Scalable**: System designed to support additional types in future
+
+### Example Workflows
+
+#### Valid Connection Example:
+```
+Manual Trigger → Market Data → Moving Average → Compare → Trade Signal
+   (trigger)       (trigger)      (price)        (number)   (boolean)
+                     ↓              ↓              ↓
+                   (price)      (indicator)    (boolean)
+```
+
+#### Invalid Connection Example (Prevented):
+```
+Manual Trigger → Compare (X - Type mismatch: Cannot connect Trigger to Number)
+```
+
+### Future Enhancements
+- Multiple output sockets per node
+- Visual data flow preview showing actual values
+- Group nodes for reusable patterns
+- Node search and filtering
+- Copy/paste support
+- Undo/redo functionality
+
+---
+
+## Pip-Based Loss Calculation with MT5 Contract Data
 
 ### Summary
 Updated loss calculation to use proper pip-based methodology with real contract information retrieved from MetaTrader 5 for accurate calculations.
