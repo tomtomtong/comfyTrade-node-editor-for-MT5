@@ -87,6 +87,18 @@ class MT5Bridge {
           const response = JSON.parse(data.toString());
           const messageId = response.messageId;
           
+          // Only log MT5 responses for trade execution
+          if (response.action === 'executeOrder') {
+            console.log('MT5 Trade Response received:', {
+              action: response.action,
+              success: response.success,
+              data: response.data,
+              error: response.error,
+              messageId: messageId,
+              timestamp: new Date().toISOString()
+            });
+          }
+          
           if (this.messageQueue.has(messageId)) {
             const { resolve } = this.messageQueue.get(messageId);
             this.messageQueue.delete(messageId);

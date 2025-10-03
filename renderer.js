@@ -12,11 +12,12 @@ const originalConsole = {
   info: console.info
 };
 
-function addLogEntry(type, message) {
+function addLogEntry(type, message, source = 'console') {
   const timestamp = new Date().toLocaleTimeString();
   const entry = {
     timestamp,
     type,
+    source,
     message: typeof message === 'object' ? JSON.stringify(message, null, 2) : String(message)
   };
   logEntries.push(entry);
@@ -50,6 +51,29 @@ console.info = (...args) => {
   originalConsole.info(...args);
   addLogEntry('info', args.join(' '));
 };
+
+// MT5 API Response Logging
+function logMT5Response(action, response, requestData = null) {
+  const logMessage = {
+    action: action,
+    success: response.success,
+    timestamp: new Date().toISOString()
+  };
+  
+  if (requestData) {
+    logMessage.request = requestData;
+  }
+  
+  if (response.data) {
+    logMessage.data = response.data;
+  }
+  
+  if (response.error) {
+    logMessage.error = response.error;
+  }
+  
+  addLogEntry('info', logMessage, 'MT5-API');
+}
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -145,10 +169,8 @@ function showTradeModal() {
   
   document.getElementById('tradeModal').classList.add('show');
   
-  // Calculate initial volume loss if symbol is already selected
-  setTimeout(() => {
-    calculateVolumeLoss();
-  }, 100);
+  // Note: Removed automatic volume loss calculation to prevent immediate popup
+  // Users can still calculate volume loss by changing volume or symbol values
 }
 
 function hideTradeModal() {
@@ -166,8 +188,8 @@ function initializeSymbolInput() {
       // Update market data display if needed
       if (symbol && symbol.length >= 6) {
         updateMarketDataPreview(symbol);
-        // Calculate volume loss when symbol changes
-        calculateVolumeLoss();
+        // Note: Removed automatic volume loss calculation to prevent immediate popup
+        // Users can still calculate volume loss by changing volume or symbol values
       }
     }
   });
@@ -177,10 +199,8 @@ function initializeSymbolInput() {
     btn.addEventListener('click', () => {
       const symbol = btn.dataset.symbol;
       symbolInput.setValue(symbol);
-      // Calculate volume loss when quick symbol is selected
-      setTimeout(() => {
-        calculateVolumeLoss();
-      }, 100);
+      // Note: Removed automatic volume loss calculation to prevent immediate popup
+      // Users can still calculate volume loss by changing volume or symbol values
     });
   });
 }
@@ -188,6 +208,7 @@ function initializeSymbolInput() {
 async function updateMarketDataPreview(symbol) {
   try {
     const result = await window.mt5API.getMarketData(symbol);
+    
     if (result.success) {
       // Could add a small market data preview here
       console.log('Market data for', symbol, result.data);
@@ -198,7 +219,7 @@ async function updateMarketDataPreview(symbol) {
 }
 
 async function handleExecuteTrade() {
-  const symbol = symbolInput.getValue().toUpperCase();
+  const symbol = symbolInput.getValue();
   const type = document.getElementById('tradeType').value;
   const volume = parseFloat(document.getElementById('tradeVolume').value);
   const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value) || 0;
@@ -218,13 +239,18 @@ async function handleExecuteTrade() {
   showMessage('Executing trade...', 'info');
   
   try {
-    const result = await window.mt5API.executeOrder({
+    const orderData = {
       symbol,
       type,
       volume,
       stopLoss,
       takeProfit
-    });
+    };
+    
+    const result = await window.mt5API.executeOrder(orderData);
+    
+    // Log MT5 order execution response
+    logMT5Response('executeOrder', result, orderData);
     
     if (result.success && result.data.success) {
       showMessage(`Trade executed successfully! Ticket: ${result.data.ticket}`, 'success');
@@ -722,12 +748,14 @@ async function calculateVolumeLoss() {
       try {
         // Get symbol info for accurate calculation
         const symbolInfoResult = await window.mt5API.getSymbolInfo(symbol);
+        
         if (symbolInfoResult.success && symbolInfoResult.data) {
           const symbolInfo = symbolInfoResult.data;
           currentPrice = symbolInfo.bid || symbolInfo.ask;
         } else {
           // Fallback to market data only
           const marketResult = await window.mt5API.getMarketData(symbol);
+          
           if (marketResult.success && marketResult.data) {
             currentPrice = marketResult.data.bid || marketResult.data.ask || marketResult.data.price;
           }
@@ -753,6 +781,7 @@ async function calculateVolumeLoss() {
     if (isConnected && window.mt5API) {
       try {
         const symbolInfoResult = await window.mt5API.getSymbolInfo(symbol);
+        
         if (symbolInfoResult.success && symbolInfoResult.data) {
           const symbolInfo = symbolInfoResult.data;
           
@@ -813,17 +842,8 @@ async function calculateVolumeLoss() {
     document.getElementById('potentialLoss').textContent = `$${totalLoss.toFixed(2)}`;
     document.getElementById('volumeLossInfo').style.display = 'block';
     
-    // Show immediate popup reminder with contract info
-    const contractInfo = {
-      tickSize: tickSize,
-      pipSize: pipSize,
-      tickValue: tickValue,
-      pipValue: pipValue,
-      contractSize: contractSize,
-      ticksPerPip: pipSize / tickSize,
-      priceChangeInPips: priceChangeInPips
-    };
-    showVolumeLossReminder(symbol, volume, currentPrice, totalLoss, contractInfo);
+    // Note: Removed automatic popup reminder to prevent immediate display
+    // Users can still access detailed loss information via the "Test Loss" button in trade nodes
     
   } catch (error) {
     console.error('Error calculating volume loss:', error);
@@ -915,6 +935,7 @@ function testVolumeLossFromNode(nodeId) {
         
         try {
           const symbolInfoResult = await window.mt5API.getSymbolInfo(symbol);
+          
           console.log('Symbol info result:', symbolInfoResult);
           
           if (symbolInfoResult.success && symbolInfoResult.data) {
@@ -926,6 +947,7 @@ function testVolumeLossFromNode(nodeId) {
             console.log('Symbol info failed, trying market data...');
             // Fallback to market data only
             const marketResult = await window.mt5API.getMarketData(symbol);
+            
             console.log('Market data result:', marketResult);
             
             if (marketResult.success && marketResult.data) {
@@ -958,6 +980,7 @@ function testVolumeLossFromNode(nodeId) {
       if (isConnected && window.mt5API) {
         try {
           const symbolInfoResult = await window.mt5API.getSymbolInfo(symbol);
+          
           console.log('Symbol info result:', symbolInfoResult);
           
           if (symbolInfoResult.success && symbolInfoResult.data) {
@@ -1054,7 +1077,7 @@ function showLogModal() {
   document.getElementById('logModal').classList.add('show');
   
   // Add a test log entry to verify logging is working
-  addLogEntry('info', 'Log modal opened - logging system is working');
+  addLogEntry('info', 'Log modal opened - MT5 response logging is now active', 'system');
   
   updateLogDisplay();
 }
@@ -1079,6 +1102,7 @@ function updateLogDisplay() {
   logContent.innerHTML = logEntries.map(entry => `
     <div class="log-entry">
       <span class="log-timestamp">[${entry.timestamp}]</span>
+      <span class="log-source">[${entry.source || 'console'}]</span>
       <span class="log-${entry.type}">${entry.message}</span>
     </div>
   `).join('');

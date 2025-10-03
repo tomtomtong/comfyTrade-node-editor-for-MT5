@@ -953,6 +953,13 @@ h4 {
   font-size: 10px;
 }
 
+.log-source {
+  color: #FF9800;
+  font-size: 10px;
+  font-weight: bold;
+  margin: 0 5px;
+}
+
 .log-info {
   color: #64B5F6;
 }

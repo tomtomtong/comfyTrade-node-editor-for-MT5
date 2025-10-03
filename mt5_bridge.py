@@ -86,25 +86,40 @@ class MT5Bridge:
         if not self.connected_to_mt5:
             return {"success": False, "error": "Not connected to MT5"}
         
+        logger.info(f"Executing order: {symbol} {order_type} {volume} SL:{sl} TP:{tp}")
+        
+        # Get symbol info - this validates the symbol exists
         symbol_info = mt5.symbol_info(symbol)
         if symbol_info is None:
+            logger.error(f"Symbol {symbol} not found")
             return {"success": False, "error": f"Symbol {symbol} not found"}
         
+        logger.info(f"Symbol info found: {symbol_info.name}, visible: {symbol_info.visible}")
+        
+        # Make sure symbol is visible/selected in Market Watch
         if not symbol_info.visible:
+            logger.info(f"Selecting symbol {symbol}")
             if not mt5.symbol_select(symbol, True):
+                logger.error(f"Failed to select {symbol}")
                 return {"success": False, "error": f"Failed to select {symbol}"}
         
-        point = symbol_info.point
-        price = mt5.symbol_info_tick(symbol).ask if order_type == "BUY" else mt5.symbol_info_tick(symbol).bid
+        # Get current tick data (price)
+        tick = mt5.symbol_info_tick(symbol)
+        if tick is None:
+            logger.error(f"Failed to get tick for {symbol}")
+            return {"success": False, "error": f"Failed to get current price for {symbol}"}
         
+        # Determine price based on order type (same as price_UI.py)
+        price = tick.ask if order_type == "BUY" else tick.bid
+        logger.info(f"Current price for {symbol}: ask={tick.ask}, bid={tick.bid}, using price={price}")
+        
+        # Prepare order request (matching price_UI.py structure)
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": symbol,
             "volume": volume,
             "type": mt5.ORDER_TYPE_BUY if order_type == "BUY" else mt5.ORDER_TYPE_SELL,
             "price": price,
-            "sl": sl,
-            "tp": tp,
             "deviation": 20,
             "magic": 234000,
             "comment": "Electron MT5 Bridge",
@@ -112,17 +127,32 @@ class MT5Bridge:
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
         
+        # Add SL/TP only if specified (matching price_UI.py logic)
+        if sl and sl > 0:
+            request["sl"] = sl
+        if tp and tp > 0:
+            request["tp"] = tp
+        
+        logger.info(f"Sending order request: {request}")
         result = mt5.order_send(request)
         
         if result is None:
+            logger.error("Order send returned None - Check MT5 connection and trading permissions")
             return {"success": False, "error": "Order send failed - MT5 returned None. Check connection and parameters."}
         
-        if result.retcode != mt5.TRADE_RETCODE_DONE:
-            return {"success": False, "error": f"Order failed: {result.comment}"}
+        logger.info(f"Order result: retcode={result.retcode}, comment={result.comment}")
         
+        # Check if order was successful (matching price_UI.py)
+        if result.retcode != mt5.TRADE_RETCODE_DONE:
+            error_msg = f"Order failed: {result.comment} (retcode: {result.retcode})"
+            logger.error(error_msg)
+            return {"success": False, "error": error_msg}
+        
+        logger.info(f"Order executed successfully: ticket={result.order}, price={result.price}")
         return {
             "success": True,
             "ticket": result.order,
+            "price": result.price,
             "message": "Order executed successfully"
         }
     
