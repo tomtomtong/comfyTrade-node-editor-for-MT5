@@ -85,11 +85,7 @@ function initializeNodeEditor() {
   const canvas = document.getElementById('nodeCanvas');
   nodeEditor = new NodeEditor(canvas);
   
-  // Add some example nodes
-  nodeEditor.addNode('market-data', 100, 100);
-  nodeEditor.addNode('indicator-ma', 350, 100);
-  nodeEditor.addNode('compare', 600, 150);
-  nodeEditor.addNode('trade-signal', 850, 150);
+  // Canvas starts empty - users can add nodes from the palette
 }
 
 function setupEventListeners() {

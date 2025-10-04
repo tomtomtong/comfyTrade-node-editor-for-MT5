@@ -235,15 +235,16 @@ class NodeEditor {
           symbol: 'EURUSD',
           volume: 0.1
         }
-      },
-      'constant': {
-        title: 'Constant',
-        inputs: [],
-        outputs: ['trigger'],
-        params: { value: 0 }
       }
     };
-    return configs[type] || configs['constant'];
+    
+    // Return config or a default fallback for unknown types
+    return configs[type] || {
+      title: 'Unknown Node',
+      inputs: [],
+      outputs: [],
+      params: {}
+    };
   }
 
   addConnection(fromNode, toNode, inputIndex) {
@@ -703,9 +704,6 @@ class NodeEditor {
         break;
       case 'trade-signal':
         console.log('Executing trade:', node.params.action, node.params.symbol, node.params.volume);
-        break;
-      case 'constant':
-        console.log('Constant value:', node.params.value);
         break;
     }
     

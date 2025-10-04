@@ -148,20 +148,6 @@ All nodes in the system now use trigger inputs and trigger outputs to create exe
 - Execute actual trades
 - Place orders based on strategy signals
 
-### 8. Constant Node 🔢
-
-**Purpose**: Provide constant values for calculations.
-
-**Inputs**: None (standalone)
-**Outputs**: `trigger` - passes execution to next node
-
-**Parameters**:
-- `value` (number): Constant value
-
-**Use Cases**:
-- Reference values in comparisons
-- Threshold values for indicators
-
 ## How to Use
 
 ### Creating Execution Flows

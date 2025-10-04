@@ -19,7 +19,6 @@ Completely redesigned the node system to use only trigger inputs and trigger out
 - **Logic Gates (AND, OR)**: `trigger1` + `trigger2` inputs, `trigger` output
 - **Conditional Check**: `trigger` input, `trigger` output (with symbol price comparison)
 - **Trade Signal**: `trigger` input, no outputs (end point)
-- **Constant Node**: No inputs, `trigger` output (standalone)
 
 ### Benefits
 - **Simplified Connections**: No more complex type matching between nodes
