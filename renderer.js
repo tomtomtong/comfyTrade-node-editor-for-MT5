@@ -169,12 +169,19 @@ function showTradeModal() {
   
   document.getElementById('tradeModal').classList.add('show');
   
+  // Update current price if symbol is already selected
+  const currentSymbol = symbolInput.getValue();
+  if (currentSymbol && currentSymbol.length >= 6) {
+    updateCurrentPrice(currentSymbol);
+  }
+  
   // Note: Removed automatic volume loss calculation to prevent immediate popup
   // Users can still calculate volume loss by changing volume or symbol values
 }
 
 function hideTradeModal() {
   document.getElementById('tradeModal').classList.remove('show');
+  stopPriceAutoRefresh();
 }
 
 function initializeSymbolInput() {
@@ -183,13 +190,17 @@ function initializeSymbolInput() {
     placeholder: 'Enter symbol (e.g., EURUSD)',
     onSymbolSelect: (symbol, symbolData) => {
       console.log('Selected symbol:', symbol, symbolData);
+      updateCurrentPrice(symbol);
     },
     onSymbolChange: (symbol) => {
       // Update market data display if needed
       if (symbol && symbol.length >= 6) {
         updateMarketDataPreview(symbol);
+        updateCurrentPrice(symbol);
         // Note: Removed automatic volume loss calculation to prevent immediate popup
         // Users can still calculate volume loss by changing volume or symbol values
+      } else {
+        hideCurrentPrice();
       }
     }
   });
@@ -199,9 +210,18 @@ function initializeSymbolInput() {
     btn.addEventListener('click', () => {
       const symbol = btn.dataset.symbol;
       symbolInput.setValue(symbol);
+      updateCurrentPrice(symbol);
       // Note: Removed automatic volume loss calculation to prevent immediate popup
       // Users can still calculate volume loss by changing volume or symbol values
     });
+  });
+  
+  // Refresh price button
+  document.getElementById('refreshPriceBtn').addEventListener('click', () => {
+    const symbol = symbolInput.getValue();
+    if (symbol && symbol.length >= 6) {
+      updateCurrentPrice(symbol);
+    }
   });
 }
 
@@ -215,6 +235,106 @@ async function updateMarketDataPreview(symbol) {
     }
   } catch (error) {
     console.error('Error getting market data:', error);
+  }
+}
+
+let priceUpdateInterval = null;
+
+async function updateCurrentPrice(symbol) {
+  if (!isConnected || !symbol || symbol.length < 6) {
+    hideCurrentPrice();
+    return;
+  }
+
+  try {
+    // Show loading state
+    showCurrentPriceLoading();
+    
+    const result = await window.mt5API.getMarketData(symbol);
+    
+    if (result.success && result.data) {
+      const data = result.data;
+      
+      // Show the price display
+      document.getElementById('currentPriceGroup').style.display = 'block';
+      
+      // Update price values with animation
+      updatePriceValue('currentBid', data.bid);
+      updatePriceValue('currentAsk', data.ask);
+      updatePriceValue('currentSpread', (data.ask - data.bid).toFixed(5));
+      
+      // Update timestamp
+      const now = new Date();
+      document.getElementById('priceUpdateTime').textContent = now.toLocaleTimeString();
+      
+      // Start auto-refresh if not already running
+      startPriceAutoRefresh(symbol);
+      
+    } else {
+      showPriceError('Failed to get price data');
+    }
+  } catch (error) {
+    console.error('Error getting current price:', error);
+    showPriceError('Error: ' + error.message);
+  }
+}
+
+function updatePriceValue(elementId, value) {
+  const element = document.getElementById(elementId);
+  const formattedValue = typeof value === 'number' ? value.toFixed(5) : value;
+  
+  // Add updating animation
+  element.classList.add('updating');
+  
+  setTimeout(() => {
+    element.textContent = formattedValue;
+    element.classList.remove('updating');
+    element.classList.add('updated');
+    
+    setTimeout(() => {
+      element.classList.remove('updated');
+    }, 500);
+  }, 150);
+}
+
+function showCurrentPriceLoading() {
+  document.getElementById('currentPriceGroup').style.display = 'block';
+  document.getElementById('currentBid').textContent = 'Loading...';
+  document.getElementById('currentAsk').textContent = 'Loading...';
+  document.getElementById('currentSpread').textContent = 'Loading...';
+  document.getElementById('priceUpdateTime').textContent = 'Updating...';
+}
+
+function showPriceError(message) {
+  document.getElementById('currentBid').textContent = 'Error';
+  document.getElementById('currentAsk').textContent = 'Error';
+  document.getElementById('currentSpread').textContent = 'Error';
+  document.getElementById('priceUpdateTime').textContent = message;
+}
+
+function hideCurrentPrice() {
+  document.getElementById('currentPriceGroup').style.display = 'none';
+  stopPriceAutoRefresh();
+}
+
+function startPriceAutoRefresh(symbol) {
+  // Clear existing interval
+  stopPriceAutoRefresh();
+  
+  // Update every 5 seconds
+  priceUpdateInterval = setInterval(() => {
+    if (isConnected && document.getElementById('tradeModal').classList.contains('show')) {
+      updateCurrentPrice(symbol);
+    } else {
+      stopPriceAutoRefresh();
+    }
+  }, 5000);
+}
+
+function stopPriceAutoRefresh() {
+  if (priceUpdateInterval) {
+    clearInterval(priceUpdateInterval);
+    priceUpdateInterval = null;
   }
 }
 
@@ -725,6 +845,37 @@ window.deleteSelectedNode = function() {
   if (nodeEditor && nodeEditor.selectedNode) {
     nodeEditor.deleteSelectedNode();
     showMessage('Node deleted', 'info');
+  }
+};
+
+window.getCurrentPriceForNode = async function(nodeId) {
+  const node = nodeEditor.nodes.find(n => n.id === nodeId);
+  if (!node || !node.params.symbol) {
+    showMessage('Please set a symbol for this node first', 'error');
+    return;
+  }
+  
+  if (!isConnected) {
+    showMessage('Please connect to MT5 first', 'error');
+    return;
+  }
+  
+  try {
+    const result = await window.mt5API.getMarketData(node.params.symbol);
+    
+    if (result.success && result.data) {
+      const price = result.data.bid || result.data.ask;
+      node.params.price = price;
+      
+      // Update the properties panel
+      updatePropertiesPanel(node);
+      
+      showMessage(`Current price for ${node.params.symbol}: ${price.toFixed(5)}`, 'success');
+    } else {
+      showMessage('Failed to get current price: ' + (result.error || 'Unknown error'), 'error');
+    }
+  } catch (error) {
+    showMessage('Error getting current price: ' + error.message, 'error');
   }
 };
 

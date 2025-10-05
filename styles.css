@@ -792,8 +792,9 @@ h4 {
   background: #4CAF50;
   border-color: #4CAF50;
   color: white;
-}/
-* Node Properties Symbol Input */
+}
+
+/* Node Properties Symbol Input */
 .node-symbol-input .symbol-input-wrapper {
   width: 100%;
 }
@@ -1721,4 +1722,81 @@ Import Styles */
   0%, 20%, 50%, 80%, 100% { transform: scale(1); }
   40% { transform: scale(1.2); }
   60% { transform: scale(1.1); }
+}
+
+/* Current Price Display */
+.current-price-display {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 5px;
+}
+
+.price-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.price-info:last-of-type {
+  margin-bottom: 12px;
+}
+
+.price-label {
+  font-weight: 500;
+  color: #b0b0b0;
+  font-size: 14px;
+}
+
+.price-value {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 14px;
+  color: #4CAF50;
+  background: #1a1a1a;
+  padding: 2px 6px;
+  border-radius: 3px;
+  min-width: 80px;
+  text-align: right;
+}
+
+.price-refresh {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #444;
+}
+
+.price-time {
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: 12px;
+  min-width: auto;
+}
+
+/* Price update animation */
+.price-value.updating {
+  background: #FFC107;
+  color: #000;
+  transition: all 0.3s ease;
+}
+
+.price-value.updated {
+  background: #4CAF50;
+  color: #fff;
+  animation: priceFlash 0.5s ease;
+}
+
+@keyframes priceFlash {
+  0% { background: #4CAF50; }
+  50% { background: #66BB6A; }
+  100% { background: #4CAF50; }
 }

@@ -179,6 +179,27 @@
             <button class="quick-symbol-btn" data-symbol="USDCAD">USDCAD</button>
           </div>
         </div>
+        <div class="form-group" id="currentPriceGroup" style="display: none;">
+          <label>Current Price:</label>
+          <div class="current-price-display">
+            <div class="price-info">
+              <span class="price-label">Bid:</span>
+              <span id="currentBid" class="price-value">-</span>
+            </div>
+            <div class="price-info">
+              <span class="price-label">Ask:</span>
+              <span id="currentAsk" class="price-value">-</span>
+            </div>
+            <div class="price-info">
+              <span class="price-label">Spread:</span>
+              <span id="currentSpread" class="price-value">-</span>
+            </div>
+            <div class="price-refresh">
+              <button id="refreshPriceBtn" class="btn btn-small btn-secondary">Refresh</button>
+              <span id="priceUpdateTime" class="price-time">-</span>
+            </div>
+          </div>
+        </div>
         <div class="form-group">
           <label>Order Type:</label>
           <select id="tradeType">
