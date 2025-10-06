@@ -21,21 +21,54 @@ class OvertradeControl {
   }
 
   loadSettings() {
-    const saved = localStorage.getItem('overtradeSettings');
-    if (saved) {
-      this.settings = { ...this.settings, ...JSON.parse(saved) };
-    }
-    
-    const history = localStorage.getItem('overtradeHistory');
-    if (history) {
-      this.tradeHistory = JSON.parse(history);
-      this.cleanupOldTrades();
+    try {
+      const saved = localStorage.getItem('overtradeSettings');
+      if (saved) {
+        this.settings = { ...this.settings, ...JSON.parse(saved) };
+      }
+      
+      const history = localStorage.getItem('overtradeHistory');
+      if (history) {
+        this.tradeHistory = JSON.parse(history);
+        this.cleanupOldTrades();
+      }
+      
+      // Load last warning time
+      const lastWarning = localStorage.getItem('overtradeLastWarning');
+      if (lastWarning) {
+        this.lastWarningTime = parseInt(lastWarning);
+      }
+      
+      // Load warning count
+      const warningCount = localStorage.getItem('overtradeWarningCount');
+      if (warningCount) {
+        this.warningCount = parseInt(warningCount);
+      }
+      
+      console.log('Overtrade control loaded:', {
+        settings: this.settings,
+        tradeCount: this.tradeHistory.length,
+        lastWarning: this.lastWarningTime ? new Date(this.lastWarningTime).toLocaleString() : 'Never'
+      });
+    } catch (error) {
+      console.error('Error loading overtrade settings:', error);
     }
   }
 
   saveSettings() {
-    localStorage.setItem('overtradeSettings', JSON.stringify(this.settings));
-    localStorage.setItem('overtradeHistory', JSON.stringify(this.tradeHistory));
+    try {
+      localStorage.setItem('overtradeSettings', JSON.stringify(this.settings));
+      localStorage.setItem('overtradeHistory', JSON.stringify(this.tradeHistory));
+      localStorage.setItem('overtradeLastWarning', this.lastWarningTime ? this.lastWarningTime.toString() : '0');
+      localStorage.setItem('overtradeWarningCount', this.warningCount.toString());
+      
+      console.log('Overtrade data saved:', {
+        tradeCount: this.tradeHistory.length,
+        settings: this.settings
+      });
+    } catch (error) {
+      console.error('Error saving overtrade settings:', error);
+    }
   }
 
   setupEventListeners() {
@@ -112,8 +145,18 @@ class OvertradeControl {
     };
     
     this.tradeHistory.push(trade);
+    
+    // Save immediately after recording trade
     this.saveSettings();
+    
+    // Update display
     this.updateStatusDisplay();
+    
+    console.log('Trade recorded:', {
+      type: tradeType,
+      totalTrades: this.tradeHistory.length,
+      currentPeriodTrades: this.getCurrentPeriodTrades()
+    });
   }
 
   checkAndShowReminder(tradeType, tradeData = {}) {
@@ -204,6 +247,9 @@ class OvertradeControl {
     if (this.pendingTradeData) {
       this.recordTrade(this.pendingTradeData.type, this.pendingTradeData.data);
     }
+    
+    // Save warning data immediately
+    this.saveSettings();
     
     this.hideWarningModal();
     
@@ -379,10 +425,29 @@ class OvertradeControl {
   startPeriodicCleanup() {
     // Clean up old trades every minute
     setInterval(() => {
+      const beforeCount = this.tradeHistory.length;
       this.cleanupOldTrades();
-      this.saveSettings();
+      const afterCount = this.tradeHistory.length;
+      
+      if (beforeCount !== afterCount) {
+        console.log(`Cleaned up ${beforeCount - afterCount} old trades`);
+        this.saveSettings();
+      }
+      
       this.updateStatusDisplay();
     }, 60000);
+    
+    // Save data every 5 minutes as backup
+    setInterval(() => {
+      this.saveSettings();
+      console.log('Backup save completed');
+    }, 300000);
+    
+    // Save before window closes
+    window.addEventListener('beforeunload', () => {
+      this.saveSettings();
+      console.log('Saving overtrade data before close');
+    });
     
     // Initial status update
     setTimeout(() => this.updateStatusDisplay(), 100);
@@ -416,7 +481,85 @@ class OvertradeControl {
     
     showMessage(`Simulated ${count} trades for testing`, 'info');
   }
+
+  // Export data for backup
+  exportData() {
+    const data = {
+      settings: this.settings,
+      tradeHistory: this.tradeHistory,
+      lastWarningTime: this.lastWarningTime,
+      warningCount: this.warningCount,
+      exportDate: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `overtrade-backup-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showMessage('Overtrade data exported', 'success');
+  }
+
+  // Import data from backup
+  importData(jsonData) {
+    try {
+      const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+      
+      if (data.settings) this.settings = data.settings;
+      if (data.tradeHistory) this.tradeHistory = data.tradeHistory;
+      if (data.lastWarningTime) this.lastWarningTime = data.lastWarningTime;
+      if (data.warningCount) this.warningCount = data.warningCount;
+      
+      this.saveSettings();
+      this.updateStatusDisplay();
+      
+      showMessage('Overtrade data imported successfully', 'success');
+      console.log('Imported data from:', data.exportDate);
+    } catch (error) {
+      console.error('Error importing data:', error);
+      showMessage('Failed to import data', 'error');
+    }
+  }
+
+  // Clear all data (for testing or reset)
+  clearAllData() {
+    if (confirm('Are you sure you want to clear all overtrade data? This cannot be undone.')) {
+      localStorage.removeItem('overtradeSettings');
+      localStorage.removeItem('overtradeHistory');
+      localStorage.removeItem('overtradeLastWarning');
+      localStorage.removeItem('overtradeWarningCount');
+      
+      this.tradeHistory = [];
+      this.lastWarningTime = null;
+      this.warningCount = 0;
+      
+      this.updateStatusDisplay();
+      showMessage('All overtrade data cleared', 'info');
+    }
+  }
+
+  // Get detailed status for debugging
+  getDetailedStatus() {
+    return {
+      enabled: this.settings.enabled,
+      settings: this.settings,
+      totalTradesRecorded: this.tradeHistory.length,
+      currentPeriodTrades: this.getCurrentPeriodTrades(),
+      oldestTrade: this.tradeHistory.length > 0 ? new Date(this.tradeHistory[0].timestamp).toLocaleString() : 'None',
+      newestTrade: this.tradeHistory.length > 0 ? new Date(this.tradeHistory[this.tradeHistory.length - 1].timestamp).toLocaleString() : 'None',
+      lastWarning: this.lastWarningTime ? new Date(this.lastWarningTime).toLocaleString() : 'Never',
+      warningCount: this.warningCount,
+      nextReset: new Date(Date.now() + this.getTimePeriodMs()).toLocaleString()
+    };
+  }
 }
 
 // Initialize overtrade control
 window.overtradeControl = new OvertradeControl();
+
+// Add console helper for debugging
+console.log('Overtrade Control initialized. Use window.overtradeControl.getDetailedStatus() to check status.');

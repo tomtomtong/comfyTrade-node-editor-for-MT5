@@ -122,7 +122,6 @@ class MT5Bridge:
             "price": price,
             "deviation": 20,
             "magic": 234000,
-            "comment": "Electron MT5 Bridge",
             "type_time": mt5.ORDER_TIME_GTC,
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
@@ -179,7 +178,6 @@ class MT5Bridge:
             "price": price,
             "deviation": 20,
             "magic": 234000,
-            "comment": "Close position",
             "type_time": mt5.ORDER_TIME_GTC,
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
