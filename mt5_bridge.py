@@ -398,6 +398,55 @@ class MT5Bridge:
             logger.error(f"Error getting historical data: {e}")
             return {"error": str(e)}
     
+    def get_percentage_change(self, symbol, timeframe='M1'):
+        """Calculate percentage change between current and previous bar"""
+        if not self.connected_to_mt5:
+            return {"error": "Not connected to MT5"}
+        
+        # Map timeframe strings to MT5 constants
+        timeframe_map = {
+            'M1': mt5.TIMEFRAME_M1,
+            'M5': mt5.TIMEFRAME_M5,
+            'M15': mt5.TIMEFRAME_M15,
+            'M30': mt5.TIMEFRAME_M30,
+            'H1': mt5.TIMEFRAME_H1,
+            'H4': mt5.TIMEFRAME_H4,
+            'D1': mt5.TIMEFRAME_D1,
+            'W1': mt5.TIMEFRAME_W1,
+        }
+        
+        tf = timeframe_map.get(timeframe, mt5.TIMEFRAME_M1)
+        
+        try:
+            # Get last 2 bars to calculate percentage change
+            rates = mt5.copy_rates_from_pos(symbol, tf, 0, 2)
+            
+            if rates is None or len(rates) < 2:
+                return {"error": f"Insufficient data for {symbol} to calculate percentage change"}
+            
+            # Get current price (most recent close) and previous price
+            current_price = float(rates[-1]['close'])  # Most recent bar
+            previous_price = float(rates[-2]['close'])  # Previous bar
+            
+            # Calculate percentage change
+            if previous_price == 0:
+                return {"error": "Cannot calculate percentage change: previous price is zero"}
+            
+            percentage_change = ((current_price - previous_price) / previous_price) * 100
+            
+            return {
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "current_price": current_price,
+                "previous_price": previous_price,
+                "percentage_change": round(percentage_change, 4),
+                "absolute_change": round(current_price - previous_price, 5)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating percentage change: {e}")
+            return {"error": str(e)}
+    
     async def handle_message(self, websocket, message):
         """Handle incoming WebSocket messages from Electron"""
         try:
@@ -475,6 +524,13 @@ class MT5Bridge:
                     end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
                 
                 result = self.get_historical_data(symbol, timeframe, start_date, end_date, bars)
+                response['data'] = result
+            
+            elif action == 'getPercentageChange':
+                symbol = data.get('symbol')
+                timeframe = data.get('timeframe', 'M1')
+                
+                result = self.get_percentage_change(symbol, timeframe)
                 response['data'] = result
             
             else:

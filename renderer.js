@@ -848,6 +848,48 @@ function updatePropertiesPanel(node) {
                    onchange="updateNodeParam('${key}', parseFloat(this.value))">
           </div>
         `;
+      } else if (key === 'usePercentageChange' && node.type === 'conditional-check') {
+        return `
+          <div class="property-item">
+            <label>Use Percentage Change:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value === 'true')">
+              <option value="false" ${!value ? 'selected' : ''}>Use Price</option>
+              <option value="true" ${value ? 'selected' : ''}>Use Percentage Change</option>
+            </select>
+          </div>
+        `;
+      } else if (key === 'percentageChange' && node.type === 'conditional-check') {
+        return `
+          <div class="property-item">
+            <label>Target % Change:</label>
+            <input type="number" 
+                   value="${value}" 
+                   step="0.01"
+                   data-param="${key}"
+                   onchange="updateNodeParam('${key}', parseFloat(this.value))">
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Percentage change threshold to trigger condition (e.g., 2.5 for 2.5%)
+            </small>
+          </div>
+        `;
+      } else if (key === 'timeframe' && node.type === 'conditional-check') {
+        return `
+          <div class="property-item">
+            <label>Timeframe (for % change):</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value)">
+              <option value="M1" ${value === 'M1' ? 'selected' : ''}>M1 - Compare last 2 minutes</option>
+              <option value="M5" ${value === 'M5' ? 'selected' : ''}>M5 - Compare last 2 x 5min bars</option>
+              <option value="M15" ${value === 'M15' ? 'selected' : ''}>M15 - Compare last 2 x 15min bars</option>
+              <option value="M30" ${value === 'M30' ? 'selected' : ''}>M30 - Compare last 2 x 30min bars</option>
+              <option value="H1" ${value === 'H1' ? 'selected' : ''}>H1 - Compare last 2 hours</option>
+              <option value="H4" ${value === 'H4' ? 'selected' : ''}>H4 - Compare last 2 x 4hour bars</option>
+              <option value="D1" ${value === 'D1' ? 'selected' : ''}>D1 - Compare last 2 days</option>
+            </select>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Timeframe determines the period size for calculating percentage change
+            </small>
+          </div>
+        `;
       } else if (key === 'type' && node.type === 'signal-popup') {
         return `
           <div class="property-item">
@@ -1785,7 +1827,7 @@ async function getCurrentPriceForNode(nodeId) {
   }
 }
 
-// Make function globally available
+// Make functions globally available
 window.getCurrentPriceForNode = getCurrentPriceForNode;
 
 // Test signal popup function

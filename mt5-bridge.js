@@ -310,6 +310,19 @@ class MT5Bridge {
     return response.data;
   }
 
+  async getPercentageChange(symbol, timeframe = 'M1') {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    const response = await this.sendMessage('getPercentageChange', {
+      symbol,
+      timeframe
+    });
+
+    return response.data;
+  }
+
   shutdown() {
     if (this.ws) {
       this.ws.close();

@@ -160,3 +160,12 @@ ipcMain.handle('mt5:getHistoricalData', async (event, { symbol, timeframe, start
         return { success: false, error: error.message };
     }
 });
+
+ipcMain.handle('mt5:getPercentageChange', async (event, { symbol, timeframe }) => {
+    try {
+        const result = await mt5Bridge.getPercentageChange(symbol, timeframe);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});

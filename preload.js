@@ -13,5 +13,6 @@ contextBridge.exposeInMainWorld('mt5API', {
   getSymbols: (group) => ipcRenderer.invoke('mt5:getSymbols', group),
   searchSymbols: (query) => ipcRenderer.invoke('mt5:searchSymbols', query),
   executeOrder: (orderData) => ipcRenderer.invoke('mt5:executeOrder', orderData),
-  getHistoricalData: (params) => ipcRenderer.invoke('mt5:getHistoricalData', params)
+  getHistoricalData: (params) => ipcRenderer.invoke('mt5:getHistoricalData', params),
+  getPercentageChange: (symbol, timeframe) => ipcRenderer.invoke('mt5:getPercentageChange', { symbol, timeframe })
 });

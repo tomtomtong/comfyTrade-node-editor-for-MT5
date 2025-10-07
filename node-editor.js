@@ -203,7 +203,10 @@ class NodeEditor {
         params: { 
           symbol: 'EURUSD',
           operator: '>',
-          price: 1.1000
+          price: 1.1000,
+          percentageChange: 0,
+          usePercentageChange: false,
+          timeframe: 'M1'
         }
       },
       'logic-and': {
@@ -809,8 +812,12 @@ class NodeEditor {
         console.log('Calculating RSI with period:', node.params.period);
         break;
       case 'conditional-check':
-        console.log('Checking if', node.params.symbol, 'is', node.params.operator, node.params.price);
-        // TODO: Implement actual price comparison with MT5 data
+        if (node.params.usePercentageChange) {
+          console.log('Checking if', node.params.symbol, 'percentage change on', node.params.timeframe, 'is', node.params.operator, node.params.percentageChange + '%');
+        } else {
+          console.log('Checking if', node.params.symbol, 'price is', node.params.operator, node.params.price);
+        }
+        // TODO: Implement actual price/percentage comparison with MT5 data
         break;
       case 'logic-and':
         console.log('Executing AND logic - requires both inputs to be triggered');
