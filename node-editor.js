@@ -44,17 +44,7 @@ class NodeEditor {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Check for connection line click (disconnect)
-    if (this.hoveredConnection) {
-      this.removeConnection(this.hoveredConnection);
-      this.hoveredConnection = null;
-      return;
-    }
-
-    // Trigger nodes don't have manual click buttons anymore
-    // They execute when Run Strategy is clicked
-
-    // Check for output socket click (start connection)
+    // Check for output socket click FIRST (start connection) - higher priority than connection line
     for (let node of this.nodes) {
       const socket = this.getOutputSocketPos(node);
       const dist = Math.hypot(x - socket.x, y - socket.y);
@@ -63,6 +53,32 @@ class NodeEditor {
         return;
       }
     }
+
+    // Check for input socket click (also start connection from input side)
+    for (let node of this.nodes) {
+      for (let i = 0; i < node.inputs.length; i++) {
+        const socket = this.getInputSocketPos(node, i);
+        const dist = Math.hypot(x - socket.x, y - socket.y);
+        if (dist < 8) {
+          // Find existing connection to this input and start from its source
+          const existingConn = this.connections.find(c => c.to === node && c.toInput === i);
+          if (existingConn) {
+            this.connectingFrom = existingConn.from;
+            return;
+          }
+        }
+      }
+    }
+
+    // Check for connection line click (disconnect) - lower priority than sockets
+    if (this.hoveredConnection) {
+      this.removeConnection(this.hoveredConnection);
+      this.hoveredConnection = null;
+      return;
+    }
+
+    // Trigger nodes don't have manual click buttons anymore
+    // They execute when Run Strategy is clicked
 
     // Check for node click
     for (let i = this.nodes.length - 1; i >= 0; i--) {
@@ -293,16 +309,29 @@ class NodeEditor {
       return;
     }
 
-    // Remove existing connection to this input
+    // Check if this exact connection already exists
+    const existingConnection = this.connections.find(
+      conn => conn.from === fromNode && conn.to === toNode && conn.toInput === inputIndex
+    );
+    
+    if (existingConnection) {
+      console.log('Connection already exists between these nodes');
+      return;
+    }
+
+    // Remove any existing connection to this specific input (one input can only have one source)
     this.connections = this.connections.filter(
       conn => !(conn.to === toNode && conn.toInput === inputIndex)
     );
 
+    // Add the new connection (one output can connect to multiple inputs)
     this.connections.push({
       from: fromNode,
       to: toNode,
       toInput: inputIndex
     });
+    
+    console.log(`✓ Connection added: ${fromNode.title} → ${toNode.title} (Total connections from ${fromNode.title}: ${this.connections.filter(c => c.from === fromNode).length})`);
   }
 
   removeNode(node) {

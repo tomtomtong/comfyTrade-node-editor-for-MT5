@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Symbol Input Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #2b2b2b;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        
+        .symbol-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .symbol-input {
+            flex: 1;
+            padding: 8px 35px 8px 12px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #333;
+            color: #e0e0e0;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .symbol-input:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        .symbol-dropdown-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 2px;
+            transition: color 0.2s;
+        }
+
+        .symbol-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .debug-info {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Symbol Input Debug Test</h1>
+    
+    <div class="debug-info">
+        <h3>Test 1: Basic Input</h3>
+        <input type="text" placeholder="Basic input test" style="padding: 8px; background: #333; color: #e0e0e0; border: 1px solid #555;">
+    </div>
+    
+    <div class="debug-info">
+        <h3>Test 2: Symbol Input Component</h3>
+        <div id="testContainer"></div>
+        <p>Value: <span id="currentValue">-</span></p>
+        <button onclick="testInput()">Test Input</button>
+        <button onclick="setValue()">Set Value</button>
+        <button onclick="clearValue()">Clear</button>
+    </div>
+
+    <script src="symbol-input.js"></script>
+    <script>
+        let testSymbolInput;
+        
+        // Mock MT5 API for testing
+        window.mt5API = {
+            getSymbols: async () => {
+                return {
+                    success: true,
+                    data: [
+                        { name: 'EURUSD', description: 'Euro vs US Dollar', currency_base: 'EUR', currency_profit: 'USD', digits: 5 },
+                        { name: 'GBPUSD', description: 'British Pound vs US Dollar', currency_base: 'GBP', currency_profit: 'USD', digits: 5 },
+                        { name: 'USDJPY', description: 'US Dollar vs Japanese Yen', currency_base: 'USD', currency_profit: 'JPY', digits: 3 }
+                    ]
+                };
+            }
+        };
+        
+        // Initialize symbol input
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('testContainer');
+            testSymbolInput = new SymbolInput(container, {
+                placeholder: 'Enter symbol (e.g., EURUSD)',
+                onSymbolSelect: (symbol, symbolData) => {
+                    console.log('Selected symbol:', symbol, symbolData);
+                    updateValue();
+                },
+                onSymbolChange: (symbol) => {
+                    console.log('Symbol changed:', symbol);
+                    updateValue();
+                }
+            });
+            
+            updateValue();
+        });
+        
+        function updateValue() {
+            const value = testSymbolInput ? testSymbolInput.getValue() : 'Not initialized';
+            document.getElementById('currentValue').textContent = value;
+        }
+        
+        function testInput() {
+            if (testSymbolInput) {
+                testSymbolInput.focus();
+                console.log('Input focused, current value:', testSymbolInput.getValue());
+            }
+        }
+        
+        function setValue() {
+            if (testSymbolInput) {
+                testSymbolInput.setValue('EURUSD');
+                updateValue();
+            }
+        }
+        
+        function clearValue() {
+            if (testSymbolInput) {
+                testSymbolInput.clear();
+                updateValue();
+            }
+        }
+        
+        // Debug event listeners
+        document.addEventListener('click', (e) => {
+            console.log('Click event:', e.target);
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            console.log('Keydown event:', e.key, e.target);
+        });
+        
+        document.addEventListener('input', (e) => {
+            console.log('Input event:', e.target.value, e.target);
+        });
+    </script>
+</body>
+</html>
