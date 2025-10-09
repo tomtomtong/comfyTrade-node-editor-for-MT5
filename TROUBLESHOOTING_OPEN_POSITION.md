@@ -13,7 +13,14 @@ I've added enhanced logging and a test function to help diagnose the issue.
 
 In the console, type:
 ```javascript
+// Test open position functionality
 window.testOpenPositionNode()
+
+// Test modify position functionality
+window.testModifyPositionNode()
+
+// Test modify position with specific parameters
+window.testModifyPositionNode(123456789, 1.08000, 1.09000)
 ```
 
 This will:
@@ -183,4 +190,6 @@ If the test function passes but your strategy still doesn't work:
 
 ## Need More Help?
 
-Share the console output from `window.testOpenPositionNode()` and any error messages you see.
+Share the console output from the relevant test function and any error messages you see:
+- `window.testOpenPositionNode()` for open position issues
+- `window.testModifyPositionNode()` for modify position issues

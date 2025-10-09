@@ -199,22 +199,53 @@ Example: Price > 1.08 OR Price < 1.06
 
 **What it does:**
 - Validates MT5 connection
-- Checks if position exists
+- Checks if position exists and is valid
+- Validates SL/TP values against current price and position type
+- Performs comprehensive pre-modification checks
 - Modifies Stop Loss and Take Profit
-- Shows detailed results
+- Shows detailed before/after comparison
 
 **When to use:**
-- To verify SL/TP values are valid
+- To verify SL/TP values are valid for the position type
 - To test modification before adding to strategy
 - To check if values are too close to current price
+- To validate position still exists before modification
 
-**Example output:**
+**Enhanced validation checks:**
+- Position existence and validity
+- SL/TP direction validation (BUY vs SELL positions)
+- Price level reasonableness
+- Minimum distance requirements
+
+**Example output (Success):**
 ```
 ✅ Position Modified Successfully!
 
 Ticket: 123456789
-Stop Loss: 1.08000
-Take Profit: 1.09000
+Symbol: EURUSD
+Type: BUY
+Volume: 0.10
+
+Changes:
+Stop Loss: 1.07500 → 1.08000
+Take Profit: None → 1.09000
+
+💡 The position has been successfully updated in MT5.
+```
+
+**Example output (Validation Error):**
+```
+❌ Validation Errors:
+
+• Stop Loss (1.09000) must be below current price (1.08500) for BUY positions
+• Take Profit (1.07000) must be above current price (1.08500) for BUY positions
+
+💡 Current Position Info:
+Symbol: EURUSD
+Type: BUY
+Current Price: 1.08500
+Current SL: 1.07500
+Current TP: None
 ```
 
 ---
@@ -351,10 +382,54 @@ If tests fail, check MT5 connection status first.
 
 ---
 
+## Console Debug Functions
+
+For advanced testing and debugging, you can use these console functions:
+
+### `window.testModifyPositionNode(ticketId, stopLoss, takeProfit)`
+
+**Purpose:** Test modify position functionality from console with custom parameters
+
+**Parameters:**
+- `ticketId` (optional): Specific position ticket to test with
+- `stopLoss` (optional): Custom stop loss value
+- `takeProfit` (optional): Custom take profit value
+
+**Usage examples:**
+```javascript
+// Test with first available position (auto-calculated SL/TP)
+window.testModifyPositionNode()
+
+// Test specific position with auto-calculated SL/TP
+window.testModifyPositionNode(123456789)
+
+// Test with custom SL/TP values
+window.testModifyPositionNode(123456789, 1.08000, 1.09000)
+
+// Test with only stop loss
+window.testModifyPositionNode(123456789, 1.08000, null)
+```
+
+**What it does:**
+- Lists all available positions
+- Validates parameters comprehensively
+- Calculates reasonable default values if not provided
+- Shows detailed before/after comparison
+- Provides extensive logging for debugging
+
+**When to use:**
+- When you need to test with specific values
+- For debugging position modification issues
+- To understand how SL/TP validation works
+- When the UI test button isn't sufficient
+
+---
+
 ## Need Help?
 
 If you encounter issues:
 1. Check the error message in the modal
 2. Look at the console logs (`Ctrl+Shift+I`)
-3. Verify MT5 connection
-4. Check `TROUBLESHOOTING_OPEN_POSITION.md` for detailed help
+3. Try the console debug functions for more detailed information
+4. Verify MT5 connection
+5. Check `TROUBLESHOOTING_OPEN_POSITION.md` for detailed help

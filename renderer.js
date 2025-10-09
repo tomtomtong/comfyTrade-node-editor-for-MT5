@@ -1387,6 +1387,31 @@ window.onStrategyExecutionStateChanged = function(isExecuting) {
       canvas.classList.remove('locked');
     }
   }
+  
+  // Disable/enable node palette buttons during strategy execution
+  const nodeButtons = document.querySelectorAll('.node-btn');
+  nodeButtons.forEach(btn => {
+    btn.disabled = isExecuting;
+    if (isExecuting) {
+      btn.classList.add('disabled');
+    } else {
+      btn.classList.remove('disabled');
+    }
+  });
+  
+  // Also disable graph management buttons during strategy execution
+  const graphButtons = ['saveGraphBtn', 'loadGraphBtn', 'clearGraphBtn'];
+  graphButtons.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.disabled = isExecuting;
+      if (isExecuting) {
+        btn.classList.add('disabled');
+      } else {
+        btn.classList.remove('disabled');
+      }
+    }
+  });
 };
 
 window.updateNodeParam = function(key, value) {
@@ -2811,26 +2836,93 @@ window.testModifyPosition = async function(nodeId) {
     // Check MT5 connection
     if (!isConnected || !window.mt5API) {
       showMessage('MT5 not connected - Please connect first', 'error');
-      showTestResultModal('MT5 Connection Error', '❌ MT5 Not Connected!\n\nPlease connect to MT5 first.', false);
+      showTestResultModal('MT5 Connection Error', '❌ MT5 Not Connected!\n\nPlease connect to MT5 first.\n\n💡 Solution: Click "Connect to MT5" button first.', false);
       return;
     }
     
     // Validate ticket
     if (!node.params.ticket) {
       showMessage('No ticket specified', 'error');
-      showTestResultModal('Configuration Error', '❌ No Ticket Specified!\n\nPlease select a position ticket from the dropdown.', false);
+      showTestResultModal('Configuration Error', '❌ No Ticket Specified!\n\nPlease select a position ticket from the dropdown.\n\n💡 Solution: Choose a position from the "Ticket" dropdown in the properties panel.', false);
       return;
     }
+    
+    // Get current position info for validation
+    const positions = await window.mt5API.getPositions();
+    if (!positions.success) {
+      showMessage('Failed to get positions', 'error');
+      showTestResultModal('Position Check Failed', '❌ Could not retrieve current positions!\n\nThis might indicate an MT5 connection issue.', false);
+      return;
+    }
+    
+    const currentPosition = positions.data.find(pos => pos.ticket == node.params.ticket);
+    if (!currentPosition) {
+      showMessage('Position not found', 'error');
+      showTestResultModal('Position Not Found', `❌ Position with ticket ${node.params.ticket} not found!\n\nThe position may have been closed or the ticket is invalid.\n\n💡 Solution: Refresh positions and select a valid ticket.`, false);
+      return;
+    }
+    
+    // Validate SL/TP values
+    const stopLoss = parseFloat(node.params.stopLoss) || 0;
+    const takeProfit = parseFloat(node.params.takeProfit) || 0;
+    const currentPrice = currentPosition.price_current;
+    const symbol = currentPosition.symbol;
+    const isBuy = currentPosition.type === 0; // 0 = BUY, 1 = SELL
+    
+    let validationErrors = [];
+    
+    // Validate Stop Loss
+    if (stopLoss > 0) {
+      if (isBuy && stopLoss >= currentPrice) {
+        validationErrors.push(`Stop Loss (${stopLoss}) must be below current price (${currentPrice}) for BUY positions`);
+      } else if (!isBuy && stopLoss <= currentPrice) {
+        validationErrors.push(`Stop Loss (${stopLoss}) must be above current price (${currentPrice}) for SELL positions`);
+      }
+    }
+    
+    // Validate Take Profit
+    if (takeProfit > 0) {
+      if (isBuy && takeProfit <= currentPrice) {
+        validationErrors.push(`Take Profit (${takeProfit}) must be above current price (${currentPrice}) for BUY positions`);
+      } else if (!isBuy && takeProfit >= currentPrice) {
+        validationErrors.push(`Take Profit (${takeProfit}) must be below current price (${currentPrice}) for SELL positions`);
+      }
+    }
+    
+    // Check if both values are zero
+    if (stopLoss === 0 && takeProfit === 0) {
+      validationErrors.push('At least one of Stop Loss or Take Profit must be specified');
+    }
+    
+    if (validationErrors.length > 0) {
+      const errorMessage = `❌ Validation Errors:\n\n${validationErrors.map(err => `• ${err}`).join('\n')}\n\n💡 Current Position Info:\nSymbol: ${symbol}\nType: ${isBuy ? 'BUY' : 'SELL'}\nCurrent Price: ${currentPrice}\nCurrent SL: ${currentPosition.sl || 'None'}\nCurrent TP: ${currentPosition.tp || 'None'}`;
+      showMessage('Validation failed', 'error');
+      showTestResultModal('Validation Failed', errorMessage, false);
+      return;
+    }
+    
+    // Show pre-modification info
+    console.log('Position before modification:', {
+      ticket: currentPosition.ticket,
+      symbol: currentPosition.symbol,
+      type: isBuy ? 'BUY' : 'SELL',
+      volume: currentPosition.volume,
+      currentPrice: currentPrice,
+      currentSL: currentPosition.sl || 'None',
+      currentTP: currentPosition.tp || 'None',
+      newSL: stopLoss || 'None',
+      newTP: takeProfit || 'None'
+    });
     
     // Execute modification
     const result = await window.mt5API.modifyPosition(
       node.params.ticket,
-      node.params.stopLoss || 0,
-      node.params.takeProfit || 0
+      stopLoss,
+      takeProfit
     );
     
     if (result.success && result.data.success) {
-      const message = `✅ Position Modified Successfully!\n\nTicket: ${node.params.ticket}\nStop Loss: ${node.params.stopLoss || 'None'}\nTake Profit: ${node.params.takeProfit || 'None'}`;
+      const message = `✅ Position Modified Successfully!\n\nTicket: ${node.params.ticket}\nSymbol: ${symbol}\nType: ${isBuy ? 'BUY' : 'SELL'}\nVolume: ${currentPosition.volume}\n\nChanges:\nStop Loss: ${currentPosition.sl || 'None'} → ${stopLoss || 'None'}\nTake Profit: ${currentPosition.tp || 'None'} → ${takeProfit || 'None'}\n\n💡 The position has been successfully updated in MT5.`;
       showMessage(`Position ${node.params.ticket} modified`, 'success');
       showTestResultModal('Position Modified', message, true);
       
@@ -2838,15 +2930,160 @@ window.testModifyPosition = async function(nodeId) {
         setTimeout(() => window.handleRefreshPositions(), 500);
       }
     } else {
-      const message = `❌ Failed to Modify Position!\n\nTicket: ${node.params.ticket}\nError: ${result.data?.error || result.error}\n\nPossible causes:\n- Invalid SL/TP values\n- Position already closed\n- SL/TP too close to current price`;
-      showMessage(`Modify failed: ${result.data?.error || result.error}`, 'error');
+      const errorMsg = result.data?.error || result.error || 'Unknown error';
+      const message = `❌ Failed to Modify Position!\n\nTicket: ${node.params.ticket}\nError: ${errorMsg}\n\nPossible causes:\n• SL/TP values too close to current price\n• Invalid price levels for the symbol\n• Position was closed during modification\n• Insufficient margin for the modification\n• Market is closed\n\n💡 Solutions:\n• Check minimum distance requirements for ${symbol}\n• Verify SL/TP values are reasonable\n• Try again when market is open\n• Refresh positions and try again`;
+      showMessage(`Modify failed: ${errorMsg}`, 'error');
       showTestResultModal('Modify Failed', message, false);
     }
     
   } catch (error) {
     console.error('Test modify error:', error);
     showMessage(`Error: ${error.message}`, 'error');
-    showTestResultModal('Execution Error', `❌ Unexpected Error!\n\n${error.message}`, false);
+    showTestResultModal('Execution Error', `❌ Unexpected Error!\n\n${error.message}\n\n💡 This might be a connection issue or MT5 problem. Try reconnecting to MT5.`, false);
+  }
+};
+
+// Debug function to test Modify Position node execution
+window.testModifyPositionNode = async function(ticketId = null, stopLoss = null, takeProfit = null) {
+  console.log('=== TESTING MODIFY POSITION NODE ===');
+  
+  try {
+    // Check MT5 connection
+    if (!isConnected || !window.mt5API) {
+      console.error('❌ MT5 not connected');
+      showMessage('MT5 not connected - Please connect first', 'error');
+      return;
+    }
+    
+    // Get current positions
+    console.log('📋 Getting current positions...');
+    const positions = await window.mt5API.getPositions();
+    
+    if (!positions.success || !positions.data || positions.data.length === 0) {
+      console.error('❌ No positions available');
+      showMessage('No positions available for testing', 'error');
+      return;
+    }
+    
+    console.log(`✅ Found ${positions.data.length} position(s)`);
+    positions.data.forEach((pos, idx) => {
+      console.log(`  ${idx + 1}. Ticket: ${pos.ticket}, Symbol: ${pos.symbol}, Type: ${pos.type === 0 ? 'BUY' : 'SELL'}, Volume: ${pos.volume}, Price: ${pos.price_current}, SL: ${pos.sl || 'None'}, TP: ${pos.tp || 'None'}`);
+    });
+    
+    // Use provided ticket or first available position
+    const targetPosition = ticketId 
+      ? positions.data.find(pos => pos.ticket == ticketId)
+      : positions.data[0];
+    
+    if (!targetPosition) {
+      console.error(`❌ Position with ticket ${ticketId} not found`);
+      showMessage(`Position ${ticketId} not found`, 'error');
+      return;
+    }
+    
+    console.log(`🎯 Testing with position: ${targetPosition.ticket} (${targetPosition.symbol})`);
+    
+    // Use provided values or calculate reasonable defaults
+    const currentPrice = targetPosition.price_current;
+    const isBuy = targetPosition.type === 0;
+    const symbol = targetPosition.symbol;
+    
+    let testSL = stopLoss;
+    let testTP = takeProfit;
+    
+    // Calculate reasonable test values if not provided
+    if (testSL === null) {
+      // Set SL 50 pips away from current price
+      const pipValue = symbol.includes('JPY') ? 0.01 : 0.0001;
+      testSL = isBuy 
+        ? Math.round((currentPrice - (50 * pipValue)) * 100000) / 100000
+        : Math.round((currentPrice + (50 * pipValue)) * 100000) / 100000;
+    }
+    
+    if (testTP === null) {
+      // Set TP 100 pips away from current price
+      const pipValue = symbol.includes('JPY') ? 0.01 : 0.0001;
+      testTP = isBuy 
+        ? Math.round((currentPrice + (100 * pipValue)) * 100000) / 100000
+        : Math.round((currentPrice - (100 * pipValue)) * 100000) / 100000;
+    }
+    
+    console.log(`📊 Test parameters:`);
+    console.log(`  Ticket: ${targetPosition.ticket}`);
+    console.log(`  Symbol: ${symbol}`);
+    console.log(`  Type: ${isBuy ? 'BUY' : 'SELL'}`);
+    console.log(`  Current Price: ${currentPrice}`);
+    console.log(`  Current SL: ${targetPosition.sl || 'None'}`);
+    console.log(`  Current TP: ${targetPosition.tp || 'None'}`);
+    console.log(`  New SL: ${testSL}`);
+    console.log(`  New TP: ${testTP}`);
+    
+    // Validate values
+    let validationErrors = [];
+    
+    if (testSL > 0) {
+      if (isBuy && testSL >= currentPrice) {
+        validationErrors.push(`Stop Loss (${testSL}) must be below current price (${currentPrice}) for BUY positions`);
+      } else if (!isBuy && testSL <= currentPrice) {
+        validationErrors.push(`Stop Loss (${testSL}) must be above current price (${currentPrice}) for SELL positions`);
+      }
+    }
+    
+    if (testTP > 0) {
+      if (isBuy && testTP <= currentPrice) {
+        validationErrors.push(`Take Profit (${testTP}) must be above current price (${currentPrice}) for BUY positions`);
+      } else if (!isBuy && testTP >= currentPrice) {
+        validationErrors.push(`Take Profit (${testTP}) must be below current price (${currentPrice}) for SELL positions`);
+      }
+    }
+    
+    if (validationErrors.length > 0) {
+      console.error('❌ Validation errors:');
+      validationErrors.forEach(err => console.error(`  • ${err}`));
+      showMessage('Validation failed - check console for details', 'error');
+      return;
+    }
+    
+    console.log('✅ Validation passed, executing modification...');
+    showMessage('🔄 Testing position modification...', 'info');
+    
+    // Execute the modification
+    const result = await window.mt5API.modifyPosition(
+      targetPosition.ticket,
+      testSL,
+      testTP
+    );
+    
+    if (result.success && result.data.success) {
+      console.log('✅ Position modified successfully!');
+      console.log('📊 Modification result:', result.data);
+      showMessage(`Position ${targetPosition.ticket} modified successfully`, 'success');
+      
+      // Refresh positions to show updated values
+      if (window.handleRefreshPositions) {
+        setTimeout(() => window.handleRefreshPositions(), 500);
+      }
+      
+      // Show updated position info
+      setTimeout(async () => {
+        const updatedPositions = await window.mt5API.getPositions();
+        const updatedPosition = updatedPositions.data?.find(pos => pos.ticket == targetPosition.ticket);
+        if (updatedPosition) {
+          console.log('📊 Updated position info:');
+          console.log(`  SL: ${targetPosition.sl || 'None'} → ${updatedPosition.sl || 'None'}`);
+          console.log(`  TP: ${targetPosition.tp || 'None'} → ${updatedPosition.tp || 'None'}`);
+        }
+      }, 1000);
+      
+    } else {
+      const errorMsg = result.data?.error || result.error || 'Unknown error';
+      console.error('❌ Modification failed:', errorMsg);
+      showMessage(`Modification failed: ${errorMsg}`, 'error');
+    }
+    
+  } catch (error) {
+    console.error('❌ Test error:', error);
+    showMessage(`Test error: ${error.message}`, 'error');
   }
 };
 
@@ -2934,7 +3171,11 @@ window.testOpenPositionNode = async function() {
   console.log('=== TEST COMPLETE ===');
 };
 
-console.log('Debug function loaded. Run window.testOpenPositionNode() to test Open Position node execution.');
+console.log('Debug functions loaded:');
+console.log('• window.testOpenPositionNode() - Test Open Position node execution');
+console.log('• window.testModifyPositionNode(ticketId, stopLoss, takeProfit) - Test Modify Position node execution');
+console.log('• window.testClosePosition(nodeId) - Test Close Position node execution');
+console.log('• window.testModifyPosition(nodeId) - Test Modify Position node execution');
 
 
 // Debug function to check strategy setup
