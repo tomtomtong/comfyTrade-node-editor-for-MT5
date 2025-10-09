@@ -20,6 +20,11 @@ class NodeEditor {
     // Track execution state for logic gates
     this.executionState = new Map(); // nodeId -> { inputResults: [], timestamp }
     
+    // Strategy execution state
+    this.isStrategyExecuting = false;
+    this.currentExecutingNode = null;
+    this.executingNodeStartTime = null;
+    
     this.setupCanvas();
     this.setupEventListeners();
     this.animate();
@@ -40,6 +45,11 @@ class NodeEditor {
   }
 
   onMouseDown(e) {
+    // Prevent interaction during strategy execution
+    if (this.isStrategyExecuting) {
+      return;
+    }
+
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -99,10 +109,10 @@ class NodeEditor {
     this.mousePos.x = e.clientX - rect.left;
     this.mousePos.y = e.clientY - rect.top;
 
-    if (this.draggingNode) {
+    if (this.draggingNode && !this.isStrategyExecuting) {
       this.draggingNode.x = this.mousePos.x - this.offset.x;
       this.draggingNode.y = this.mousePos.y - this.offset.y;
-    } else {
+    } else if (!this.isStrategyExecuting) {
       // Check for connection line hover
       this.hoveredConnection = this.getConnectionAtPoint(this.mousePos.x, this.mousePos.y);
     }
@@ -141,6 +151,11 @@ class NodeEditor {
   }
 
   onKeyDown(e) {
+    // Prevent keyboard actions during strategy execution
+    if (this.isStrategyExecuting) {
+      return;
+    }
+
     // Delete key to remove selected node
     if (e.key === 'Delete') {
       if (this.selectedNode) {
@@ -616,31 +631,55 @@ class NodeEditor {
     const ctx = this.ctx;
     const isSelected = node === this.selectedNode;
     const isTrigger = node.type.startsWith('trigger-');
+    const isCurrentlyExecuting = node === this.currentExecutingNode;
     
     // Check if node recently failed (within last 2 seconds)
     const recentlyFailed = node.lastResult === false && 
                           node.lastExecutionTime && 
                           (Date.now() - node.lastExecutionTime) < 2000;
 
-    // Node body
+    // Node body - dim all nodes during strategy execution except the executing one
+    let nodeOpacity = 1;
+    if (this.isStrategyExecuting && !isCurrentlyExecuting) {
+      nodeOpacity = 0.5;
+    }
+    
+    ctx.globalAlpha = nodeOpacity;
     ctx.fillStyle = isTrigger ? '#2d3d2d' : '#2d2d2d';
     
-    // Change border color if recently failed
+    // Change border color based on state
     let borderColor = '#444';
-    if (isSelected) {
+    let borderWidth = 2;
+    
+    if (isCurrentlyExecuting) {
+      borderColor = '#FFA726'; // Orange for currently executing
+      borderWidth = 4;
+    } else if (isSelected && !this.isStrategyExecuting) {
       borderColor = '#4CAF50';
+      borderWidth = 3;
     } else if (recentlyFailed) {
       borderColor = '#FF5252'; // Red for failed
+      borderWidth = 3;
     } else if (isTrigger) {
       borderColor = '#66BB6A';
     }
     
     ctx.strokeStyle = borderColor;
-    ctx.lineWidth = isSelected ? 3 : (recentlyFailed ? 3 : 2);
+    ctx.lineWidth = borderWidth;
     ctx.beginPath();
     ctx.roundRect(node.x, node.y, node.width, node.height, 8);
     ctx.fill();
     ctx.stroke();
+
+    // Add pulsing effect for currently executing node
+    if (isCurrentlyExecuting) {
+      const pulse = Math.sin(Date.now() / 300) * 0.3 + 0.7;
+      ctx.strokeStyle = `rgba(255, 167, 38, ${pulse})`;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.roundRect(node.x - 2, node.y - 2, node.width + 4, node.height + 4, 10);
+      ctx.stroke();
+    }
 
     // Title bar
     ctx.fillStyle = isTrigger ? '#1e2e1e' : '#1e1e1e';
@@ -653,6 +692,14 @@ class NodeEditor {
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(node.title, node.x + node.width / 2, node.y + 20);
+
+    // Show "EXECUTING" text for currently executing node
+    if (isCurrentlyExecuting) {
+      ctx.fillStyle = '#FFA726';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('EXECUTING', node.x + node.width / 2, node.y + node.height - 8);
+    }
     
     // Show status indicator for recently executed nodes
     if (node.lastExecutionTime && (Date.now() - node.lastExecutionTime) < 2000) {
@@ -737,6 +784,9 @@ class NodeEditor {
     ctx.fillStyle = '#888';
     ctx.font = '10px Arial';
     this.drawWrappedParameters(ctx, node);
+    
+    // Reset opacity
+    ctx.globalAlpha = 1;
   }
 
   drawWrappedParameters(ctx, node) {
@@ -838,6 +888,32 @@ class NodeEditor {
     this.undoStack = [];
     this.hideUndoHint();
     this.stopAllPeriodTriggers();
+    this.setStrategyExecuting(false);
+  }
+
+  // Strategy execution state management
+  setStrategyExecuting(executing) {
+    this.isStrategyExecuting = executing;
+    if (!executing) {
+      this.setCurrentExecutingNode(null);
+    }
+    
+    // Update cursor style to indicate locked state
+    this.canvas.style.cursor = executing ? 'not-allowed' : 'default';
+    
+    // Trigger UI updates
+    if (window.onStrategyExecutionStateChanged) {
+      window.onStrategyExecutionStateChanged(executing);
+    }
+  }
+
+  setCurrentExecutingNode(node) {
+    this.currentExecutingNode = node;
+    this.executingNodeStartTime = node ? Date.now() : null;
+  }
+
+  isStrategyExecutingState() {
+    return this.isStrategyExecuting;
   }
 
   // Trigger-specific methods
@@ -899,6 +975,8 @@ class NodeEditor {
     // Execute the connected nodes in sequence with async support
     for (let { node: connectedNode, inputIndex } of connectedNodes) {
       console.log(`Executing connected node: ${connectedNode.title}`);
+      // Add small delay to make execution visible
+      await new Promise(resolve => setTimeout(resolve, 200));
       await this.executeNode(connectedNode, inputIndex, true);
     }
     
@@ -910,6 +988,9 @@ class NodeEditor {
   }
 
   async executeNode(node, inputIndex = 0, inputResult = true) {
+    // Set this node as currently executing
+    this.setCurrentExecutingNode(node);
+    
     // Execute the node's specific logic based on its type
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('▶ Executing node:', node.title, 'Type:', node.type);
@@ -1159,7 +1240,14 @@ class NodeEditor {
       .map(c => ({ node: c.to, inputIndex: c.toInput }));
     
     for (let { node: connectedNode, inputIndex: targetInput } of connectedNodes) {
+      // Add small delay to make execution visible
+      await new Promise(resolve => setTimeout(resolve, 200));
       await this.executeNode(connectedNode, targetInput, result);
+    }
+    
+    // Clear this node as executing (only if it's still the current one)
+    if (this.currentExecutingNode === node) {
+      this.setCurrentExecutingNode(null);
     }
     
     return result;

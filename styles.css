@@ -2467,3 +2467,38 @@ y Status */
     transform: translateY(0);
   }
 }
+/* Strategy Execution State Styles */
+.execution-warning {
+  background: #2d2d2d;
+  border: 2px solid #FFA726;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 10px 0;
+  text-align: center;
+}
+
+.execution-warning h3 {
+  color: #FFA726;
+  margin-bottom: 10px;
+}
+
+.execution-warning p {
+  color: #e0e0e0;
+  margin: 5px 0;
+}
+
+/* Disabled input styles */
+input:disabled, select:disabled, button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Node editor locked cursor */
+canvas.locked {
+  cursor: not-allowed !important;
+}

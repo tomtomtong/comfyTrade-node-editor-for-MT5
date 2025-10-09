@@ -835,6 +835,12 @@ async function handleRunStrategy() {
       // Start periodic execution
       isStrategyRunning = true;
       strategyStopRequested = false;
+      
+      // Set node editor execution state
+      if (nodeEditor) {
+        nodeEditor.setStrategyExecuting(true);
+      }
+      
       updateStrategyButtons();
       
       showMessage('Starting periodic strategy execution...', 'info');
@@ -853,6 +859,12 @@ async function handleRunStrategy() {
     showMessage('Strategy execution error: ' + error.message, 'error');
     isStrategyRunning = false;
     strategyStopRequested = false;
+    
+    // Clear node editor execution state on error
+    if (nodeEditor) {
+      nodeEditor.setStrategyExecuting(false);
+    }
+    
     updateStrategyButtons();
   }
 }
@@ -895,6 +907,12 @@ async function handleStopStrategy() {
   // Reset strategy state
   isStrategyRunning = false;
   strategyStopRequested = false;
+  
+  // Clear node editor execution state
+  if (nodeEditor) {
+    nodeEditor.setStrategyExecuting(false);
+  }
+  
   updateStrategyButtons();
   
   showMessage('Strategy stopped successfully', 'success');
@@ -943,6 +961,12 @@ function updateStrategyStatus(status) {
   if (status === 'stopped') {
     isStrategyRunning = false;
     strategyStopRequested = false;
+    
+    // Clear node editor execution state
+    if (nodeEditor) {
+      nodeEditor.setStrategyExecuting(false);
+    }
+    
     updateStrategyButtons();
     
     if (statusEl) {
@@ -966,6 +990,22 @@ function updatePropertiesPanel(node) {
   
   if (!node) {
     panel.innerHTML = '<p class="no-selection">Select a node to edit properties</p>';
+    return;
+  }
+
+  // Check if strategy is executing and disable editing
+  const isExecuting = nodeEditor && nodeEditor.isStrategyExecutingState();
+  const disabledClass = isExecuting ? 'disabled' : '';
+  const disabledAttr = isExecuting ? 'disabled' : '';
+  
+  if (isExecuting) {
+    panel.innerHTML = `
+      <div class="execution-warning">
+        <h3>Strategy Executing</h3>
+        <p>Node properties cannot be edited while strategy is running.</p>
+        <p>Selected: <strong>${node.title}</strong></p>
+      </div>
+    `;
     return;
   }
   
@@ -1359,6 +1399,24 @@ function updatePropertiesPanel(node) {
 
 // Make updatePropertiesPanel available globally for node-editor.js
 window.updatePropertiesPanel = updatePropertiesPanel;
+
+// Handle strategy execution state changes
+window.onStrategyExecutionStateChanged = function(isExecuting) {
+  // Update properties panel for currently selected node
+  if (nodeEditor && nodeEditor.selectedNode) {
+    updatePropertiesPanel(nodeEditor.selectedNode);
+  }
+  
+  // Update canvas cursor
+  const canvas = document.getElementById('nodeCanvas');
+  if (canvas) {
+    if (isExecuting) {
+      canvas.classList.add('locked');
+    } else {
+      canvas.classList.remove('locked');
+    }
+  }
+};
 
 window.updateNodeParam = function(key, value) {
   if (nodeEditor.selectedNode) {
