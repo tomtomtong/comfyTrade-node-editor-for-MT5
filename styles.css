@@ -926,8 +926,17 @@ h4 {
 /* Settings Modal Tabs */
 .settings-modal .modal-content {
   max-width: 600px;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure tabs content is scrollable */
+.settings-tab {
+  overflow-y: auto;
+  max-height: calc(85vh - 120px); /* Account for header and buttons */
+  padding-right: 8px; /* Space for scrollbar */
 }
 
 /* Unsaved changes indicator */
@@ -2591,4 +2600,206 @@ input:disabled, select:disabled, button:disabled {
 /* Node editor locked cursor */
 canvas.locked {
   cursor: not-allowed !important;
+}/* 
+Twilio Settings Styles */
+.twilio-config-section,
+.notification-config-section,
+.twilio-test-section {
+  margin: 15px 0;
+  padding: 12px;
+  background: #2a2a2a;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+.twilio-config-section h4,
+.notification-config-section h4,
+.twilio-test-section h4 {
+  color: #64B5F6;
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Compact form groups for Twilio settings */
+#twilioAlertsTab .form-group {
+  margin-bottom: 12px;
+}
+
+#twilioAlertsTab .form-group label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+#twilioAlertsTab .form-group input,
+#twilioAlertsTab .form-group select,
+#twilioAlertsTab .form-group textarea {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+#twilioAlertsTab .form-group small {
+  font-size: 10px;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.test-result {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  display: none;
+}
+
+.test-result.success {
+  background: rgba(76, 175, 80, 0.2);
+  border: 1px solid #4CAF50;
+  color: #4CAF50;
+}
+
+.test-result.error {
+  background: rgba(244, 67, 54, 0.2);
+  border: 1px solid #f44336;
+  color: #f44336;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+/* Twilio alert status indicators */
+.twilio-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.twilio-status.enabled {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border: 1px solid #4CAF50;
+}
+
+.twilio-status.disabled {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+  border: 1px solid #9e9e9e;
+}/* Twilio 
+Alert Node Styling */
+.node-btn[data-type="twilio-alert"] {
+  background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+  border: 2px solid #FF6B6B;
+  color: white;
+  font-weight: bold;
+}
+
+.node-btn[data-type="twilio-alert"]:hover {
+  background: linear-gradient(135deg, #FF5252, #26C6DA);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+/* Twilio alert node canvas styling */
+.twilio-alert-node {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(78, 205, 196, 0.1));
+  border: 2px solid #FF6B6B;
+}
+
+.twilio-alert-node .node-title {
+  color: #FF6B6B;
+  font-weight: bold;
+}/* Tw
+ilio Grid Layout for Compact Display */
+.twilio-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.twilio-checkbox-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+
+/* Responsive: Stack on smaller screens */
+@media (max-width: 500px) {
+  .twilio-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .twilio-checkbox-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+/* Compact test result */
+#twilioTestResult {
+  margin-top: 8px;
+  padding: 8px;
+  font-size: 11px;
+}
+
+/* Smaller button for test */
+.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+}/* Bet
+ter scrollbar for settings modal */
+.settings-tab::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-tab::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.settings-tab::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.settings-tab::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Settings modal improvements */
+.settings-modal .modal-content {
+  padding: 20px;
+}
+
+.settings-tabs {
+  margin-bottom: 15px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
+}
+
+.modal-buttons {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #444;
+  flex-shrink: 0; /* Don't shrink buttons */
 }

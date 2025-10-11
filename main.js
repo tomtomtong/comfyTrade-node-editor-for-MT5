@@ -169,3 +169,30 @@ ipcMain.handle('mt5:getPercentageChange', async (event, { symbol, timeframe }) =
         return { success: false, error: error.message };
     }
 });
+
+ipcMain.handle('mt5:sendTwilioAlert', async (event, alertData) => {
+    try {
+        const result = await mt5Bridge.sendTwilioAlert(alertData);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('mt5:getTwilioConfig', async (event) => {
+    try {
+        const result = await mt5Bridge.getTwilioConfig();
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('mt5:updateTwilioConfig', async (event, configData) => {
+    try {
+        const result = await mt5Bridge.updateTwilioConfig(configData);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});

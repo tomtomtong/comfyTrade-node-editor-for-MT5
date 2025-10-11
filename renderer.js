@@ -279,10 +279,28 @@ async function updateCurrentPrice(symbol) {
     // Show loading state
     showCurrentPriceLoading();
     
+    console.log(`🔄 Fetching current price for: ${symbol}`);
     const result = await window.mt5API.getMarketData(symbol);
+    
+    // Log the complete response for debugging
+    console.log(`📊 Price Response for ${symbol}:`, {
+      success: result.success,
+      data: result.data,
+      error: result.error,
+      timestamp: new Date().toISOString()
+    });
     
     if (result.success && result.data) {
       const data = result.data;
+      
+      // Log successful price data
+      console.log(`✅ Price data received for ${symbol}:`, {
+        bid: data.bid,
+        ask: data.ask,
+        spread: data.spread || (data.ask - data.bid).toFixed(5),
+        volume: data.volume,
+        time: data.time
+      });
       
       // Show the price display
       document.getElementById('currentPriceGroup').style.display = 'block';
@@ -300,11 +318,27 @@ async function updateCurrentPrice(symbol) {
       startPriceAutoRefresh(symbol);
       
     } else {
-      showPriceError('Failed to get price data');
+      const errorMsg = result.data?.error || result.error || 'Failed to get price data';
+      console.error(`❌ Price fetch failed for ${symbol}:`, {
+        error: errorMsg,
+        fullResponse: result,
+        timestamp: new Date().toISOString()
+      });
+      
+      showPriceError(`Failed: ${errorMsg}`);
+      
+      // Show user-friendly message
+      showMessage(`Could not get price for ${symbol}: ${errorMsg}`, 'error');
     }
   } catch (error) {
-    console.error('Error getting current price:', error);
+    console.error(`❌ Exception getting current price for ${symbol}:`, {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    
     showPriceError('Error: ' + error.message);
+    showMessage(`Price fetch error for ${symbol}: ${error.message}`, 'error');
   }
 }
 
@@ -705,6 +739,46 @@ window.testVolumeLossFromNode = testVolumeLossFromNode;
 window.showSignalPopup = showSignalPopup;
 window.updatePriceFromPercent = updatePriceFromPercent;
 window.updatePercentFromPrice = updatePercentFromPrice;
+
+// Price testing function for console debugging
+window.testCurrentPrice = async function(symbol) {
+  if (!symbol) {
+    symbol = prompt('Enter symbol to test (e.g., TSLA, EURUSD):');
+    if (!symbol) return;
+  }
+  
+  console.log(`🧪 Testing current price fetch for: ${symbol}`);
+  console.log('='.repeat(50));
+  
+  if (!isConnected) {
+    console.log('❌ Not connected to MT5');
+    return;
+  }
+  
+  if (!window.mt5API) {
+    console.log('❌ MT5 API not available');
+    return;
+  }
+  
+  try {
+    // This will trigger all the detailed logging we added
+    await updateCurrentPrice(symbol);
+    console.log('='.repeat(50));
+    console.log('✅ Price test completed - check logs above for details');
+  } catch (error) {
+    console.log('='.repeat(50));
+    console.log('❌ Price test failed:', error.message);
+  }
+};
+
+// Quick price check function
+window.checkPrice = function(symbol) {
+  if (!symbol) {
+    console.log('Usage: checkPrice("TSLA") or checkPrice("EURUSD")');
+    return;
+  }
+  return window.testCurrentPrice(symbol);
+};
 
 // Node editor percentage calculation functions
 function updateNodePriceFromPercent(priceKey, nodeId) {
@@ -1216,6 +1290,65 @@ function updatePropertiesPanel(node) {
           </div>
         `;
 
+      } else if (key === 'method' && node.type === 'twilio-alert') {
+        return `
+          <div class="property-item">
+            <label>Notification Method:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value)">
+              <option value="sms" ${value === 'sms' ? 'selected' : ''}>SMS</option>
+              <option value="whatsapp" ${value === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+            </select>
+          </div>
+        `;
+      } else if (key === 'includeAccountInfo' && node.type === 'twilio-alert') {
+        return `
+          <div class="property-item">
+            <label>Include Account Info:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value === 'true')">
+              <option value="false" ${!value ? 'selected' : ''}>No</option>
+              <option value="true" ${value ? 'selected' : ''}>Yes</option>
+            </select>
+          </div>
+        `;
+      } else if (key === 'includePositions' && node.type === 'twilio-alert') {
+        return `
+          <div class="property-item">
+            <label>Include Position Info:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value === 'true')">
+              <option value="false" ${!value ? 'selected' : ''}>No</option>
+              <option value="true" ${value ? 'selected' : ''}>Yes</option>
+            </select>
+          </div>
+        `;
+      } else if (key === 'message' && node.type === 'twilio-alert') {
+        return `
+          <div class="property-item">
+            <label>Alert Message:</label>
+            <textarea data-param="${key}" 
+                      rows="3" 
+                      placeholder="Enter your alert message..."
+                      onchange="updateNodeParam('${key}', this.value)"
+                      style="width: 100%; background: #333; color: #e0e0e0; border: 1px solid #555; border-radius: 4px; padding: 8px; font-size: 13px; resize: vertical;">${value}</textarea>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              This message will be sent via Twilio when the node is triggered
+            </small>
+          </div>
+        `;
+      } else if (key === 'recipient' && node.type === 'twilio-alert') {
+        return `
+          <div class="property-item">
+            <label>Recipient Number:</label>
+            <input type="text" 
+                   value="${value}" 
+                   placeholder="+1234567890 (leave empty for default)"
+                   data-param="${key}"
+                   onchange="updateNodeParam('${key}', this.value)"
+                   style="font-family: monospace;">
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Leave empty to use default recipient from settings. Include country code.
+            </small>
+          </div>
+        `;
       } else {
         return `
           <div class="property-item">
@@ -1278,6 +1411,15 @@ function updatePropertiesPanel(node) {
     actionButtons += `
       <button class="btn btn-warning btn-small" onclick="testEndStrategy('${node.id}')">
         Test End Strategy
+      </button>
+    `;
+  }
+  
+  // Add test button for Twilio alert nodes
+  if (node.type === 'twilio-alert') {
+    actionButtons += `
+      <button class="btn btn-info btn-small" onclick="testTwilioAlert('${node.id}')">
+        📱 Test Alert
       </button>
     `;
   }
@@ -2177,9 +2319,82 @@ function testEndStrategy(nodeId) {
   showMessage(`Test End Strategy: ${node.params.message}`, 'success');
 }
 
+// Test Twilio alert function
+async function testTwilioAlert(nodeId) {
+  const node = nodeEditor.nodes.find(n => n.id == nodeId);
+  if (!node || node.type !== 'twilio-alert') {
+    showMessage('Please select a Twilio alert node first', 'error');
+    return;
+  }
+  
+  if (!isConnected) {
+    showMessage('Please connect to MT5 first to test Twilio alerts', 'error');
+    return;
+  }
+  
+  try {
+    showMessage('Testing Twilio alert...', 'info');
+    
+    // Prepare test message
+    let testMessage = node.params.message || 'Test alert from MT5 Trader node';
+    
+    // Add account info if requested
+    if (node.params.includeAccountInfo) {
+      try {
+        const accountInfo = await window.mt5API.getAccountInfo();
+        if (accountInfo.success && accountInfo.data) {
+          const acc = accountInfo.data;
+          testMessage += `\n\nAccount Info:\nBalance: $${acc.balance}\nEquity: $${acc.equity}\nProfit: $${acc.profit}`;
+        }
+      } catch (error) {
+        console.warn('Could not fetch account info for test alert:', error);
+      }
+    }
+    
+    // Add position info if requested
+    if (node.params.includePositions) {
+      try {
+        const positions = await window.mt5API.getPositions();
+        if (positions.success && positions.data && positions.data.length > 0) {
+          testMessage += `\n\nOpen Positions: ${positions.data.length}`;
+          positions.data.forEach((pos, index) => {
+            if (index < 3) { // Limit to first 3 positions
+              testMessage += `\n${pos.symbol} ${pos.type} ${pos.volume} P/L: $${pos.profit.toFixed(2)}`;
+            }
+          });
+          if (positions.data.length > 3) {
+            testMessage += `\n... and ${positions.data.length - 3} more`;
+          }
+        } else {
+          testMessage += '\n\nNo open positions';
+        }
+      } catch (error) {
+        console.warn('Could not fetch positions for test alert:', error);
+      }
+    }
+    
+    // Send test alert
+    const result = await window.mt5API.sendTwilioAlert({
+      message: testMessage,
+      toNumber: node.params.recipient || '', // Use node-specific recipient or default
+      method: node.params.method || 'sms'
+    });
+    
+    if (result.success && result.data && result.data.success) {
+      showMessage('✓ Test Twilio alert sent successfully! Check your phone.', 'success');
+    } else {
+      showMessage(`✗ Test Twilio alert failed: ${result.data?.error || result.error}`, 'error');
+    }
+  } catch (error) {
+    console.error('Error testing Twilio alert:', error);
+    showMessage(`Test Twilio alert error: ${error.message}`, 'error');
+  }
+}
+
 // Make functions globally available
 window.testSignalPopup = testSignalPopup;
 window.testEndStrategy = testEndStrategy;
+window.testTwilioAlert = testTwilioAlert;
 
 // Log Modal Functions
 function showLogModal() {
@@ -2314,6 +2529,7 @@ function showSettingsModal() {
   document.getElementById('settingsModal').classList.add('show');
   renderQuickSymbolsList();
   loadOvertradeSettings();
+  loadTwilioSettings();
   
   // Initialize symbol input for settings if not already done
   initializeSettingsSymbolInput();
@@ -2336,6 +2552,7 @@ function showSettingsModal() {
   document.getElementById('addSymbolBtn').onclick = addQuickSymbol;
   document.getElementById('settingsResetTradeCountBtn').onclick = resetTradeCountFromSettings;
   document.getElementById('settingsTestOvertradeBtn').onclick = testOvertradeFromSettings;
+  document.getElementById('testTwilioBtn').onclick = testTwilioConnection;
   
   // Track changes in settings form
   setupSettingsChangeTracking();
@@ -2410,7 +2627,8 @@ async function handleSaveSettings() {
 function storeOriginalSettingsState() {
   originalSettingsState = {
     quickSymbols: [...AppConfig.getQuickSymbols()],
-    overtradeSettings: window.overtradeControl ? { ...window.overtradeControl.settings } : null
+    overtradeSettings: window.overtradeControl ? { ...window.overtradeControl.settings } : null,
+    twilioSettings: getCurrentTwilioSettings()
   };
 }
 
@@ -2436,6 +2654,9 @@ function setupSettingsChangeTracking() {
   
   // Track changes in quick symbols (will be handled by add/remove functions)
   // The addQuickSymbol and removeQuickSymbol functions should call markSettingsAsChanged
+  
+  // Track changes in Twilio settings
+  setupTwilioChangeTracking();
 }
 
 function markSettingsAsChanged() {
@@ -2584,6 +2805,9 @@ async function saveAllSettings() {
     window.overtradeControl.saveSettings();
     await window.overtradeControl.updateStatusDisplay();
   }
+  
+  // Save Twilio settings
+  await saveTwilioSettings();
   
   // Reset unsaved changes flag
   settingsHasUnsavedChanges = false;
@@ -3495,3 +3719,182 @@ window.debugStrategy = function() {
 };
 
 console.log('Debug helper loaded. Run window.debugStrategy() to check your strategy setup.');
+
+// Twilio Settings Functions
+async function loadTwilioSettings() {
+  try {
+    // Load from localStorage using AppConfig (same as quick symbols)
+    const settings = AppConfig.getTwilioSettings();
+    
+    // Update UI with current settings
+    document.getElementById('settingsTwilioEnabled').value = settings.enabled ? 'true' : 'false';
+    document.getElementById('settingsTwilioAccountSid').value = settings.accountSid || '';
+    document.getElementById('settingsTwilioAuthToken').value = settings.authToken || '';
+    document.getElementById('settingsTwilioFromNumber').value = settings.fromNumber || '';
+    document.getElementById('settingsRecipientNumber').value = settings.recipientNumber || '';
+    document.getElementById('settingsNotificationMethod').value = settings.method || 'sms';
+    
+    const alerts = settings.alerts || {};
+    document.getElementById('settingsAlertTakeProfit').checked = alerts.take_profit !== false;
+    document.getElementById('settingsAlertStopLoss').checked = alerts.stop_loss !== false;
+    document.getElementById('settingsAlertPositionOpened').checked = alerts.position_opened === true;
+    document.getElementById('settingsAlertPositionClosed').checked = alerts.position_closed === true;
+    
+    console.log('Twilio settings loaded from localStorage');
+  } catch (error) {
+    console.error('Error loading Twilio settings:', error);
+  }
+}
+
+function getCurrentTwilioSettings() {
+  return {
+    enabled: document.getElementById('settingsTwilioEnabled').value === 'true',
+    accountSid: document.getElementById('settingsTwilioAccountSid').value,
+    authToken: document.getElementById('settingsTwilioAuthToken').value,
+    fromNumber: document.getElementById('settingsTwilioFromNumber').value,
+    recipientNumber: document.getElementById('settingsRecipientNumber').value,
+    method: document.getElementById('settingsNotificationMethod').value,
+    alerts: {
+      take_profit: document.getElementById('settingsAlertTakeProfit').checked,
+      stop_loss: document.getElementById('settingsAlertStopLoss').checked,
+      position_opened: document.getElementById('settingsAlertPositionOpened').checked,
+      position_closed: document.getElementById('settingsAlertPositionClosed').checked
+    }
+  };
+}
+
+async function saveTwilioSettings() {
+  try {
+    const settings = getCurrentTwilioSettings();
+    
+    console.log('Saving Twilio settings:', {
+      accountSid: settings.accountSid ? '***' + settings.accountSid.slice(-4) : 'empty',
+      authToken: settings.authToken ? '***' : 'empty',
+      fromNumber: settings.fromNumber || 'empty',
+      recipientNumber: settings.recipientNumber || 'empty',
+      enabled: settings.enabled
+    });
+    
+    // Save to localStorage using AppConfig (same as quick symbols)
+    AppConfig.updateTwilioSettings(settings);
+    console.log('✓ Twilio settings saved to localStorage');
+    
+    // Also send to backend for runtime use (if connected)
+    if (isConnected && window.mt5API) {
+      try {
+        const configData = {
+          twilio: {
+            account_sid: settings.accountSid,
+            auth_token: settings.authToken,
+            from_number: settings.fromNumber,
+            enabled: settings.enabled
+          },
+          notifications: {
+            recipient_number: settings.recipientNumber,
+            method: settings.method,
+            alerts: settings.alerts
+          }
+        };
+        
+        console.log('Sending config to backend...');
+        const response = await window.mt5API.updateTwilioConfig(configData);
+        console.log('Backend response:', response);
+        
+        if (response && response.data && response.data.success) {
+          console.log('✓ Backend updated successfully');
+        } else {
+          console.warn('⚠ Backend update failed, but settings saved locally:', response?.data?.error || 'Unknown error');
+        }
+      } catch (error) {
+        console.warn('⚠ Could not update backend, but settings saved locally:', error.message);
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('✗ Error saving Twilio settings:', error);
+    return false;
+  }
+}
+
+async function testTwilioConnection() {
+  const testBtn = document.getElementById('testTwilioBtn');
+  const resultDiv = document.getElementById('twilioTestResult');
+  
+  // Disable button and show loading
+  testBtn.disabled = true;
+  testBtn.textContent = 'Sending...';
+  resultDiv.style.display = 'none';
+  
+  try {
+    const settings = getCurrentTwilioSettings();
+    
+    if (!settings.recipientNumber) {
+      showTwilioTestResult('error', 'Please enter a recipient number first');
+      return;
+    }
+    
+    // Save settings first to ensure they're applied
+    await saveTwilioSettings();
+    
+    // Send test message
+    const response = await window.mt5API.sendTwilioAlert({
+      message: 'Test message from MT5 Trader',
+      toNumber: settings.recipientNumber,
+      method: settings.method
+    });
+    
+    if (response && response.data) {
+      if (response.data.success) {
+        showTwilioTestResult('success', `Test message sent successfully! Check your ${settings.method.toUpperCase()}.`);
+      } else {
+        showTwilioTestResult('error', `Failed to send test message: ${response.data.error}`);
+      }
+    } else {
+      showTwilioTestResult('error', 'No response from server');
+    }
+  } catch (error) {
+    console.error('Error testing Twilio connection:', error);
+    showTwilioTestResult('error', `Error: ${error.message}`);
+  } finally {
+    // Re-enable button
+    testBtn.disabled = false;
+    testBtn.textContent = 'Send Test Message';
+  }
+}
+
+function showTwilioTestResult(type, message) {
+  const resultDiv = document.getElementById('twilioTestResult');
+  resultDiv.className = `test-result ${type}`;
+  resultDiv.textContent = message;
+  resultDiv.style.display = 'block';
+  
+  // Hide after 5 seconds
+  setTimeout(() => {
+    resultDiv.style.display = 'none';
+  }, 5000);
+}
+
+// Add Twilio settings to the change tracking
+function setupTwilioChangeTracking() {
+  const twilioInputs = [
+    'settingsTwilioEnabled',
+    'settingsTwilioAccountSid',
+    'settingsTwilioAuthToken',
+    'settingsTwilioFromNumber',
+    'settingsRecipientNumber',
+    'settingsNotificationMethod',
+    'settingsAlertTakeProfit',
+    'settingsAlertStopLoss',
+    'settingsAlertPositionOpened',
+    'settingsAlertPositionClosed'
+  ];
+  
+  twilioInputs.forEach(inputId => {
+    const element = document.getElementById(inputId);
+    if (element) {
+      element.addEventListener('change', markSettingsAsChanged);
+      element.addEventListener('input', markSettingsAsChanged);
+    }
+  });
+}

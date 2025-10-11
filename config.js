@@ -9,6 +9,22 @@ const AppConfig = {
     'USDCAD'
   ],
   
+  // Twilio configuration
+  twilioSettings: {
+    enabled: false,
+    accountSid: '',
+    authToken: '',
+    fromNumber: '',
+    recipientNumber: '',
+    method: 'sms',
+    alerts: {
+      take_profit: true,
+      stop_loss: true,
+      position_opened: false,
+      position_closed: false
+    }
+  },
+  
   // Add more symbols here as needed
   // Example: 'EURJPY', 'EURGBP', 'NZDUSD', 'XAUUSD', etc.
   
@@ -34,10 +50,25 @@ const AppConfig = {
     }
   },
   
+  // Get Twilio settings
+  getTwilioSettings() {
+    return { ...this.twilioSettings };
+  },
+  
+  // Update Twilio settings
+  updateTwilioSettings(settings) {
+    this.twilioSettings = {
+      ...this.twilioSettings,
+      ...settings
+    };
+    this.saveToLocalStorage();
+  },
+  
   // Save configuration to localStorage
   saveToLocalStorage() {
     localStorage.setItem('appConfig', JSON.stringify({
-      quickSymbols: this.quickSymbols
+      quickSymbols: this.quickSymbols,
+      twilioSettings: this.twilioSettings
     }));
   },
   
@@ -49,6 +80,12 @@ const AppConfig = {
         const config = JSON.parse(saved);
         if (config.quickSymbols && Array.isArray(config.quickSymbols)) {
           this.quickSymbols = config.quickSymbols;
+        }
+        if (config.twilioSettings && typeof config.twilioSettings === 'object') {
+          this.twilioSettings = {
+            ...this.twilioSettings,
+            ...config.twilioSettings
+          };
         }
       } catch (e) {
         console.error('Failed to load config:', e);

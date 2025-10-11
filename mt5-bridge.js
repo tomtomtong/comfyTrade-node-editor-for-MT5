@@ -87,9 +87,18 @@ class MT5Bridge {
           const response = JSON.parse(data.toString());
           const messageId = response.messageId;
 
-          // Only log MT5 responses for trade execution
+          // Log MT5 responses for trade execution and market data
           if (response.action === 'executeOrder') {
             console.log('MT5 Trade Response received:', {
+              action: response.action,
+              success: response.success,
+              data: response.data,
+              error: response.error,
+              messageId: messageId,
+              timestamp: new Date().toISOString()
+            });
+          } else if (response.action === 'getMarketData') {
+            console.log('📡 WebSocket Market Data Response:', {
               action: response.action,
               success: response.success,
               data: response.data,
@@ -246,8 +255,42 @@ class MT5Bridge {
       throw new Error('Not connected to MT5');
     }
 
-    const response = await this.sendMessage('getMarketData', { symbol });
-    return response.data;
+    console.log(`🔄 MT5 Bridge: Requesting market data for ${symbol}`);
+    
+    try {
+      const response = await this.sendMessage('getMarketData', { symbol });
+      
+      // Log the complete response from Python bridge
+      console.log(`📡 MT5 Bridge Response for ${symbol}:`, {
+        success: response.success,
+        data: response.data,
+        error: response.error,
+        action: response.action,
+        messageId: response.messageId,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (response.data && !response.data.error) {
+        console.log(`✅ MT5 Bridge: Market data received for ${symbol}:`, {
+          bid: response.data.bid,
+          ask: response.data.ask,
+          spread: response.data.spread,
+          volume: response.data.volume,
+          time: response.data.time
+        });
+      } else {
+        console.error(`❌ MT5 Bridge: Market data failed for ${symbol}:`, response.data?.error || 'Unknown error');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error(`❌ MT5 Bridge: Exception getting market data for ${symbol}:`, {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
   }
 
   async getSymbols(group = '*') {
@@ -320,6 +363,41 @@ class MT5Bridge {
       timeframe
     });
 
+    return response.data;
+  }
+
+  async sendTwilioAlert(alertData) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log('Sending Twilio alert:', alertData);
+    const response = await this.sendMessage('sendTwilioAlert', {
+      message: alertData.message,
+      toNumber: alertData.toNumber,
+      method: alertData.method || 'sms'
+    });
+
+    return response.data;
+  }
+
+  async getTwilioConfig() {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log('Getting Twilio config...');
+    const response = await this.sendMessage('getTwilioConfig', {});
+    return response.data;
+  }
+
+  async updateTwilioConfig(configData) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log('Updating Twilio config...');
+    const response = await this.sendMessage('updateTwilioConfig', { config: configData });
     return response.data;
   }
 

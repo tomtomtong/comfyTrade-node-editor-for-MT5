@@ -302,6 +302,19 @@ class NodeEditor {
         }
       },
 
+      'twilio-alert': {
+        title: 'Twilio Alert',
+        inputs: ['trigger'],
+        outputs: ['trigger'],
+        params: { 
+          message: 'Trading alert from strategy',
+          method: 'sms',
+          recipient: '',
+          includeAccountInfo: false,
+          includePositions: false
+        }
+      },
+
       'end-strategy': {
         title: 'End Strategy',
         inputs: ['trigger'],
@@ -1198,6 +1211,84 @@ class NodeEditor {
             window.showSignalPopup(node.params);
           }
           result = true; // Popup nodes don't stop flow
+          break;
+          
+        case 'twilio-alert':
+          console.log('Sending Twilio alert:', node.params.message);
+          
+          try {
+            // Prepare alert message
+            let alertMessage = node.params.message;
+            
+            // Add account info if requested
+            if (node.params.includeAccountInfo && window.mt5API) {
+              try {
+                const accountInfo = await window.mt5API.getAccountInfo();
+                if (accountInfo.success && accountInfo.data) {
+                  const acc = accountInfo.data;
+                  alertMessage += `\n\nAccount Info:\nBalance: $${acc.balance}\nEquity: $${acc.equity}\nProfit: $${acc.profit}`;
+                }
+              } catch (error) {
+                console.warn('Could not fetch account info for alert:', error);
+              }
+            }
+            
+            // Add position info if requested
+            if (node.params.includePositions && window.mt5API) {
+              try {
+                const positions = await window.mt5API.getPositions();
+                if (positions.success && positions.data && positions.data.length > 0) {
+                  alertMessage += `\n\nOpen Positions: ${positions.data.length}`;
+                  positions.data.forEach((pos, index) => {
+                    if (index < 3) { // Limit to first 3 positions to avoid long messages
+                      alertMessage += `\n${pos.symbol} ${pos.type} ${pos.volume} P/L: $${pos.profit.toFixed(2)}`;
+                    }
+                  });
+                  if (positions.data.length > 3) {
+                    alertMessage += `\n... and ${positions.data.length - 3} more`;
+                  }
+                } else {
+                  alertMessage += '\n\nNo open positions';
+                }
+              } catch (error) {
+                console.warn('Could not fetch positions for alert:', error);
+              }
+            }
+            
+            // Send the alert via MT5 bridge
+            if (window.mt5API && window.mt5API.sendTwilioAlert) {
+              const alertResult = await window.mt5API.sendTwilioAlert({
+                message: alertMessage,
+                toNumber: node.params.recipient || '', // Use node-specific recipient or default
+                method: node.params.method || 'sms'
+              });
+              
+              if (alertResult.success && alertResult.data && alertResult.data.success) {
+                console.log('✓ Twilio alert sent successfully via node');
+                if (window.showMessage) {
+                  window.showMessage('Twilio alert sent successfully', 'success');
+                }
+              } else {
+                console.error('✗ Twilio alert failed via node:', alertResult.data?.error || alertResult.error);
+                if (window.showMessage) {
+                  window.showMessage(`Twilio alert failed: ${alertResult.data?.error || alertResult.error}`, 'error');
+                }
+                // Don't stop flow on alert failure
+              }
+            } else {
+              console.error('Twilio alert API not available');
+              if (window.showMessage) {
+                window.showMessage('Twilio alert API not available - check configuration', 'warning');
+              }
+            }
+          } catch (error) {
+            console.error('Error sending Twilio alert via node:', error);
+            if (window.showMessage) {
+              window.showMessage(`Twilio alert error: ${error.message}`, 'error');
+            }
+          }
+          
+          result = true; // Alert nodes don't stop flow
           break;
           
         case 'end-strategy':

@@ -1,2 +1,3 @@
 MetaTrader5>=5.0.45
 websockets>=12.0
+twilio>=8.10.0

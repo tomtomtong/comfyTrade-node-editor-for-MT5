@@ -9,6 +9,7 @@ import asyncio
 import websockets
 import logging
 from datetime import datetime
+from twilio_alerts import TwilioAlerts
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,6 +20,110 @@ class MT5Bridge:
         self.port = port
         self.connected_to_mt5 = False
         self.websocket = None
+        self.twilio_alerts = None
+        self.twilio_config = {}
+        self.alert_config = {}
+        self.monitored_positions = {}  # Track positions for TP/SL alerts
+        self.load_twilio_config()
+    
+    def load_twilio_config(self):
+        """Load Twilio configuration from config file"""
+        try:
+            with open('twilio_config.json', 'r') as f:
+                config = json.load(f)
+                
+            twilio_config = config.get('twilio', {})
+            self.twilio_config = twilio_config  # Store for later retrieval
+            self.alert_config = config.get('notifications', {})
+            
+            if twilio_config.get('enabled', False):
+                self.twilio_alerts = TwilioAlerts(
+                    account_sid=twilio_config.get('account_sid'),
+                    auth_token=twilio_config.get('auth_token'),
+                    from_number=twilio_config.get('from_number')
+                )
+                logger.info("Twilio alerts configured and enabled")
+            else:
+                logger.info("Twilio alerts disabled in configuration")
+                
+        except FileNotFoundError:
+            logger.warning("twilio_config.json not found. Twilio alerts disabled.")
+            self.twilio_config = {}
+        except Exception as e:
+            logger.error(f"Error loading Twilio config: {e}")
+            self.twilio_config = {}
+    
+    def update_position_monitoring(self):
+        """Update monitored positions and check for TP/SL hits"""
+        if not self.twilio_alerts or not self.twilio_alerts.is_enabled():
+            return
+        
+        try:
+            current_positions = self.get_positions()
+            if isinstance(current_positions, dict) and 'error' in current_positions:
+                return
+            
+            current_tickets = {pos['ticket'] for pos in current_positions}
+            previous_tickets = set(self.monitored_positions.keys())
+            
+            # Check for closed positions (potential TP/SL hits)
+            closed_tickets = previous_tickets - current_tickets
+            
+            for ticket in closed_tickets:
+                old_position = self.monitored_positions[ticket]
+                self.check_tp_sl_hit(old_position)
+                del self.monitored_positions[ticket]
+            
+            # Update monitored positions
+            for position in current_positions:
+                ticket = position['ticket']
+                self.monitored_positions[ticket] = position
+                
+        except Exception as e:
+            logger.error(f"Error updating position monitoring: {e}")
+    
+    def check_tp_sl_hit(self, position):
+        """Check if position was closed due to TP or SL hit"""
+        if not self.alert_config.get('alerts', {}).get('take_profit', False) and \
+           not self.alert_config.get('alerts', {}).get('stop_loss', False):
+            return
+        
+        try:
+            symbol = position['symbol']
+            current_price = position['current_price']
+            take_profit = position.get('take_profit', 0)
+            stop_loss = position.get('stop_loss', 0)
+            order_type = position['type']
+            recipient = self.alert_config.get('recipient_number')
+            method = self.alert_config.get('method', 'sms')
+            
+            if not recipient:
+                return
+            
+            # Determine if TP or SL was hit based on price proximity
+            tp_hit = False
+            sl_hit = False
+            
+            if take_profit > 0:
+                if order_type == 'BUY' and current_price >= take_profit:
+                    tp_hit = True
+                elif order_type == 'SELL' and current_price <= take_profit:
+                    tp_hit = True
+            
+            if stop_loss > 0:
+                if order_type == 'BUY' and current_price <= stop_loss:
+                    sl_hit = True
+                elif order_type == 'SELL' and current_price >= stop_loss:
+                    sl_hit = True
+            
+            # Send appropriate alert
+            if tp_hit and self.alert_config.get('alerts', {}).get('take_profit', False):
+                self.twilio_alerts.send_take_profit_alert(position, recipient, method)
+            elif sl_hit and self.alert_config.get('alerts', {}).get('stop_loss', False):
+                self.twilio_alerts.send_stop_loss_alert(position, recipient, method)
+                
+        except Exception as e:
+            logger.error(f"Error checking TP/SL hit: {e}")
         
     def connect_mt5(self, login=None, password=None, server=None):
         """Connect to MetaTrader 5"""
@@ -229,6 +334,38 @@ class MT5Bridge:
             return {"success": False, "error": f"Modify failed: {result.comment} (retcode: {result.retcode})"}
         
         return {"success": True, "message": "Position modified"}
+    
+    def update_twilio_config(self, config_data):
+        """Update Twilio configuration"""
+        try:
+            # Load existing config
+            try:
+                with open('twilio_config.json', 'r') as f:
+                    current_config = json.load(f)
+            except FileNotFoundError:
+                current_config = {
+                    "twilio": {"account_sid": "", "auth_token": "", "from_number": "", "enabled": False},
+                    "notifications": {"recipient_number": "", "method": "sms", "alerts": {"take_profit": True, "stop_loss": True, "position_opened": False, "position_closed": False}}
+                }
+            
+            # Update with new data
+            if 'twilio' in config_data:
+                current_config['twilio'].update(config_data['twilio'])
+            if 'notifications' in config_data:
+                current_config['notifications'].update(config_data['notifications'])
+            
+            # Save updated config
+            with open('twilio_config.json', 'w') as f:
+                json.dump(current_config, f, indent=2)
+            
+            # Reload configuration
+            self.load_twilio_config()
+            
+            return {"success": True, "message": "Twilio configuration updated"}
+            
+        except Exception as e:
+            logger.error(f"Error updating Twilio config: {e}")
+            return {"success": False, "error": str(e)}
     
     def get_market_data(self, symbol):
         """Get current market data for a symbol"""
@@ -574,6 +711,43 @@ class MT5Bridge:
                 result = self.execute_node_strategy(node_graph)
                 response['data'] = result
             
+            elif action == 'sendTwilioAlert':
+                message = data.get('message', '')
+                to_number = data.get('toNumber', '')
+                method = data.get('method', 'sms')
+                
+                if self.twilio_alerts and self.twilio_alerts.is_enabled():
+                    result = self.twilio_alerts.send_custom_alert(message, to_number, method)
+                    response['data'] = result
+                else:
+                    response['data'] = {"success": False, "error": "Twilio not configured"}
+            
+            elif action == 'testTwilioConnection':
+                if self.twilio_alerts and self.twilio_alerts.is_enabled():
+                    test_message = "Test message from MT5 Trader"
+                    to_number = data.get('toNumber', self.alert_config.get('recipient_number', ''))
+                    method = data.get('method', 'sms')
+                    
+                    if to_number:
+                        result = self.twilio_alerts.send_custom_alert(test_message, to_number, method)
+                        response['data'] = result
+                    else:
+                        response['data'] = {"success": False, "error": "No recipient number provided"}
+                else:
+                    response['data'] = {"success": False, "error": "Twilio not configured"}
+            
+            elif action == 'updateTwilioConfig':
+                config_data = data.get('config', {})
+                result = self.update_twilio_config(config_data)
+                response['data'] = result
+            
+            elif action == 'getTwilioConfig':
+                response['data'] = {
+                    "enabled": self.twilio_alerts is not None and self.twilio_alerts.is_enabled(),
+                    "config": self.alert_config,
+                    "twilioConfig": self.twilio_config
+                }
+            
             else:
                 response['error'] = f"Unknown action: {action}"
             
@@ -584,7 +758,7 @@ class MT5Bridge:
             await websocket.send(json.dumps({"error": str(e), "messageId": data.get('messageId') if 'data' in locals() else None}))
     
     async def start_server(self):
-        """Start WebSocket server"""
+        """Start WebSocket server with position monitoring"""
         async def handler(websocket):
             self.websocket = websocket
             logger.info(f"Client connected from {websocket.remote_address}")
@@ -597,9 +771,29 @@ class MT5Bridge:
             finally:
                 self.websocket = None
         
+        async def position_monitor():
+            """Monitor positions for TP/SL alerts"""
+            while True:
+                try:
+                    if self.connected_to_mt5:
+                        self.update_position_monitoring()
+                    await asyncio.sleep(5)  # Check every 5 seconds
+                except Exception as e:
+                    logger.error(f"Error in position monitoring: {e}")
+                    await asyncio.sleep(10)  # Wait longer on error
+        
+        # Start both server and position monitoring
         async with websockets.serve(handler, self.host, self.port):
             logger.info(f"WebSocket server started on ws://{self.host}:{self.port}")
-            await asyncio.Future()  # Run forever
+            
+            # Start position monitoring task
+            monitor_task = asyncio.create_task(position_monitor())
+            logger.info("Position monitoring started")
+            
+            try:
+                await asyncio.Future()  # Run forever
+            finally:
+                monitor_task.cancel()
     
     def shutdown(self):
         """Shutdown MT5 connection"""

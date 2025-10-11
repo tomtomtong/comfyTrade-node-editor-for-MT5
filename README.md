@@ -1,6 +1,6 @@
 # MT5 Trading Strategy Executor
 
-A comprehensive Electron desktop application that provides a visual trading platform for MetaTrader 5, featuring a node-based strategy builder, historical data backtesting, and advanced risk management tools.
+A comprehensive Electron desktop application that provides a visual trading platform for MetaTrader 5, featuring a node-based strategy builder, historical data backtesting, advanced risk management tools, and real-time Twilio notifications.
 
 ## 🚀 Quick Start
 
@@ -8,7 +8,7 @@ A comprehensive Electron desktop application that provides a visual trading plat
 - **Node.js** 16+ and npm
 - **Python** 3.8+ with pip
 - **MetaTrader 5** terminal installed and running
-- **uv** Python package manager (for MCP servers)
+- **Twilio Account** (optional, for SMS/WhatsApp alerts)
 
 ### Installation
 
@@ -40,6 +40,7 @@ A comprehensive Electron desktop application that provides a visual trading plat
 - [Technology Stack](#-technology-stack)
 - [Project Structure](#-project-structure)
 - [User Guide](#-user-guide)
+- [Twilio Alerts Setup](#-twilio-alerts-setup)
 - [Developer Guide](#-developer-guide)
 - [API Reference](#-api-reference)
 - [Troubleshooting](#-troubleshooting)
@@ -63,6 +64,13 @@ A comprehensive Electron desktop application that provides a visual trading plat
 - **Trailing Stops**: Advanced position management with risk warnings
 - **Backtest Mode**: Visual indicators and strategy testing
 
+### Notification Features
+- **Twilio Alerts**: SMS and WhatsApp notifications for trading events
+- **Real-time Monitoring**: Automatic position monitoring every 5 seconds
+- **Smart Detection**: Intelligent take profit and stop loss hit detection
+- **Custom Alerts**: Send custom notifications at any point in your strategy
+- **Multiple Methods**: Support for both SMS and WhatsApp delivery
+
 ## 🏗 Architecture
 
 ### System Overview
@@ -80,8 +88,8 @@ A comprehensive Electron desktop application that provides a visual trading plat
 ┌─────────────────────────────────────────────────────────────┐
 │                   Python Bridge                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │ MT5 API     │  │ WebSocket   │  │ Data        │        │
-│  │ Integration │  │ Server      │  │ Processing  │        │
+│  │ MT5 API     │  │ WebSocket   │  │ Twilio      │        │
+│  │ Integration │  │ Server      │  │ Alerts      │        │
 │  └─────────────┘  └─────────────┘  └─────────────┘        │
 └─────────────────────┼───────────────────────────────────────┘
                       │
@@ -94,6 +102,8 @@ A comprehensive Electron desktop application that provides a visual trading plat
 ### Communication Flow
 ```
 Electron UI ↔ WebSocket (port 8765) ↔ Python Bridge ↔ MT5 API
+                                    ↕
+                                Twilio API ↔ SMS/WhatsApp
 ```
 
 ## 🛠 Technology Stack
@@ -103,17 +113,19 @@ Electron UI ↔ WebSocket (port 8765) ↔ Python Bridge ↔ MT5 API
 - **HTML/CSS/JavaScript**: UI implementation
 - **Canvas API**: Node editor rendering and interactions
 - **WebSocket**: Real-time communication with Python bridge
-- **LocalStorage**: Data persistence for historical data and settings
+- **LocalStorage**: Unified persistence system for all settings
 
 ### Backend Stack
 - **Node.js**: Electron main process and IPC handling
 - **Python 3.8+**: MT5 integration bridge
 - **MetaTrader5 Python API**: >=5.0.45 - Direct MT5 terminal communication
 - **WebSockets**: >=12.0 - Async communication between Electron and Python
+- **Twilio**: >=8.10.0 - SMS and WhatsApp notifications
 
 ### Key Dependencies
 - **ws**: ^8.18.3 (WebSocket client)
 - **electron-builder**: ^24.13.3 (Application packaging)
+- **twilio**: ^8.10.0 (Notification service)
 
 ## 📁 Project Structure
 
@@ -133,22 +145,18 @@ mt5-trader/
 │   ├── main.js                 # Electron main process and window management
 │   ├── preload.js              # Secure API bridge between renderer and main
 │   ├── mt5-bridge.js           # WebSocket client for Python communication
-│   └── mt5_bridge.py           # Python bridge for MT5 API integration
+│   ├── mt5_bridge.py           # Python bridge for MT5 API integration
+│   └── twilio_alerts.py        # Twilio notification service
 │
 ├── Configuration Files
 │   ├── package.json            # Node.js dependencies and build scripts
 │   ├── requirements.txt        # Python dependencies
 │   ├── config.js               # Application configuration management
-│   └── sample_history.csv      # Example CSV format for data import
+│   ├── sample_history.csv      # Example CSV format for data import
+│   └── twilio_config.json      # Twilio settings (auto-generated)
 │
 ├── Documentation
-│   ├── README.md               # This comprehensive guide
-│   ├── ARCHITECTURE_DIAGRAM.md # System architecture details
-│   ├── IMPLEMENTATION_SUMMARY.md # Implementation overview
-│   ├── QUICK_SYMBOLS_GUIDE.md  # Quick symbols feature guide
-│   ├── QUICK_SYMBOLS_API.md    # API reference for quick symbols
-│   ├── CONFIRMATION_MODAL_FIX.md # UI improvement documentation
-│   └── SYMBOL_INPUT_FIX.md     # Bug fix documentation
+│   └── README.md               # This comprehensive guide
 │
 └── Build & Distribution
     ├── dist/                   # Build output directory (generated)
@@ -164,18 +172,21 @@ Quick symbols provide one-click access to your favorite trading symbols througho
 #### Setting Up Quick Symbols
 
 1. **Open Settings**: Click the **⚙ Settings** button in the top toolbar
-2. **Manage Symbols**: 
-   - **Add**: Type a symbol name (e.g., `XAUUSD`) and click **Add**
-   - **Remove**: Click the **×** button next to any symbol
-   - **Reset**: Click **Reset to Defaults** to restore default symbols
-3. **Save**: Click **Close** to save your changes
+2. **Navigate to Quick Symbols**: Click the "Quick Symbols" tab
+3. **Add Symbols**: 
+   - Type a symbol name (e.g., `XAUUSD`) in the search box
+   - Press Enter or click **Add** to add the symbol
+   - Use autocomplete when connected to MT5 for symbol suggestions
+4. **Remove Symbols**: Click the **×** button next to any symbol
+5. **Reset**: Click **Reset to Defaults** to restore default symbols
+6. **Save**: Click **Close** to save your changes
 
 #### Using Quick Symbols
 
 Quick symbol buttons appear in:
 - **Trade Dialog**: Below the symbol input field
 - **Node Properties**: When editing trade nodes
-- **Future Features**: Easily extensible to new areas
+- **Settings**: Enhanced symbol search with autocomplete
 
 #### Common Symbols to Add
 
@@ -191,7 +202,15 @@ Quick symbol buttons appear in:
 1. **Create Nodes**: Drag and drop from the node palette
 2. **Connect Nodes**: Link outputs to inputs to create strategy flow
 3. **Configure Parameters**: Double-click nodes to set parameters
-4. **Test Strategy**: Use backtest mode with historical data
+4. **Test Nodes**: Use test buttons to verify functionality before running
+5. **Test Strategy**: Use backtest mode with historical data
+
+#### Available Node Types
+- **Trigger Nodes**: Start strategy execution
+- **Conditional Check**: Test market conditions (price, percentage change)
+- **Logic Gates**: AND/OR gates for complex conditions
+- **Trade Nodes**: Open, close, and modify positions
+- **Twilio Alert**: Send SMS/WhatsApp notifications
 
 #### Historical Data Import
 1. **From MT5**: Connect to MT5 and import data for 8 timeframes
@@ -205,7 +224,124 @@ Quick symbol buttons appear in:
 3. **Trailing Stops**: Dynamic stop loss adjustment
 4. **Overtrade Control**: Monitor and limit trading frequency
 
+### Test Buttons Guide
+
+Each trading node includes test functionality to verify behavior before running your strategy:
+
+#### 🧪 Test Condition (Conditional Check Node)
+- Tests if condition evaluates to TRUE or FALSE
+- Shows current price and comparison
+- Indicates if trigger will continue or stop
+
+#### 🧪 Test Logic (AND/OR Gate Nodes)
+- Shows connected inputs and gate behavior
+- Displays truth table for understanding
+- Helps debug multi-condition logic
+
+#### 🧪 Test Close (Close Position Node)
+- Tests position closure functionality
+- Works with specific tickets or "close all"
+- Shows detailed results for each position
+
+#### 🧪 Test Modify (Modify Position Node)
+- Tests SL/TP modification with validation
+- Checks position type compatibility
+- Shows before/after comparison
+
+#### 📱 Test Alert (Twilio Alert Node)
+- Sends test notification with current parameters
+- Includes account/position info if enabled
+- Verifies Twilio configuration
+
+## 📱 Twilio Alerts Setup
+
+### Prerequisites
+1. **Twilio Account**: Sign up at [twilio.com](https://www.twilio.com)
+2. **Phone Number**: Purchase a Twilio phone number
+3. **Credentials**: Get Account SID and Auth Token from Twilio Console
+
+### Quick Setup
+
+1. **Install Dependencies** (already included):
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Configure in Application**:
+   - Open MT5 Trader → Settings → Twilio Alerts tab
+   - Enter your Twilio credentials:
+     - Account SID
+     - Auth Token  
+     - From Number (your Twilio phone number)
+   - Set recipient number and notification method
+   - Choose which events trigger alerts
+   - Test configuration with "Send Test Message"
+   - Save settings
+
+3. **Start Trading**: Alerts will be sent automatically when:
+   - Take Profit levels are hit
+   - Stop Loss levels are hit
+   - Positions are opened/closed (if enabled)
+   - Custom alerts from Twilio Alert nodes
+
+### Alert Message Examples
+
+#### Take Profit Alert
+```
+🎯 TAKE PROFIT HIT!
+
+Symbol: EURUSD
+Ticket: 123456789
+Type: BUY
+Volume: 0.1
+Profit: $25.50
+TP Level: 1.1250
+Current Price: 1.1251
+
+Time: 2024-10-10 14:30:25
+MT5 Trader Alert
+```
+
+#### Custom Strategy Alert
+```
+Strategy signal triggered for EURUSD
+
+Account Info:
+Balance: $10,000.00
+Equity: $10,250.50
+Profit: $250.50
+
+Time: 2024-10-10 14:30:25
+MT5 Trader Alert
+```
+
+### Cost Considerations
+- **SMS**: ~$0.0075 per message
+- **WhatsApp**: ~$0.005 per message  
+- **Free Trial**: Twilio provides free credits for testing
+- **Typical Usage**: 10-20 alerts per day = $0.05-$0.15 daily cost
+
 ## 👨‍💻 Developer Guide
+
+### Unified Persistence System
+
+Both Twilio settings and Quick Symbols use the same localStorage-based persistence system through `AppConfig`:
+
+```javascript
+// Quick Symbols
+AppConfig.addQuickSymbol('XAUUSD');
+AppConfig.removeQuickSymbol('XAUUSD');
+const symbols = AppConfig.getQuickSymbols();
+
+// Twilio Settings
+AppConfig.updateTwilioSettings({
+  enabled: true,
+  accountSid: 'AC...',
+  authToken: '...',
+  fromNumber: '+1234567890'
+});
+const settings = AppConfig.getTwilioSettings();
+```
 
 ### Adding Quick Symbols to New Components
 
@@ -218,36 +354,9 @@ QuickSymbols.createForSymbolInput(quickSymbolsContainer, symbolInput);
 #### Method 2: With Custom Callback
 ```javascript
 QuickSymbols.create(quickSymbolsContainer, (symbol) => {
-  // Handle symbol selection
   console.log('Selected:', symbol);
   myInput.value = symbol;
 });
-```
-
-#### Method 3: With Custom Options
-```javascript
-QuickSymbols.create(container, callback, {
-  className: 'custom-quick-symbols',
-  buttonClass: 'custom-btn',
-  symbols: ['CUSTOM1', 'CUSTOM2'] // Override default symbols
-});
-```
-
-### Configuration Management
-
-#### Accessing Quick Symbols Configuration
-```javascript
-// Get current symbols
-const symbols = AppConfig.getQuickSymbols();
-
-// Add a symbol programmatically
-AppConfig.addQuickSymbol('XAUUSD');
-
-// Remove a symbol
-AppConfig.removeQuickSymbol('XAUUSD');
-
-// Save changes
-AppConfig.saveToLocalStorage();
 ```
 
 ### Module Architecture
@@ -257,37 +366,43 @@ AppConfig.saveToLocalStorage();
 index.html
     │
     ├─▶ config.js (loaded first)
-    │       └─▶ Defines AppConfig
+    │       └─▶ Defines AppConfig with unified persistence
     │
     ├─▶ quick-symbols.js (loaded second)
-    │       └─▶ Defines QuickSymbols class, Uses AppConfig
+    │       └─▶ Uses AppConfig for symbol management
     │
     ├─▶ symbol-input.js
     ├─▶ node-editor.js
     └─▶ renderer.js (loaded last)
-            └─▶ Uses QuickSymbols and AppConfig, Implements UI logic
+            └─▶ Implements UI logic and Twilio integration
 ```
 
-#### Key Architectural Patterns
-- **Single Responsibility**: Each JS file handles one major feature area
-- **Separation of Concerns**: UI logic separate from business logic
-- **Event-Driven**: Heavy use of event listeners and callbacks
-- **Modular Design**: Reusable components with clear APIs
+### Adding New Node Types
+
+1. **Define Node Configuration** in `node-editor.js`:
+```javascript
+{
+  type: 'my-custom-node',
+  inputs: 1,
+  outputs: 1,
+  params: {
+    myParam: 'default value'
+  }
+}
+```
+
+2. **Add Execution Logic**:
+```javascript
+case 'my-custom-node':
+  // Your node logic here
+  break;
+```
+
+3. **Add UI Components** in `renderer.js` and `index.html`
+
+4. **Add Test Functionality** (recommended)
 
 ### Python Bridge Development
-
-#### WebSocket Communication
-```python
-# mt5_bridge.py
-import websockets
-import MetaTrader5 as mt5
-
-async def handle_client(websocket, path):
-    async for message in websocket:
-        # Process MT5 commands
-        response = await process_command(message)
-        await websocket.send(response)
-```
 
 #### Adding New MT5 Functions
 1. Add function to `mt5_bridge.py`
@@ -295,152 +410,163 @@ async def handle_client(websocket, path):
 3. Add corresponding JavaScript client code in `mt5-bridge.js`
 4. Update UI components as needed
 
+#### Twilio Integration
+The Twilio system is fully integrated with automatic position monitoring:
+
+```python
+# Position monitoring runs every 5 seconds
+async def monitor_positions():
+    current_positions = mt5.positions_get()
+    # Compare with previous positions
+    # Detect TP/SL hits
+    # Send appropriate alerts
+```
+
 ## 📚 API Reference
 
-### AppConfig Object
+### AppConfig Object (Unified Configuration)
 
-#### Properties
+#### Quick Symbols Methods
 ```javascript
-AppConfig.quickSymbols  // Array of symbol strings
+AppConfig.getQuickSymbols()           // Get symbol array
+AppConfig.addQuickSymbol(symbol)      // Add symbol
+AppConfig.removeQuickSymbol(symbol)   // Remove symbol
 ```
 
-#### Methods
-
-**`getQuickSymbols()`** - Returns current array of quick symbols
+#### Twilio Settings Methods
 ```javascript
-const symbols = AppConfig.getQuickSymbols();
-// Returns: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD']
-```
-
-**`addQuickSymbol(symbol)`** - Adds a new symbol to the list
-```javascript
-AppConfig.addQuickSymbol('XAUUSD');
-// Automatically saves to localStorage
-```
-
-**`removeQuickSymbol(symbol)`** - Removes a symbol from the list
-```javascript
-AppConfig.removeQuickSymbol('XAUUSD');
-// Automatically saves to localStorage
+AppConfig.getTwilioSettings()         // Get Twilio config
+AppConfig.updateTwilioSettings(data)  // Update Twilio config
 ```
 
 ### QuickSymbols Class
 
 #### Static Methods
-
-**`create(container, onSymbolClick, options)`** - Creates quick symbol buttons
-
-**Parameters:**
-- `container` (HTMLElement) - Container to append buttons to
-- `onSymbolClick` (Function) - Callback when symbol is clicked
-- `options` (Object, optional) - Configuration options
-
-**`createForSymbolInput(container, symbolInput)`** - Helper for SymbolInput integration
-
-**`update(container)`** - Updates existing quick symbol buttons
-
-### CSS Classes
-
-**`.quick-symbols`** - Container for quick symbol buttons
-```css
-.quick-symbols {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
+```javascript
+QuickSymbols.create(container, callback, options)
+QuickSymbols.createForSymbolInput(container, symbolInput)
+QuickSymbols.update(container)
 ```
 
-**`.quick-symbol-btn`** - Individual symbol button
-```css
-.quick-symbol-btn {
-  padding: 4px 8px;
-  background: #444;
-  border: 1px solid #555;
-  border-radius: 3px;
-  color: #ccc;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+### Debug Functions
+
+#### Console Commands for Testing
+```javascript
+// Test open position functionality
+window.testOpenPositionNode()
+
+// Test modify position with specific parameters
+window.testModifyPositionNode(ticketId, stopLoss, takeProfit)
+
+// Debug symbol input issues
+window.debugSymbolInput()
+window.fixSymbolInput()
+
+// Debug strategy execution
+window.debugStrategy()
 ```
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### Strategy Execution Issues
 
-#### Quick Symbols Not Appearing
-- **Check MT5 Connection**: Ensure MetaTrader 5 is running and connected
-- **Verify Configuration**: Open Settings and check if symbols are configured
-- **Clear Browser Data**: If symbols disappeared, they'll reset to defaults
+#### Strategy Not Executing Trades
+**Quick Diagnosis**: Run `window.debugStrategy()` in console
+
+**Common Issues**:
+1. **Nodes Not Connected**: Ensure trigger connects to trade nodes
+2. **Trigger Disabled**: Check trigger node is enabled
+3. **Overtrade Control**: Check limits in Settings
+4. **MT5 Connection**: Verify MT5 is connected
+
+#### Test Button vs Strategy Execution
+| Aspect | Test Button | Strategy Execution |
+|--------|-------------|-------------------|
+| Requires trigger | ❌ No | ✅ Yes |
+| Requires connection | ❌ No | ✅ Yes |
+| Checks overtrade | Varies | ✅ Yes |
+| Shows detailed feedback | ✅ Yes | ⚠️ Limited |
+
+### Twilio Issues
+
+#### Settings Don't Persist
+**Solution**: Settings now use unified localStorage system
+- Check `twilio_config.json` exists
+- Verify localStorage permissions
+- Use "Save Settings" button
+
+#### Alerts Not Received
+**Common Fixes**:
+1. Check Twilio configuration in Settings
+2. Verify phone number format (+1234567890)
+3. Ensure positions have TP/SL levels set
+4. Check Twilio account balance
+
+#### WhatsApp Not Working
+**Setup Required**:
+1. Complete WhatsApp sandbox setup in Twilio Console
+2. Send activation message from your phone
+3. Use correct number format
+
+### Quick Symbols Issues
+
+#### Symbols Not Appearing
+- Check MT5 connection for autocomplete
+- Verify configuration in Settings
+- Clear browser data if needed
 
 #### Symbol Input Not Working
-If you can't type in symbol input fields after removing quick symbols:
-
 ```javascript
-// Debug in browser console
+// Debug and fix in console
 debugSymbolInput();
-
-// Attempt to fix
 fixSymbolInput();
 ```
 
-#### Python Bridge Connection Issues
-1. **Check Python Dependencies**: `pip install -r requirements.txt`
-2. **Verify MT5 Installation**: Ensure MetaTrader 5 is properly installed
-3. **Port Conflicts**: Check if port 8765 is available
-4. **Firewall**: Ensure WebSocket connections are allowed
+### Python Bridge Issues
 
-#### Build Issues
-```bash
-# Clear node modules and reinstall
-rm -rf node_modules
-npm install
+#### Connection Problems
+1. **Check Dependencies**: `pip install -r requirements.txt`
+2. **Verify MT5**: Ensure MetaTrader 5 is installed
+3. **Port Conflicts**: Check port 8765 availability
+4. **Firewall**: Allow WebSocket connections
 
-# Clear Python cache
-pip cache purge
-pip install -r requirements.txt --force-reinstall
-```
-
-### Debug Tools
-
-#### Browser Console Commands
-```javascript
-// Check symbol input status
-debugSymbolInput();
-
-// Fix symbol input issues
-fixSymbolInput();
-
-// Inspect configuration
-console.log(AppConfig.getQuickSymbols());
-
-// Test quick symbols
-QuickSymbols.create(document.body, console.log);
-```
-
-#### Python Bridge Debugging
+#### Manual Testing
 ```bash
 # Run Python bridge manually
 python mt5_bridge.py
 
-# Check MT5 connection
+# Test MT5 connection
 python -c "import MetaTrader5 as mt5; print(mt5.initialize())"
 ```
 
-### Performance Optimization
+### Settings Save Issues
+
+#### "No handler registered" Error
+**Solution**: Complete application restart required
+1. Close all MT5 Trader windows
+2. End all processes in Task Manager
+3. Restart application fresh
+4. Test with console commands
+
+#### Unified Persistence Benefits
+- No backend dependency for saving
+- Immediate localStorage persistence
+- Graceful degradation when offline
+- Consistent API across features
+
+### Performance Issues
 
 #### Memory Usage
-- **Historical Data**: Large datasets are stored in localStorage
-- **Node Editor**: Complex strategies may impact rendering performance
-- **WebSocket**: Monitor connection stability for real-time features
+- Historical data stored in localStorage
+- Complex strategies may impact rendering
+- Monitor WebSocket connection stability
 
 #### Storage Management
 ```javascript
 // Check localStorage usage
 console.log(JSON.stringify(localStorage).length + ' characters');
 
-// Clear historical data if needed
+// Clear specific data if needed
 localStorage.removeItem('historicalData');
 ```
 
@@ -465,25 +591,27 @@ localStorage.removeItem('historicalData');
    npm run dev  # Launches with DevTools
    ```
 
-### Code Style
+### Code Style Guidelines
 
-- **JavaScript**: Use ES6+ features, consistent indentation
-- **Python**: Follow PEP 8 guidelines
+- **JavaScript**: ES6+ features, consistent indentation
+- **Python**: PEP 8 guidelines
 - **HTML/CSS**: Semantic markup, consistent class naming
 - **File Naming**: Kebab-case for JS files, snake_case for Python
 
-### Testing
+### Testing Checklist
 
 #### Manual Testing
 - Test all quick symbol functionality
 - Verify MT5 integration
 - Test node editor operations
 - Validate historical data import
+- Test Twilio alerts (SMS and WhatsApp)
+- Verify settings persistence
 
-#### Test Files
-- `test-quick-symbols.html` - Quick symbols functionality
-- `test-confirmation-modal.html` - Modal system testing
-- `test-symbol-input-fix.html` - Symbol input validation
+#### Test Files Available
+- Various HTML test files for specific components
+- Console debug functions for troubleshooting
+- Test buttons in node properties panels
 
 ### Pull Request Guidelines
 
@@ -499,12 +627,44 @@ MIT License - see LICENSE file for details.
 
 ## 🆘 Support
 
+### Getting Help
+
 For issues, questions, or contributions:
-1. Check existing documentation
-2. Search through issues
-3. Create a new issue with detailed information
-4. Include system information and error logs
+1. Check this comprehensive documentation
+2. Use console debug functions for troubleshooting
+3. Search through existing issues
+4. Create a new issue with detailed information
+5. Include system information and error logs
+
+### Debug Information to Include
+
+When reporting issues, include:
+- Console output from relevant debug functions
+- Error messages from browser console
+- MT5 connection status
+- Twilio configuration status (without credentials)
+- Steps to reproduce the issue
+
+### Common Debug Commands
+
+```javascript
+// Strategy execution issues
+window.debugStrategy()
+
+// Position testing
+window.testOpenPositionNode()
+window.testModifyPositionNode()
+
+// Symbol input issues  
+window.debugSymbolInput()
+
+// Configuration check
+console.log(AppConfig.getQuickSymbols())
+console.log(AppConfig.getTwilioSettings())
+```
 
 ---
 
 **Built with ❤️ for the trading community**
+
+*This application provides a comprehensive trading platform with visual strategy building, real-time notifications, and advanced risk management. The unified persistence system ensures your settings are always saved, while the extensive testing features help you build reliable trading strategies.*

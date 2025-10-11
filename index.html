@@ -43,6 +43,7 @@
           <div class="node-category">
             <h4>Signals</h4>
             <button class="node-btn signal-btn" data-type="signal-popup">🔔 Popup Signal</button>
+            <button class="node-btn signal-btn" data-type="twilio-alert">📱 Twilio Alert</button>
           </div>
 
 
@@ -524,6 +525,7 @@
       <div class="settings-tabs">
         <button class="settings-tab-btn active" data-tab="quickSymbols">Quick Symbols</button>
         <button class="settings-tab-btn" data-tab="overtradeControl">Overtrade Control</button>
+        <button class="settings-tab-btn" data-tab="twilioAlerts">Twilio Alerts</button>
       </div>
       
       <!-- Quick Symbols Tab -->
@@ -604,6 +606,74 @@
         <div class="overtrade-actions">
           <button id="settingsResetTradeCountBtn" class="btn btn-warning">Reset Count</button>
           <button id="settingsTestOvertradeBtn" class="btn btn-info">Test (Add 5 Trades)</button>
+        </div>
+      </div>
+      
+      <!-- Twilio Alerts Tab -->
+      <div id="twilioAlertsTab" class="settings-tab">
+        <div class="form-group">
+          <label>Enable Twilio Alerts:</label>
+          <select id="settingsTwilioEnabled">
+            <option value="false">Disabled</option>
+            <option value="true">Enabled</option>
+          </select>
+        </div>
+        
+        <div class="twilio-config-section">
+          <h4>🔑 Twilio Credentials</h4>
+          <div class="twilio-grid">
+            <div class="form-group">
+              <label>Account SID:</label>
+              <input type="text" id="settingsTwilioAccountSid" placeholder="ACxxxxxxxx...">
+              <small>From Twilio Console</small>
+            </div>
+            <div class="form-group">
+              <label>Auth Token:</label>
+              <input type="password" id="settingsTwilioAuthToken" placeholder="Your token">
+              <small>From Twilio Console</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>From Number:</label>
+            <input type="text" id="settingsTwilioFromNumber" placeholder="+1234567890">
+            <small>Your Twilio phone number</small>
+          </div>
+        </div>
+        
+        <div class="notification-config-section">
+          <h4>📱 Notification Settings</h4>
+          <div class="twilio-grid">
+            <div class="form-group">
+              <label>Recipient Number:</label>
+              <input type="text" id="settingsRecipientNumber" placeholder="+1987654321">
+              <small>Your phone number</small>
+            </div>
+            <div class="form-group">
+              <label>Method:</label>
+              <select id="settingsNotificationMethod">
+                <option value="sms">SMS</option>
+                <option value="whatsapp">WhatsApp</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Alert Types:</label>
+            <div class="checkbox-group twilio-checkbox-grid">
+              <label><input type="checkbox" id="settingsAlertTakeProfit" checked> Take Profit</label>
+              <label><input type="checkbox" id="settingsAlertStopLoss" checked> Stop Loss</label>
+              <label><input type="checkbox" id="settingsAlertPositionOpened"> Position Opened</label>
+              <label><input type="checkbox" id="settingsAlertPositionClosed"> Position Closed</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="twilio-test-section">
+          <h4>🧪 Test</h4>
+          <div class="form-group">
+            <button id="testTwilioBtn" class="btn btn-info btn-small">Send Test Message</button>
+            <div id="twilioTestResult" class="test-result"></div>
+          </div>
         </div>
       </div>
       
