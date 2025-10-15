@@ -170,6 +170,23 @@ function setupEventListeners() {
       updatePropertiesPanel(nodeEditor.selectedNode);
     }
   }, 100);
+  
+  // Trade confirmation modal event listeners
+  if (document.getElementById('tradeConfirmationModal')) {
+    // Modal close on overlay click
+    document.getElementById('tradeConfirmationModal').onclick = (e) => {
+      if (e.target === document.getElementById('tradeConfirmationModal')) {
+        hideTradeConfirmationModal();
+      }
+    };
+    
+    // ESC key to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('tradeConfirmationModal').classList.contains('show')) {
+        hideTradeConfirmationModal();
+      }
+    });
+  }
 }
 
 // Connection Modal
@@ -401,12 +418,87 @@ function stopPriceAutoRefresh() {
   }
 }
 
+// Function to open TradingView for a specific symbol
+function openTradingViewForSymbol(symbol) {
+  if (!symbol) return;
+  
+  // Check if TradingView opening is enabled in settings
+  const tradingViewEnabled = localStorage.getItem('openTradingView') !== 'false';
+  if (!tradingViewEnabled) {
+    console.log('TradingView opening is disabled in settings');
+    return;
+  }
+  
+  // Convert MT5 symbol format to TradingView format if needed
+  let tvSymbol = symbol;
+  
+  // Common MT5 to TradingView symbol conversions
+  const symbolMappings = {
+    'EURUSD': 'FX:EURUSD',
+    'GBPUSD': 'FX:GBPUSD',
+    'USDJPY': 'FX:USDJPY',
+    'USDCHF': 'FX:USDCHF',
+    'AUDUSD': 'FX:AUDUSD',
+    'USDCAD': 'FX:USDCAD',
+    'NZDUSD': 'FX:NZDUSD',
+    'EURJPY': 'FX:EURJPY',
+    'GBPJPY': 'FX:GBPJPY',
+    'EURGBP': 'FX:EURGBP',
+    'XAUUSD': 'TVC:GOLD',
+    'XAGUSD': 'TVC:SILVER',
+    'BTCUSD': 'BITSTAMP:BTCUSD',
+    'ETHUSD': 'BITSTAMP:ETHUSD'
+  };
+  
+  // Use mapping if available, otherwise use symbol as-is with FX prefix for forex pairs
+  if (symbolMappings[symbol.toUpperCase()]) {
+    tvSymbol = symbolMappings[symbol.toUpperCase()];
+  } else if (symbol.length === 6 && /^[A-Z]{6}$/.test(symbol)) {
+    // Likely a forex pair, add FX prefix
+    tvSymbol = `FX:${symbol.toUpperCase()}`;
+  } else {
+    tvSymbol = symbol.toUpperCase();
+  }
+  
+  const tradingViewUrl = `https://www.tradingview.com/chart/?symbol=${tvSymbol}`;
+  
+  try {
+    // Use Electron's shell to open the URL in the default browser
+    if (window.electronAPI && window.electronAPI.openExternal) {
+      window.electronAPI.openExternal(tradingViewUrl);
+    } else {
+      // Fallback for development or if electronAPI is not available
+      window.open(tradingViewUrl, '_blank');
+    }
+    
+    console.log(`Opened TradingView for symbol: ${symbol} (${tvSymbol})`);
+    showMessage(`Opened TradingView for ${symbol}`, 'info');
+  } catch (error) {
+    console.error('Error opening TradingView:', error);
+    showMessage('Could not open TradingView', 'error');
+  }
+}
+
+// Make function globally available
+window.openTradingViewForSymbol = openTradingViewForSymbol;
+
+// Load general settings
+function loadGeneralSettings() {
+  const openTradingView = localStorage.getItem('openTradingView') !== 'false'; // Default to true
+  document.getElementById('settingsOpenTradingView').value = openTradingView ? 'true' : 'false';
+}
+
 async function handleExecuteTrade() {
   const symbol = symbolInput.getValue();
   const type = document.getElementById('tradeType').value;
   const volume = parseFloat(document.getElementById('tradeVolume').value);
   const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value) || 0;
   const takeProfit = parseFloat(document.getElementById('tradeTakeProfit').value) || 0;
+  
+  // Debug logging
+  console.log('handleExecuteTrade - type from select:', type);
+  console.log('handleExecuteTrade - selected index:', document.getElementById('tradeType').selectedIndex);
+  console.log('handleExecuteTrade - all options:', Array.from(document.getElementById('tradeType').options).map(o => ({value: o.value, text: o.text, selected: o.selected})));
   
   if (!symbol) {
     showMessage('Please enter a symbol', 'error');
@@ -427,10 +519,79 @@ async function handleExecuteTrade() {
     return;
   }
   
+  // Show confirmation dialog and open TradingView
+  showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit);
+}
+
+// Store trade data for confirmation
+let pendingTradeData = null;
+
+function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) {
+  // Store the trade data
+  pendingTradeData = { symbol, type, volume, stopLoss, takeProfit };
+  
+  // Debug logging
+  console.log('showTradeConfirmationModal called with:', { symbol, type, volume, stopLoss, takeProfit });
+  console.log('type value:', type, 'type of type:', typeof type);
+  console.log('type.toUpperCase():', type.toUpperCase());
+  
+  // Open TradingView immediately when showing confirmation
+  openTradingViewForSymbol(symbol);
+  
+  // Show notification about TradingView opening
+  showMessage(`TradingView opened for ${symbol} - Review chart before confirming trade`, 'info');
+  
+  // Update confirmation modal content
+  document.getElementById('confirmTradeSymbol').textContent = symbol;
+  
+  const tradeTypeElement = document.getElementById('confirmTradeType');
+  const tradeTypeText = type.toUpperCase(); // Use the type as-is since it's already uppercase from the select
+  tradeTypeElement.textContent = tradeTypeText;
+  
+  // Add dynamic styling for BUY/SELL
+  tradeTypeElement.className = 'value trade-type';
+  if (type.toUpperCase() === 'BUY') {
+    tradeTypeElement.style.backgroundColor = '#4CAF50';
+    tradeTypeElement.style.color = 'white';
+  } else {
+    tradeTypeElement.style.backgroundColor = '#f44336';
+    tradeTypeElement.style.color = 'white';
+  }
+  
+  document.getElementById('confirmTradeVolume').textContent = volume;
+  document.getElementById('confirmTradeStopLoss').textContent = stopLoss || 'None';
+  document.getElementById('confirmTradeTakeProfit').textContent = takeProfit || 'None';
+  
+  // Hide trade modal and show confirmation
   hideTradeModal();
+  document.getElementById('tradeConfirmationModal').classList.add('show');
+}
+
+function hideTradeConfirmationModal() {
+  document.getElementById('tradeConfirmationModal').classList.remove('show');
+  pendingTradeData = null;
+}
+
+async function confirmTradeExecution() {
+  console.log('confirmTradeExecution called, pendingTradeData:', pendingTradeData);
+  
+  if (!pendingTradeData) {
+    console.error('No pending trade data found!');
+    showMessage('No pending trade to execute - please try again', 'error');
+    hideTradeConfirmationModal();
+    return;
+  }
+  
+  // Store the data before hiding modal (in case hideTradeConfirmationModal clears it)
+  const tradeDataToExecute = { ...pendingTradeData };
+  
+  hideTradeConfirmationModal();
   showMessage('Executing trade...', 'info');
   
   try {
+    const { symbol, type, volume, stopLoss, takeProfit } = tradeDataToExecute;
+    console.log('Executing trade with data:', tradeDataToExecute);
+    
     const orderData = {
       symbol,
       type,
@@ -446,6 +607,7 @@ async function handleExecuteTrade() {
     
     if (result.success && result.data.success) {
       showMessage(`Trade executed successfully! Ticket: ${result.data.ticket}`, 'success');
+      
       handleRefreshAccount();
       handleRefreshPositions();
     } else {
@@ -454,6 +616,29 @@ async function handleExecuteTrade() {
   } catch (error) {
     showMessage('Trade execution error: ' + error.message, 'error');
   }
+  
+  // Clear pending trade data
+  pendingTradeData = null;
+}
+
+// Debug function to check modal state
+window.debugTradeConfirmation = function() {
+  console.log('=== TRADE CONFIRMATION DEBUG ===');
+  console.log('pendingTradeData:', pendingTradeData);
+  console.log('Modal visible:', document.getElementById('tradeConfirmationModal').classList.contains('show'));
+  console.log('Trade type select value:', document.getElementById('tradeType').value);
+  console.log('Trade type select selectedIndex:', document.getElementById('tradeType').selectedIndex);
+  
+  const confirmElements = {
+    symbol: document.getElementById('confirmTradeSymbol').textContent,
+    type: document.getElementById('confirmTradeType').textContent,
+    volume: document.getElementById('confirmTradeVolume').textContent,
+    stopLoss: document.getElementById('confirmTradeStopLoss').textContent,
+    takeProfit: document.getElementById('confirmTradeTakeProfit').textContent
+  };
+  console.log('Confirmation modal elements:', confirmElements);
+  console.log('=== END DEBUG ===');
+  return { pendingTradeData, confirmElements };
 }
 
 async function handleConnect() {
@@ -2527,6 +2712,7 @@ let originalSettingsState = {};
 
 function showSettingsModal() {
   document.getElementById('settingsModal').classList.add('show');
+  loadGeneralSettings();
   renderQuickSymbolsList();
   loadOvertradeSettings();
   loadTwilioSettings();
@@ -2792,6 +2978,10 @@ async function updateOvertradeStatusInSettings() {
 }
 
 async function saveAllSettings() {
+  // Save general settings
+  const openTradingView = document.getElementById('settingsOpenTradingView').value === 'true';
+  localStorage.setItem('openTradingView', openTradingView);
+  
   // Save overtrade settings
   if (window.overtradeControl) {
     window.overtradeControl.settings.enabled = document.getElementById('settingsOvertradeEnabled').value === 'true';

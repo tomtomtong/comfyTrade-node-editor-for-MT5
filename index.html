@@ -210,7 +210,7 @@
         <div class="form-group">
           <label>Order Type:</label>
           <select id="tradeType">
-            <option value="BUY">Buy</option>
+            <option value="BUY" selected>Buy</option>
             <option value="SELL">Sell</option>
           </select>
         </div>
@@ -523,13 +523,26 @@
       
       <!-- Settings Tabs -->
       <div class="settings-tabs">
-        <button class="settings-tab-btn active" data-tab="quickSymbols">Quick Symbols</button>
+        <button class="settings-tab-btn active" data-tab="general">General</button>
+        <button class="settings-tab-btn" data-tab="quickSymbols">Quick Symbols</button>
         <button class="settings-tab-btn" data-tab="overtradeControl">Overtrade Control</button>
         <button class="settings-tab-btn" data-tab="twilioAlerts">Twilio Alerts</button>
       </div>
       
+      <!-- General Tab -->
+      <div id="generalTab" class="settings-tab active">
+        <div class="form-group">
+          <label>Open TradingView on Position Open:</label>
+          <select id="settingsOpenTradingView">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+          <small>Automatically open TradingView chart when a position is opened</small>
+        </div>
+      </div>
+      
       <!-- Quick Symbols Tab -->
-      <div id="quickSymbolsTab" class="settings-tab active">
+      <div id="quickSymbolsTab" class="settings-tab">
         <div class="form-group">
           <label>Quick Symbol Buttons:</label>
           <p style="font-size: 12px; color: #888; margin: 5px 0;">Configure the quick access symbols shown in trade dialogs and node properties.</p>
@@ -680,6 +693,46 @@
       <div class="modal-buttons">
         <button id="closeSettingsBtn" class="btn btn-secondary">Close</button>
         <button id="saveSettingsBtn" class="btn btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade Confirmation Modal -->
+  <div id="tradeConfirmationModal" class="modal">
+    <div class="modal-content trade-confirmation-modal">
+      <h2>📊 Confirm Trade Execution</h2>
+      
+      <div class="trade-confirmation-details">
+        <div class="confirmation-item">
+          <span class="label">Symbol:</span>
+          <span id="confirmTradeSymbol" class="value">-</span>
+        </div>
+        <div class="confirmation-item">
+          <span class="label">Action:</span>
+          <span id="confirmTradeType" class="value trade-type">-</span>
+        </div>
+        <div class="confirmation-item">
+          <span class="label">Volume:</span>
+          <span id="confirmTradeVolume" class="value">-</span>
+        </div>
+        <div class="confirmation-item">
+          <span class="label">Stop Loss:</span>
+          <span id="confirmTradeStopLoss" class="value">-</span>
+        </div>
+        <div class="confirmation-item">
+          <span class="label">Take Profit:</span>
+          <span id="confirmTradeTakeProfit" class="value">-</span>
+        </div>
+      </div>
+      
+      <div class="confirmation-notice">
+        <p>📈 TradingView has been opened for analysis</p>
+        <p>⚠️ Please review the chart before confirming the trade</p>
+      </div>
+      
+      <div class="modal-buttons">
+        <button onclick="hideTradeConfirmationModal()" class="btn btn-secondary">Cancel</button>
+        <button onclick="confirmTradeExecution()" class="btn btn-success">✓ Execute Trade</button>
       </div>
     </div>
   </div>

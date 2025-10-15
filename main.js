@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const MT5Bridge = require('./mt5-bridge');
 
@@ -192,6 +192,16 @@ ipcMain.handle('mt5:updateTwilioConfig', async (event, configData) => {
     try {
         const result = await mt5Bridge.updateTwilioConfig(configData);
         return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Handler for opening external URLs
+ipcMain.handle('electron:openExternal', async (event, url) => {
+    try {
+        await shell.openExternal(url);
+        return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
     }

@@ -1071,6 +1071,12 @@ class NodeEditor {
                 
                 if (tradeResult.success && tradeResult.data.success) {
                   console.log('✓ Trade executed successfully via node:', tradeResult.data);
+                  
+                  // Open TradingView for the traded symbol
+                  if (window.openTradingViewForSymbol) {
+                    window.openTradingViewForSymbol(node.params.symbol);
+                  }
+                  
                   if (window.handleRefreshPositions) {
                     window.handleRefreshPositions();
                   }

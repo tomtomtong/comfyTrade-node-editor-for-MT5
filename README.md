@@ -63,6 +63,7 @@ A comprehensive Electron desktop application that provides a visual trading plat
 - **Account Monitoring**: Real-time account and position management
 - **Trailing Stops**: Advanced position management with risk warnings
 - **Backtest Mode**: Visual indicators and strategy testing
+- **TradingView Integration**: Automatically opens TradingView charts when positions are opened
 
 ### Notification Features
 - **Twilio Alerts**: SMS and WhatsApp notifications for trading events
@@ -217,6 +218,35 @@ Quick symbol buttons appear in:
 2. **From CSV**: Import custom historical data files
 3. **Backtest Mode**: Test strategies against historical data
 4. **Data Persistence**: Historical data is saved locally
+
+### TradingView Integration
+
+The application can automatically open TradingView charts when you open positions, providing instant visual analysis of your trades.
+
+#### How It Works
+- **Manual Trades**: When executing a trade via "New Trade", a confirmation dialog appears with TradingView automatically opened for chart analysis
+- **Node-based Trades**: When trade-signal nodes execute, TradingView opens automatically after successful execution
+- **Symbol Mapping**: Converts MT5 symbols to TradingView format (e.g., EURUSD → FX:EURUSD, XAUUSD → TVC:GOLD)
+- **Trade Confirmation**: Manual trades require confirmation after reviewing the TradingView chart
+
+#### Trade Confirmation Flow
+1. **Initiate Trade**: Click "New Trade" and fill in trade parameters
+2. **Automatic TradingView**: TradingView opens automatically when you click "Execute Trade"
+3. **Review Chart**: Analyze the market conditions on TradingView
+4. **Confirm or Cancel**: Return to the app and either confirm or cancel the trade
+5. **Execution**: Trade executes immediately upon confirmation
+
+#### Configuring TradingView Integration
+1. **Open Settings**: Click the **⚙ Settings** button
+2. **Navigate to General**: Click the "General" tab
+3. **Toggle Feature**: Set "Open TradingView on Position Open" to Enabled/Disabled
+4. **Save Settings**: Click **Save Settings** to apply changes
+
+#### Supported Symbol Mappings
+- **Forex Pairs**: Automatically prefixed with `FX:` (e.g., EURUSD → FX:EURUSD)
+- **Precious Metals**: XAUUSD → TVC:GOLD, XAGUSD → TVC:SILVER
+- **Cryptocurrencies**: BTCUSD → BITSTAMP:BTCUSD, ETHUSD → BITSTAMP:ETHUSD
+- **Other Symbols**: Used as-is or with appropriate exchange prefixes
 
 #### Risk Management
 1. **Position Sizing**: Calculate position sizes based on risk percentage

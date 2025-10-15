@@ -2802,4 +2802,97 @@ ter scrollbar for settings modal */
   padding-top: 15px;
   border-top: 1px solid #444;
   flex-shrink: 0; /* Don't shrink buttons */
+}/* Trade
+ Confirmation Modal Styles */
+.trade-confirmation-modal {
+  max-width: 450px;
+  animation: slideDown 0.3s ease-out;
+}
+
+.trade-confirmation-details {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.confirmation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+}
+
+.confirmation-item:last-child {
+  border-bottom: none;
+}
+
+.confirmation-item .label {
+  color: #ccc;
+  font-weight: 500;
+}
+
+.confirmation-item .value {
+  color: #fff;
+  font-weight: bold;
+}
+
+.confirmation-item .trade-type {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.confirmation-notice {
+  background: #2a4d3a;
+  border: 1px solid #4CAF50;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 15px 0;
+  text-align: center;
+}
+
+.confirmation-notice p {
+  margin: 5px 0;
+  color: #e8f5e8;
+  font-size: 14px;
+}
+
+.confirmation-notice p:first-child {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+#tradeConfirmationModal .modal-buttons {
+  margin-top: 20px;
+}
+
+#tradeConfirmationModal .modal-buttons .btn {
+  min-width: 120px;
+}
+
+/* Trade type styling */
+#confirmTradeType {
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Dynamic styling for BUY/SELL will be applied via JavaScript */
+
+/* Animation for modal appearance */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

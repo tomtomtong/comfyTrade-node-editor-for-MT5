@@ -19,3 +19,7 @@ contextBridge.exposeInMainWorld('mt5API', {
   getTwilioConfig: () => ipcRenderer.invoke('mt5:getTwilioConfig'),
   updateTwilioConfig: (configData) => ipcRenderer.invoke('mt5:updateTwilioConfig', configData)
 });
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  openExternal: (url) => ipcRenderer.invoke('electron:openExternal', url)
+});
