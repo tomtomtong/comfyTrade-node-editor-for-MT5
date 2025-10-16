@@ -95,7 +95,7 @@ function initializeNodeEditor() {
 
 function setupEventListeners() {
   // Toolbar buttons
-  document.getElementById('connectBtn').addEventListener('click', showConnectionModal);
+  document.getElementById('connectBtn').addEventListener('click', handleConnectionToggle);
   document.getElementById('tradeBtn').addEventListener('click', showTradeModal);
   document.getElementById('backtestBtn').addEventListener('click', () => window.historyImport.showBacktestModal());
   document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
@@ -189,6 +189,15 @@ function setupEventListeners() {
   }
 }
 
+// Connection Toggle
+function handleConnectionToggle() {
+  if (isConnected) {
+    handleDisconnect();
+  } else {
+    showConnectionModal();
+  }
+}
+
 // Connection Modal
 function showConnectionModal() {
   document.getElementById('connectionModal').classList.add('show');
@@ -196,6 +205,95 @@ function showConnectionModal() {
 
 function hideConnectionModal() {
   document.getElementById('connectionModal').classList.remove('show');
+}
+
+// Disconnect function
+async function handleDisconnect() {
+  // Show confirmation dialog
+  showConfirmation(
+    'Disconnect from MT5',
+    'Are you sure you want to disconnect from MetaTrader 5? This will stop all auto-refresh and clear current data.',
+    async () => {
+      try {
+        // Stop auto-refresh
+        stopAutoRefresh();
+        
+        // Reset connection state
+        isConnected = false;
+        
+        // Update connection status with null checks
+        try {
+          const connectionStatus = document.getElementById('connectionStatus');
+          if (connectionStatus) {
+            connectionStatus.textContent = 'Disconnected';
+            connectionStatus.className = 'status disconnected';
+          }
+        } catch (e) {
+          console.warn('Could not update connection status:', e);
+        }
+        
+        try {
+          const connectBtn = document.getElementById('connectBtn');
+          if (connectBtn) {
+            connectBtn.textContent = 'Connect MT5';
+            connectBtn.className = 'btn btn-primary';
+          }
+        } catch (e) {
+          console.warn('Could not update connect button:', e);
+        }
+        
+        // Clear account and position data with null checks
+        try {
+          const balance = document.getElementById('balance');
+          if (balance) balance.textContent = '-';
+          
+          const equity = document.getElementById('equity');
+          if (equity) equity.textContent = '-';
+          
+          const profit = document.getElementById('profit');
+          if (profit) profit.textContent = '-';
+        } catch (e) {
+          console.warn('Could not clear account data:', e);
+        }
+        
+        try {
+          const positionsContainer = document.getElementById('positionsContainer');
+          if (positionsContainer) {
+            positionsContainer.innerHTML = '<p class="no-data">Disconnected from MT5</p>';
+          }
+        } catch (e) {
+          console.warn('Could not clear positions container:', e);
+        }
+        
+        showMessage('Disconnected from MT5', 'info');
+        
+        // Optionally call MT5 API disconnect if available
+        try {
+          if (window.mt5API && window.mt5API.disconnect) {
+            await window.mt5API.disconnect();
+          }
+        } catch (e) {
+          console.warn('MT5 API disconnect failed:', e);
+        }
+        
+      } catch (error) {
+        console.error('Error during disconnect:', error);
+        showMessage('Error during disconnect: ' + error.message, 'error');
+        
+        // Ensure we still reset the basic connection state even if other things fail
+        isConnected = false;
+        try {
+          const connectBtn = document.getElementById('connectBtn');
+          if (connectBtn) {
+            connectBtn.textContent = 'Connect MT5';
+            connectBtn.className = 'btn btn-primary';
+          }
+        } catch (e) {
+          console.error('Could not reset connect button after error:', e);
+        }
+      }
+    }
+  );
 }
 
 // Trade Modal
@@ -655,6 +753,8 @@ async function handleConnect() {
     isConnected = true;
     document.getElementById('connectionStatus').textContent = 'Connected';
     document.getElementById('connectionStatus').className = 'status connected';
+    document.getElementById('connectBtn').textContent = 'Disconnect MT5';
+    document.getElementById('connectBtn').className = 'btn btn-danger';
     showMessage('Connected to MT5 successfully!', 'success');
     
     handleRefreshAccount();
@@ -2029,6 +2129,13 @@ function startAutoRefresh() {
       handleRefreshPositions();
     }
   }, 5000);
+}
+
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
 }
 
 // Message System
@@ -3909,6 +4016,23 @@ window.debugStrategy = function() {
 };
 
 console.log('Debug helper loaded. Run window.debugStrategy() to check your strategy setup.');
+
+// Debug function to test connection toggle
+window.testConnectionToggle = function() {
+  console.log('=== CONNECTION TOGGLE TEST ===');
+  console.log('Current connection state:', isConnected);
+  console.log('Button text:', document.getElementById('connectBtn').textContent);
+  console.log('Button class:', document.getElementById('connectBtn').className);
+  console.log('Connection status:', document.getElementById('connectionStatus').textContent);
+  console.log('=== END TEST ===');
+  
+  return {
+    isConnected,
+    buttonText: document.getElementById('connectBtn').textContent,
+    buttonClass: document.getElementById('connectBtn').className,
+    statusText: document.getElementById('connectionStatus').textContent
+  };
+};
 
 // Twilio Settings Functions
 async function loadTwilioSettings() {
