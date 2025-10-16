@@ -44,6 +44,7 @@
             <h4>Signals</h4>
             <button class="node-btn signal-btn" data-type="signal-popup">🔔 Popup Signal</button>
             <button class="node-btn signal-btn" data-type="twilio-alert">📱 Twilio Alert</button>
+            <button class="node-btn signal-btn" data-type="string-input">📝 String Input</button>
           </div>
 
 
@@ -527,6 +528,7 @@
         <button class="settings-tab-btn" data-tab="quickSymbols">Quick Symbols</button>
         <button class="settings-tab-btn" data-tab="overtradeControl">Overtrade Control</button>
         <button class="settings-tab-btn" data-tab="twilioAlerts">Twilio Alerts</button>
+        <button class="settings-tab-btn" data-tab="aiAnalysis">AI Analysis</button>
       </div>
       
       <!-- General Tab -->
@@ -686,6 +688,96 @@
           <div class="form-group">
             <button id="testTwilioBtn" class="btn btn-info btn-small">Send Test Message</button>
             <div id="twilioTestResult" class="test-result"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- AI Analysis Tab -->
+      <div id="aiAnalysisTab" class="settings-tab">
+        <div class="form-group">
+          <label>Enable AI Analysis:</label>
+          <select id="settingsAiEnabled">
+            <option value="false">Disabled</option>
+            <option value="true">Enabled</option>
+          </select>
+        </div>
+        
+        <div class="twilio-config-section">
+          <h4>🔥 Firecrawl Configuration</h4>
+          <div class="twilio-grid">
+            <div class="form-group">
+              <label>API Key:</label>
+              <input type="password" id="settingsFirecrawlApiKey" placeholder="fc-xxxxxxxxxxxxxxxx">
+              <small>Your Firecrawl API key</small>
+            </div>
+            <div class="form-group">
+              <label>Enable Firecrawl:</label>
+              <select id="settingsFirecrawlEnabled">
+                <option value="false">Disabled</option>
+                <option value="true">Enabled</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Base URL:</label>
+            <input type="text" id="settingsFirecrawlBaseUrl" placeholder="https://api.firecrawl.dev" value="https://api.firecrawl.dev">
+            <small>Firecrawl API endpoint (leave default unless using self-hosted)</small>
+          </div>
+        </div>
+        
+        <div class="notification-config-section">
+          <h4>🤖 OpenRouter Configuration</h4>
+          <div class="twilio-grid">
+            <div class="form-group">
+              <label>API Key:</label>
+              <input type="password" id="settingsOpenRouterApiKey" placeholder="sk-or-v1-xxxxxxxxxxxxxxxx">
+              <small>Your OpenRouter API key</small>
+            </div>
+            <div class="form-group">
+              <label>Enable OpenRouter:</label>
+              <select id="settingsOpenRouterEnabled">
+                <option value="false">Disabled</option>
+                <option value="true">Enabled</option>
+              </select>
+            </div>
+          </div>
+          <div class="twilio-grid">
+            <div class="form-group">
+              <label>Default Model:</label>
+              <select id="settingsOpenRouterModel">
+                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                <option value="openai/gpt-4o">GPT-4o</option>
+                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
+                <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B</option>
+                <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B</option>
+              </select>
+              <small>AI model for analysis</small>
+            </div>
+            <div class="form-group">
+              <label>Base URL:</label>
+              <input type="text" id="settingsOpenRouterBaseUrl" placeholder="https://openrouter.ai/api/v1" value="https://openrouter.ai/api/v1">
+              <small>OpenRouter API endpoint</small>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>AI Analysis Features:</label>
+            <div class="checkbox-group twilio-checkbox-grid">
+              <label><input type="checkbox" id="settingsAiMarketAnalysis" checked> Market Sentiment Analysis</label>
+              <label><input type="checkbox" id="settingsAiNewsAnalysis" checked> News Impact Analysis</label>
+              <label><input type="checkbox" id="settingsAiStrategyOptimization"> Strategy Optimization</label>
+              <label><input type="checkbox" id="settingsAiRiskAssessment" checked> Risk Assessment</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="twilio-test-section">
+          <h4>🧪 Test</h4>
+          <div class="form-group">
+            <button id="testFirecrawlBtn" class="btn btn-info btn-small">Test Firecrawl</button>
+            <button id="testOpenRouterBtn" class="btn btn-info btn-small">Test OpenRouter</button>
+            <div id="aiTestResult" class="test-result"></div>
           </div>
         </div>
       </div>

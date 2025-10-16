@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test AI Settings</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>AI Settings Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Firecrawl Settings</h3>
+        <button onclick="testFirecrawlSave()">Test Save Firecrawl Settings</button>
+        <button onclick="testFirecrawlLoad()">Test Load Firecrawl Settings</button>
+        <div id="firecrawlResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test OpenRouter Settings</h3>
+        <button onclick="testOpenRouterSave()">Test Save OpenRouter Settings</button>
+        <button onclick="testOpenRouterLoad()">Test Load OpenRouter Settings</button>
+        <div id="openRouterResult"></div>
+    </div>
+
+    <script>
+        function testFirecrawlSave() {
+            localStorage.setItem('aiEnabled', 'true');
+            localStorage.setItem('aiFirecrawlEnabled', 'true');
+            localStorage.setItem('aiFirecrawlApiKey', 'fc-test-key-123');
+            localStorage.setItem('aiFirecrawlBaseUrl', 'https://api.firecrawl.dev');
+            document.getElementById('firecrawlResult').innerHTML = '<span class="success">✓ Firecrawl settings saved to localStorage</span>';
+        }
+        
+        function testFirecrawlLoad() {
+            const aiEnabled = localStorage.getItem('aiEnabled');
+            const enabled = localStorage.getItem('aiFirecrawlEnabled');
+            const apiKey = localStorage.getItem('aiFirecrawlApiKey');
+            const baseUrl = localStorage.getItem('aiFirecrawlBaseUrl');
+            
+            document.getElementById('firecrawlResult').innerHTML = `
+                <div class="success">✓ Firecrawl settings loaded:</div>
+                <div>AI Enabled: ${aiEnabled}</div>
+                <div>Firecrawl Enabled: ${enabled}</div>
+                <div>API Key: ${apiKey}</div>
+                <div>Base URL: ${baseUrl}</div>
+            `;
+        }
+        
+        function testOpenRouterSave() {
+            localStorage.setItem('aiEnabled', 'true');
+            localStorage.setItem('aiOpenRouterEnabled', 'true');
+            localStorage.setItem('aiOpenRouterApiKey', 'sk-or-v1-test-key-456');
+            localStorage.setItem('aiOpenRouterModel', 'anthropic/claude-3.5-sonnet');
+            localStorage.setItem('aiOpenRouterBaseUrl', 'https://openrouter.ai/api/v1');
+            document.getElementById('openRouterResult').innerHTML = '<span class="success">✓ OpenRouter settings saved to localStorage</span>';
+        }
+        
+        function testOpenRouterLoad() {
+            const aiEnabled = localStorage.getItem('aiEnabled');
+            const enabled = localStorage.getItem('aiOpenRouterEnabled');
+            const apiKey = localStorage.getItem('aiOpenRouterApiKey');
+            const model = localStorage.getItem('aiOpenRouterModel');
+            const baseUrl = localStorage.getItem('aiOpenRouterBaseUrl');
+            
+            document.getElementById('openRouterResult').innerHTML = `
+                <div class="success">✓ OpenRouter settings loaded:</div>
+                <div>AI Enabled: ${aiEnabled}</div>
+                <div>OpenRouter Enabled: ${enabled}</div>
+                <div>API Key: ${apiKey}</div>
+                <div>Model: ${model}</div>
+                <div>Base URL: ${baseUrl}</div>
+            `;
+        }
+    </script>
+</body>
+</html>

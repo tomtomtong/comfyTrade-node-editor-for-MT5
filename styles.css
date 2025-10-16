@@ -2896,3 +2896,51 @@ ter scrollbar for settings modal */
     transform: translateY(0);
   }
 }
+
+/* AI Analysis Settings - using existing Twilio styling */
+#aiTestResult {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: none;
+}
+
+#aiTestResult.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  display: block;
+}
+
+#aiTestResult.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  display: block;
+}
+/* Str
+ing Input Node Styling */
+.node-btn[data-type="string-input"] {
+  background: linear-gradient(135deg, #FF9800, #FFC107);
+  border: 2px solid #FF9800;
+  color: white;
+  font-weight: bold;
+}
+
+.node-btn[data-type="string-input"]:hover {
+  background: linear-gradient(135deg, #F57C00, #FFB300);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
+/* String input node canvas styling */
+.string-input-node {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 193, 7, 0.1));
+  border: 2px solid #FF9800;
+}
+
+.string-input-node .node-title {
+  color: #FF9800;
+  font-weight: bold;
+}

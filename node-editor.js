@@ -302,16 +302,26 @@ class NodeEditor {
         }
       },
 
+      'string-input': {
+        title: 'String Input',
+        inputs: [],
+        outputs: ['string'],
+        params: { 
+          value: 'Custom message text'
+        }
+      },
+
       'twilio-alert': {
         title: 'Twilio Alert',
-        inputs: ['trigger'],
+        inputs: ['trigger', 'string'],
         outputs: ['trigger'],
         params: { 
           message: 'Trading alert from strategy',
           method: 'sms',
           recipient: '',
           includeAccountInfo: false,
-          includePositions: false
+          includePositions: false,
+          useStringInput: false
         }
       },
 
@@ -337,15 +347,24 @@ class NodeEditor {
   }
 
   addConnection(fromNode, toNode, inputIndex) {
-    // Validate connection types - only trigger to trigger connections allowed
+    // Validate connection types - allow trigger-to-trigger and string-to-string connections
     if (fromNode.outputs.length === 0 || toNode.inputs.length === 0) {
-      console.log('Cannot connect: missing trigger output or input');
+      console.log('Cannot connect: missing output or input');
       return;
     }
 
     // Validate input index
     if (inputIndex >= toNode.inputs.length) {
       console.log('Cannot connect: invalid input index');
+      return;
+    }
+
+    // Validate connection type compatibility
+    const fromOutputType = fromNode.outputs[0]; // Assuming single output for now
+    const toInputType = toNode.inputs[inputIndex];
+    
+    if (fromOutputType !== toInputType) {
+      console.log(`Cannot connect: incompatible types (${fromOutputType} → ${toInputType})`);
       return;
     }
 
@@ -572,9 +591,16 @@ class NodeEditor {
       const from = this.getOutputSocketPos(conn.from);
       const to = this.getInputSocketPos(conn.to, conn.toInput);
       
-      // Highlight hovered connection
+      // Determine connection type and color
+      const connectionType = conn.from.outputs[0]; // Assuming single output
       const isHovered = conn === this.hoveredConnection;
-      ctx.strokeStyle = isHovered ? '#FF6B6B' : '#64B5F6';
+      
+      let connectionColor = '#64B5F6'; // Default trigger color
+      if (connectionType === 'string') {
+        connectionColor = '#FF9800'; // Orange for string connections
+      }
+      
+      ctx.strokeStyle = isHovered ? '#FF6B6B' : connectionColor;
       ctx.lineWidth = isHovered ? 4 : 2;
       
       ctx.beginPath();
@@ -760,37 +786,45 @@ class NodeEditor {
     }
 
     // Input sockets
-    ctx.fillStyle = '#64B5F6';
     for (let i = 0; i < node.inputs.length; i++) {
+      const inputType = node.inputs[i];
       const pos = this.getInputSocketPos(node, i);
+      
+      // Set color based on input type
+      ctx.fillStyle = inputType === 'string' ? '#FF9800' : '#64B5F6';
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
       ctx.fill();
 
-      // Input label - show "trigger" or "trigger1/trigger2" for logic gates
+      // Input label - show type or specific labels for logic gates
       ctx.fillStyle = '#b0b0b0';
       ctx.font = '11px Arial';
       ctx.textAlign = 'left';
-      let label = 'trigger';
+      let label = inputType;
       if (node.type === 'logic-and' || node.type === 'logic-or') {
         label = i === 0 ? 'trigger1' : 'trigger2';
+      } else if (node.type === 'twilio-alert' && inputType === 'string') {
+        label = 'message';
       }
       ctx.fillText(label, pos.x + 10, pos.y + 4);
     }
 
     // Output socket
     if (node.outputs.length > 0) {
+      const outputType = node.outputs[0];
       const pos = this.getOutputSocketPos(node);
-      ctx.fillStyle = '#4CAF50';
+      
+      // Set color based on output type
+      ctx.fillStyle = outputType === 'string' ? '#FF9800' : '#4CAF50';
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
       ctx.fill();
 
-      // Output label - always show "trigger" for all outputs
+      // Output label - show the output type
       ctx.fillStyle = '#b0b0b0';
       ctx.font = '11px Arial';
       ctx.textAlign = 'right';
-      ctx.fillText('trigger', pos.x - 10, pos.y + 4);
+      ctx.fillText(outputType, pos.x - 10, pos.y + 4);
     }
 
     // Parameters with text wrapping
@@ -1023,6 +1057,11 @@ class NodeEditor {
     } else {
       // Execute node-specific logic and get boolean result
       switch (node.type) {
+        case 'string-input':
+          console.log('String input node providing value:', node.params.value);
+          result = node.params.value; // Return the string value
+          break;
+
         case 'indicator-ma':
           console.log('Calculating Moving Average with period:', node.params.period);
           result = true; // Indicators always pass through
@@ -1223,8 +1262,18 @@ class NodeEditor {
           console.log('Sending Twilio alert:', node.params.message);
           
           try {
-            // Prepare alert message
+            // Check if there's a string input connected (second input)
             let alertMessage = node.params.message;
+            if (node.inputs.length > 1 && node.inputs[1] === 'string') {
+              // Find string input connection
+              const stringConnection = this.connections.find(c => c.to === node && c.toInput === 1);
+              if (stringConnection && stringConnection.from.type === 'string-input') {
+                // Get the string value from the connected string input node
+                console.log('Found string input connection, using custom message');
+                alertMessage = stringConnection.from.params.value || 'Custom message';
+                console.log('Using string input for Twilio message:', alertMessage);
+              }
+            }
             
             // Add account info if requested
             if (node.params.includeAccountInfo && window.mt5API) {

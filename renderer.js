@@ -1634,6 +1634,35 @@ function updatePropertiesPanel(node) {
             </small>
           </div>
         `;
+      } else if (key === 'value' && node.type === 'string-input') {
+        return `
+          <div class="property-item">
+            <label>Message Text:</label>
+            <textarea data-param="${key}"
+                     onchange="updateNodeParam('${key}', this.value)"
+                     rows="4"
+                     style="width: 100%; resize: vertical; font-family: monospace;"
+                     placeholder="Enter your custom message here...">${value}</textarea>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              This text will be sent as the Twilio message when connected to a Twilio Alert node.
+            </small>
+          </div>
+        `;
+      } else if (key === 'useStringInput' && node.type === 'twilio-alert') {
+        return `
+          <div class="property-item">
+            <label>
+              <input type="checkbox" 
+                     ${value ? 'checked' : ''} 
+                     data-param="${key}"
+                     onchange="updateNodeParam('${key}', this.checked)">
+              Use String Input for Message
+            </label>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              When enabled, the message will come from a connected String Input node instead of the default message parameter.
+            </small>
+          </div>
+        `;
       } else {
         return `
           <div class="property-item">
@@ -2823,6 +2852,7 @@ function showSettingsModal() {
   renderQuickSymbolsList();
   loadOvertradeSettings();
   loadTwilioSettings();
+  loadAiAnalysisSettings();
   
   // Initialize symbol input for settings if not already done
   initializeSettingsSymbolInput();
@@ -2846,6 +2876,8 @@ function showSettingsModal() {
   document.getElementById('settingsResetTradeCountBtn').onclick = resetTradeCountFromSettings;
   document.getElementById('settingsTestOvertradeBtn').onclick = testOvertradeFromSettings;
   document.getElementById('testTwilioBtn').onclick = testTwilioConnection;
+  document.getElementById('testFirecrawlBtn').onclick = testFirecrawlConnection;
+  document.getElementById('testOpenRouterBtn').onclick = testOpenRouterConnection;
   
   // Track changes in settings form
   setupSettingsChangeTracking();
@@ -2950,6 +2982,9 @@ function setupSettingsChangeTracking() {
   
   // Track changes in Twilio settings
   setupTwilioChangeTracking();
+  
+  // Track changes in AI Analysis settings
+  setupAiAnalysisChangeTracking();
 }
 
 function markSettingsAsChanged() {
@@ -3105,6 +3140,9 @@ async function saveAllSettings() {
   
   // Save Twilio settings
   await saveTwilioSettings();
+  
+  // Save AI Analysis settings
+  saveAiAnalysisSettings();
   
   // Reset unsaved changes flag
   settingsHasUnsavedChanges = false;
@@ -4205,6 +4243,223 @@ function setupTwilioChangeTracking() {
   ];
   
   twilioInputs.forEach(inputId => {
+    const element = document.getElementById(inputId);
+    if (element) {
+      element.addEventListener('change', markSettingsAsChanged);
+      element.addEventListener('input', markSettingsAsChanged);
+    }
+  });
+}
+
+// AI Analysis Settings Functions
+function loadAiAnalysisSettings() {
+  try {
+    // Load main AI enabled setting
+    const aiEnabled = localStorage.getItem('aiEnabled') === 'true';
+    document.getElementById('settingsAiEnabled').value = aiEnabled ? 'true' : 'false';
+    
+    // Load Firecrawl settings
+    const firecrawlEnabled = localStorage.getItem('aiFirecrawlEnabled') === 'true';
+    const firecrawlApiKey = localStorage.getItem('aiFirecrawlApiKey') || '';
+    const firecrawlBaseUrl = localStorage.getItem('aiFirecrawlBaseUrl') || 'https://api.firecrawl.dev';
+    
+    document.getElementById('settingsFirecrawlEnabled').value = firecrawlEnabled ? 'true' : 'false';
+    document.getElementById('settingsFirecrawlApiKey').value = firecrawlApiKey;
+    document.getElementById('settingsFirecrawlBaseUrl').value = firecrawlBaseUrl;
+    
+    // Load OpenRouter settings
+    const openRouterEnabled = localStorage.getItem('aiOpenRouterEnabled') === 'true';
+    const openRouterApiKey = localStorage.getItem('aiOpenRouterApiKey') || '';
+    const openRouterModel = localStorage.getItem('aiOpenRouterModel') || 'anthropic/claude-3.5-sonnet';
+    const openRouterBaseUrl = localStorage.getItem('aiOpenRouterBaseUrl') || 'https://openrouter.ai/api/v1';
+    
+    document.getElementById('settingsOpenRouterEnabled').value = openRouterEnabled ? 'true' : 'false';
+    document.getElementById('settingsOpenRouterApiKey').value = openRouterApiKey;
+    document.getElementById('settingsOpenRouterModel').value = openRouterModel;
+    document.getElementById('settingsOpenRouterBaseUrl').value = openRouterBaseUrl;
+    
+    // Load AI feature settings
+    const marketAnalysis = localStorage.getItem('aiMarketAnalysis') !== 'false';
+    const newsAnalysis = localStorage.getItem('aiNewsAnalysis') !== 'false';
+    const strategyOptimization = localStorage.getItem('aiStrategyOptimization') === 'true';
+    const riskAssessment = localStorage.getItem('aiRiskAssessment') !== 'false';
+    
+    document.getElementById('settingsAiMarketAnalysis').checked = marketAnalysis;
+    document.getElementById('settingsAiNewsAnalysis').checked = newsAnalysis;
+    document.getElementById('settingsAiStrategyOptimization').checked = strategyOptimization;
+    document.getElementById('settingsAiRiskAssessment').checked = riskAssessment;
+    
+  } catch (error) {
+    console.error('Error loading AI analysis settings:', error);
+  }
+}
+
+function saveAiAnalysisSettings() {
+  try {
+    // Save main AI enabled setting
+    const aiEnabled = document.getElementById('settingsAiEnabled').value === 'true';
+    localStorage.setItem('aiEnabled', aiEnabled);
+    
+    // Save Firecrawl settings
+    const firecrawlEnabled = document.getElementById('settingsFirecrawlEnabled').value === 'true';
+    const firecrawlApiKey = document.getElementById('settingsFirecrawlApiKey').value;
+    const firecrawlBaseUrl = document.getElementById('settingsFirecrawlBaseUrl').value;
+    
+    localStorage.setItem('aiFirecrawlEnabled', firecrawlEnabled);
+    localStorage.setItem('aiFirecrawlApiKey', firecrawlApiKey);
+    localStorage.setItem('aiFirecrawlBaseUrl', firecrawlBaseUrl);
+    
+    // Save OpenRouter settings
+    const openRouterEnabled = document.getElementById('settingsOpenRouterEnabled').value === 'true';
+    const openRouterApiKey = document.getElementById('settingsOpenRouterApiKey').value;
+    const openRouterModel = document.getElementById('settingsOpenRouterModel').value;
+    const openRouterBaseUrl = document.getElementById('settingsOpenRouterBaseUrl').value;
+    
+    localStorage.setItem('aiOpenRouterEnabled', openRouterEnabled);
+    localStorage.setItem('aiOpenRouterApiKey', openRouterApiKey);
+    localStorage.setItem('aiOpenRouterModel', openRouterModel);
+    localStorage.setItem('aiOpenRouterBaseUrl', openRouterBaseUrl);
+    
+    // Save AI feature settings
+    const marketAnalysis = document.getElementById('settingsAiMarketAnalysis').checked;
+    const newsAnalysis = document.getElementById('settingsAiNewsAnalysis').checked;
+    const strategyOptimization = document.getElementById('settingsAiStrategyOptimization').checked;
+    const riskAssessment = document.getElementById('settingsAiRiskAssessment').checked;
+    
+    localStorage.setItem('aiMarketAnalysis', marketAnalysis);
+    localStorage.setItem('aiNewsAnalysis', newsAnalysis);
+    localStorage.setItem('aiStrategyOptimization', strategyOptimization);
+    localStorage.setItem('aiRiskAssessment', riskAssessment);
+    
+    console.log('AI Analysis settings saved successfully');
+  } catch (error) {
+    console.error('Error saving AI analysis settings:', error);
+  }
+}
+
+async function testFirecrawlConnection() {
+  const testBtn = document.getElementById('testFirecrawlBtn');
+  const resultDiv = document.getElementById('aiTestResult');
+  
+  testBtn.disabled = true;
+  testBtn.textContent = 'Testing...';
+  
+  try {
+    const apiKey = document.getElementById('settingsFirecrawlApiKey').value;
+    const baseUrl = document.getElementById('settingsFirecrawlBaseUrl').value;
+    
+    if (!apiKey) {
+      showAiTestResult('error', 'Please enter a Firecrawl API key');
+      return;
+    }
+    
+    // Test with a simple scrape request
+    const response = await fetch(`${baseUrl}/v0/scrape`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        url: 'https://example.com',
+        formats: ['markdown']
+      })
+    });
+    
+    if (response.ok) {
+      showAiTestResult('success', 'Firecrawl connection successful!');
+    } else {
+      const error = await response.text();
+      showAiTestResult('error', `Firecrawl test failed: ${response.status} - ${error}`);
+    }
+    
+  } catch (error) {
+    showAiTestResult('error', `Firecrawl connection error: ${error.message}`);
+  } finally {
+    testBtn.disabled = false;
+    testBtn.textContent = 'Test Firecrawl';
+  }
+}
+
+async function testOpenRouterConnection() {
+  const testBtn = document.getElementById('testOpenRouterBtn');
+  const resultDiv = document.getElementById('aiTestResult');
+  
+  testBtn.disabled = true;
+  testBtn.textContent = 'Testing...';
+  
+  try {
+    const apiKey = document.getElementById('settingsOpenRouterApiKey').value;
+    const baseUrl = document.getElementById('settingsOpenRouterBaseUrl').value;
+    const model = document.getElementById('settingsOpenRouterModel').value;
+    
+    if (!apiKey) {
+      showAiTestResult('error', 'Please enter an OpenRouter API key');
+      return;
+    }
+    
+    // Test with a simple completion request
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'user', content: 'Hello, this is a test message.' }
+        ],
+        max_tokens: 10
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      showAiTestResult('success', `OpenRouter connection successful! Model: ${model}`);
+    } else {
+      const error = await response.text();
+      showAiTestResult('error', `OpenRouter test failed: ${response.status} - ${error}`);
+    }
+    
+  } catch (error) {
+    showAiTestResult('error', `OpenRouter connection error: ${error.message}`);
+  } finally {
+    testBtn.disabled = false;
+    testBtn.textContent = 'Test OpenRouter';
+  }
+}
+
+function showAiTestResult(type, message) {
+  const resultDiv = document.getElementById('aiTestResult');
+  resultDiv.className = `test-result ${type}`;
+  resultDiv.textContent = message;
+  resultDiv.style.display = 'block';
+  
+  // Hide after 5 seconds
+  setTimeout(() => {
+    resultDiv.style.display = 'none';
+  }, 5000);
+}
+
+// Add AI settings to the change tracking
+function setupAiAnalysisChangeTracking() {
+  const aiInputs = [
+    'settingsAiEnabled',
+    'settingsFirecrawlEnabled',
+    'settingsFirecrawlApiKey',
+    'settingsFirecrawlBaseUrl',
+    'settingsOpenRouterEnabled',
+    'settingsOpenRouterApiKey',
+    'settingsOpenRouterModel',
+    'settingsOpenRouterBaseUrl',
+    'settingsAiMarketAnalysis',
+    'settingsAiNewsAnalysis',
+    'settingsAiStrategyOptimization',
+    'settingsAiRiskAssessment'
+  ];
+  
+  aiInputs.forEach(inputId => {
     const element = document.getElementById(inputId);
     if (element) {
       element.addEventListener('change', markSettingsAsChanged);
