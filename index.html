@@ -571,6 +571,56 @@
           </select>
           <small>Automatically open TradingView chart when a position is opened</small>
         </div>
+        
+        <div class="form-group simulator-section">
+          <h3 style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">🎮 Simulator Mode</h3>
+          <div class="form-group">
+            <label>Trading Mode:</label>
+            <select id="settingsSimulatorMode">
+              <option value="false">Real Trading (Live MT5)</option>
+              <option value="true">Simulator Mode (Practice)</option>
+            </select>
+            <small>Simulator mode uses real MT5 data but stores positions locally without executing real trades</small>
+          </div>
+          
+          <div id="simulatorStatus" class="simulator-status" style="display: none;">
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="label">Mode:</span>
+                <span id="simModeStatus" class="simulator-badge">SIMULATOR</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Open Positions:</span>
+                <span id="simPositionsCount">0</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Closed Positions:</span>
+                <span id="simClosedCount">0</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Balance:</span>
+                <span id="simBalance">$10,000.00</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Equity:</span>
+                <span id="simEquity">$10,000.00</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Profit:</span>
+                <span id="simProfit">$0.00</span>
+              </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+              <label>Reset Simulator Balance:</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" id="resetSimulatorBalance" value="10000" min="100" step="100" style="flex: 1;">
+                <button id="resetSimulatorBtn" class="btn btn-danger">Reset Simulator</button>
+              </div>
+              <small>⚠️ This will close all simulated positions and reset to the specified balance</small>
+            </div>
+          </div>
+        </div>
       </div>
       
       <!-- Quick Symbols Tab -->

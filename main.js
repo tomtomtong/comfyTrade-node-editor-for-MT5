@@ -206,6 +206,33 @@ ipcMain.handle('mt5:getClosedPositions', async (event, daysBack) => {
     }
 });
 
+ipcMain.handle('mt5:toggleSimulatorMode', async (event, enabled) => {
+    try {
+        const result = await mt5Bridge.toggleSimulatorMode(enabled);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('mt5:getSimulatorStatus', async (event) => {
+    try {
+        const result = await mt5Bridge.getSimulatorStatus();
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('mt5:resetSimulator', async (event, initialBalance) => {
+    try {
+        const result = await mt5Bridge.resetSimulator(initialBalance);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 // Handler for opening external URLs
 ipcMain.handle('electron:openExternal', async (event, url) => {
     try {

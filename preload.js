@@ -18,7 +18,10 @@ contextBridge.exposeInMainWorld('mt5API', {
   sendTwilioAlert: (alertData) => ipcRenderer.invoke('mt5:sendTwilioAlert', alertData),
   getTwilioConfig: () => ipcRenderer.invoke('mt5:getTwilioConfig'),
   updateTwilioConfig: (configData) => ipcRenderer.invoke('mt5:updateTwilioConfig', configData),
-  getClosedPositions: (daysBack) => ipcRenderer.invoke('mt5:getClosedPositions', daysBack)
+  getClosedPositions: (daysBack) => ipcRenderer.invoke('mt5:getClosedPositions', daysBack),
+  toggleSimulatorMode: (enabled) => ipcRenderer.invoke('mt5:toggleSimulatorMode', enabled),
+  getSimulatorStatus: () => ipcRenderer.invoke('mt5:getSimulatorStatus'),
+  resetSimulator: (initialBalance) => ipcRenderer.invoke('mt5:resetSimulator', initialBalance)
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {

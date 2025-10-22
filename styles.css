@@ -3214,3 +3214,91 @@ ing Input Node Styling */
   color: #FF9800;
   font-weight: bold;
 }
+/*
+ Simulator Mode Styles */
+.simulator-section {
+  background: rgba(76, 175, 80, 0.05);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.simulator-status {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 15px;
+  margin-top: 15px;
+}
+
+.simulator-status .status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.simulator-status .status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.simulator-status .status-item .label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.simulator-badge {
+  background: #4CAF50;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.simulator-mode-indicator {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: #4CAF50;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 10000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Simulator position badge */
+.position-item.simulator-position {
+  border-left: 3px solid #4CAF50;
+}
+
+.position-item.simulator-position::after {
+  content: "SIM";
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #4CAF50;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: bold;
+}

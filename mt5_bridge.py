@@ -10,6 +10,7 @@ import websockets
 import logging
 from datetime import datetime
 from twilio_alerts import TwilioAlerts
+from simulator import TradingSimulator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,6 +25,8 @@ class MT5Bridge:
         self.twilio_config = {}
         self.alert_config = {}
         self.monitored_positions = {}  # Track positions for TP/SL alerts
+        self.simulator_mode = False  # Simulator mode flag
+        self.simulator = TradingSimulator()  # Simulator instance
         self.load_twilio_config()
     
     def load_twilio_config(self):
@@ -143,10 +146,15 @@ class MT5Bridge:
         return True
     
     def get_account_info(self):
-        """Get MT5 account information"""
+        """Get MT5 account information (real or simulated)"""
         if not self.connected_to_mt5:
             return {"error": "Not connected to MT5"}
         
+        # SIMULATOR MODE: Return simulated account info
+        if self.simulator_mode:
+            return self.simulator.get_account_summary()
+        
+        # REAL MODE: Return actual account info
         account_info = mt5.account_info()
         if account_info is None:
             return {"error": mt5.last_error()}
@@ -162,10 +170,29 @@ class MT5Bridge:
         }
     
     def get_positions(self):
-        """Get open positions"""
+        """Get open positions (real or simulated)"""
         if not self.connected_to_mt5:
             return {"error": "Not connected to MT5"}
         
+        # SIMULATOR MODE: Return simulated positions
+        if self.simulator_mode:
+            # Update prices for all simulated positions
+            sim_positions = self.simulator.get_positions()
+            for pos in sim_positions:
+                tick = mt5.symbol_info_tick(pos['symbol'])
+                if tick:
+                    current_price = tick.bid if pos['type'] == 'BUY' else tick.ask
+                    symbol_info = mt5.symbol_info(pos['symbol'])
+                    contract_size = symbol_info.trade_contract_size if symbol_info else 100000
+                    self.simulator.update_position_prices(pos['symbol'], current_price, contract_size)
+            
+            # Check for TP/SL hits
+            self.simulator.check_tp_sl_hits()
+            
+            # Return updated positions
+            return self.simulator.get_positions()
+        
+        # REAL MODE: Return actual positions
         positions = mt5.positions_get()
         if positions is None:
             return []
@@ -187,10 +214,28 @@ class MT5Bridge:
         return result
     
     def execute_order(self, symbol, order_type, volume, sl=0, tp=0):
-        """Execute a trading order"""
+        """Execute a trading order (real or simulated)"""
         if not self.connected_to_mt5:
             return {"success": False, "error": "Not connected to MT5"}
         
+        # SIMULATOR MODE: Execute simulated trade
+        if self.simulator_mode:
+            logger.info(f"[SIMULATOR] Executing order: {symbol} {order_type} {volume} SL:{sl} TP:{tp}")
+            
+            # Get current market price
+            tick = mt5.symbol_info_tick(symbol)
+            if tick is None:
+                return {"success": False, "error": f"Failed to get current price for {symbol}"}
+            
+            # Use appropriate price based on order type
+            open_price = tick.ask if order_type == "BUY" else tick.bid
+            
+            # Open simulated position
+            result = self.simulator.open_position(symbol, order_type, volume, open_price, sl, tp)
+            logger.info(f"[SIMULATOR] Order executed: {result}")
+            return result
+        
+        # REAL MODE: Execute actual trade
         logger.info(f"Executing order: {symbol} {order_type} {volume} SL:{sl} TP:{tp}")
         
         # Get symbol info - this validates the symbol exists
@@ -261,10 +306,28 @@ class MT5Bridge:
         }
     
     def close_position(self, ticket):
-        """Close a position by ticket"""
+        """Close a position by ticket (real or simulated)"""
         if not self.connected_to_mt5:
             return {"success": False, "error": "Not connected to MT5"}
         
+        # SIMULATOR MODE: Close simulated position
+        if self.simulator_mode:
+            # Find the position to get symbol
+            sim_positions = self.simulator.get_positions()
+            position = next((p for p in sim_positions if p['ticket'] == ticket), None)
+            
+            if not position:
+                return {"success": False, "error": "Position not found"}
+            
+            # Get current market price
+            tick = mt5.symbol_info_tick(position['symbol'])
+            if tick is None:
+                return {"success": False, "error": "Failed to get current price"}
+            
+            close_price = tick.bid if position['type'] == 'BUY' else tick.ask
+            return self.simulator.close_position(ticket, close_price)
+        
+        # REAL MODE: Close actual position
         positions = mt5.positions_get(ticket=ticket)
         if positions is None or len(positions) == 0:
             return {"success": False, "error": "Position not found"}
@@ -298,10 +361,15 @@ class MT5Bridge:
         return {"success": True, "message": "Position closed"}
     
     def modify_position(self, ticket, sl=None, tp=None):
-        """Modify stop loss and take profit of a position"""
+        """Modify stop loss and take profit of a position (real or simulated)"""
         if not self.connected_to_mt5:
             return {"success": False, "error": "Not connected to MT5"}
         
+        # SIMULATOR MODE: Modify simulated position
+        if self.simulator_mode:
+            return self.simulator.modify_position(ticket, sl, tp)
+        
+        # REAL MODE: Modify actual position
         positions = mt5.positions_get(ticket=ticket)
         if positions is None or len(positions) == 0:
             return {"success": False, "error": "Position not found"}
@@ -366,6 +434,32 @@ class MT5Bridge:
         except Exception as e:
             logger.error(f"Error updating Twilio config: {e}")
             return {"success": False, "error": str(e)}
+    
+    def toggle_simulator_mode(self, enabled):
+        """Toggle simulator mode on/off"""
+        self.simulator_mode = enabled
+        mode_str = "ENABLED" if enabled else "DISABLED"
+        logger.info(f"Simulator mode {mode_str}")
+        return {
+            "success": True,
+            "simulator_mode": self.simulator_mode,
+            "message": f"Simulator mode {mode_str}"
+        }
+    
+    def get_simulator_status(self):
+        """Get current simulator mode status"""
+        return {
+            "simulator_mode": self.simulator_mode,
+            "positions_count": len(self.simulator.get_positions()),
+            "closed_positions_count": len(self.simulator.closed_positions),
+            "account_summary": self.simulator.get_account_summary() if self.simulator_mode else None
+        }
+    
+    def reset_simulator(self, initial_balance=10000.0):
+        """Reset simulator to initial state"""
+        result = self.simulator.reset_simulator(initial_balance)
+        logger.info(f"Simulator reset with balance: {initial_balance}")
+        return result
     
     def get_market_data(self, symbol):
         """Get current market data for a symbol"""
@@ -585,10 +679,15 @@ class MT5Bridge:
             return {"error": str(e)}
     
     def get_closed_positions(self, days_back=7):
-        """Get closed positions (deal history) for the specified number of days"""
+        """Get closed positions (deal history) for the specified number of days (real or simulated)"""
         if not self.connected_to_mt5:
             return {"error": "Not connected to MT5"}
         
+        # SIMULATOR MODE: Return simulated closed positions
+        if self.simulator_mode:
+            return self.simulator.get_closed_positions(days_back)
+        
+        # REAL MODE: Return actual closed positions
         try:
             from datetime import datetime, timedelta
             
@@ -833,6 +932,20 @@ class MT5Bridge:
                     "config": self.alert_config,
                     "twilioConfig": self.twilio_config
                 }
+            
+            elif action == 'toggleSimulatorMode':
+                enabled = data.get('enabled', False)
+                result = self.toggle_simulator_mode(enabled)
+                response['data'] = result
+            
+            elif action == 'getSimulatorStatus':
+                result = self.get_simulator_status()
+                response['data'] = result
+            
+            elif action == 'resetSimulator':
+                initial_balance = data.get('initialBalance', 10000.0)
+                result = self.reset_simulator(initial_balance)
+                response['data'] = result
             
             else:
                 response['error'] = f"Unknown action: {action}"

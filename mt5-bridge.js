@@ -411,6 +411,35 @@ class MT5Bridge {
     return response.data;
   }
 
+  async toggleSimulatorMode(enabled) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log(`Toggling simulator mode: ${enabled ? 'ON' : 'OFF'}`);
+    const response = await this.sendMessage('toggleSimulatorMode', { enabled });
+    return response.data;
+  }
+
+  async getSimulatorStatus() {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    const response = await this.sendMessage('getSimulatorStatus');
+    return response.data;
+  }
+
+  async resetSimulator(initialBalance = 10000) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log(`Resetting simulator with balance: ${initialBalance}`);
+    const response = await this.sendMessage('resetSimulator', { initialBalance });
+    return response.data;
+  }
+
   isConnected() {
     return this.connected;
   }

@@ -703,9 +703,122 @@ async function handleRefreshClosedPositions() {
 window.openTradingViewForSymbol = openTradingViewForSymbol;
 
 // Load general settings
-function loadGeneralSettings() {
+async function loadGeneralSettings() {
   const openTradingView = localStorage.getItem('openTradingView') !== 'false'; // Default to true
   document.getElementById('settingsOpenTradingView').value = openTradingView ? 'true' : 'false';
+  
+  // Load simulator mode settings
+  await loadSimulatorSettings();
+}
+
+// Simulator Mode Functions
+async function loadSimulatorSettings() {
+  try {
+    if (!isConnected) {
+      return;
+    }
+    
+    const result = await window.mt5API.getSimulatorStatus();
+    if (result.success) {
+      const status = result.data;
+      const simulatorMode = status.simulator_mode;
+      
+      // Update dropdown
+      document.getElementById('settingsSimulatorMode').value = simulatorMode ? 'true' : 'false';
+      
+      // Show/hide status section
+      const statusSection = document.getElementById('simulatorStatus');
+      if (simulatorMode) {
+        statusSection.style.display = 'block';
+        
+        // Update status display
+        document.getElementById('simPositionsCount').textContent = status.positions_count || 0;
+        document.getElementById('simClosedCount').textContent = status.closed_positions_count || 0;
+        
+        if (status.account_summary) {
+          document.getElementById('simBalance').textContent = `$${status.account_summary.balance.toFixed(2)}`;
+          document.getElementById('simEquity').textContent = `$${status.account_summary.equity.toFixed(2)}`;
+          document.getElementById('simProfit').textContent = `$${status.account_summary.profit.toFixed(2)}`;
+        }
+        
+        // Show simulator indicator
+        showSimulatorIndicator();
+      } else {
+        statusSection.style.display = 'none';
+        hideSimulatorIndicator();
+      }
+    }
+  } catch (error) {
+    console.error('Error loading simulator settings:', error);
+  }
+}
+
+function showSimulatorIndicator() {
+  let indicator = document.getElementById('simulatorModeIndicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'simulatorModeIndicator';
+    indicator.className = 'simulator-mode-indicator';
+    indicator.textContent = '🎮 SIMULATOR MODE';
+    document.body.appendChild(indicator);
+  }
+}
+
+function hideSimulatorIndicator() {
+  const indicator = document.getElementById('simulatorModeIndicator');
+  if (indicator) {
+    indicator.remove();
+  }
+}
+
+async function toggleSimulatorMode(enabled) {
+  try {
+    const result = await window.mt5API.toggleSimulatorMode(enabled);
+    if (result.success) {
+      showMessage(result.data.message, 'success');
+      await loadSimulatorSettings();
+      
+      // Refresh account and positions to show simulator data
+      if (isConnected) {
+        await handleRefreshAccount();
+        await handleRefreshPositions();
+      }
+    } else {
+      showMessage('Failed to toggle simulator mode: ' + result.error, 'error');
+    }
+  } catch (error) {
+    console.error('Error toggling simulator mode:', error);
+    showMessage('Error toggling simulator mode: ' + error.message, 'error');
+  }
+}
+
+async function resetSimulator() {
+  const balance = parseFloat(document.getElementById('resetSimulatorBalance').value) || 10000;
+  
+  showConfirmation(
+    'Reset Simulator',
+    `Are you sure you want to reset the simulator? This will:\n\n• Close all simulated positions\n• Reset balance to $${balance.toFixed(2)}\n• Clear all trade history\n\nThis action cannot be undone.`,
+    async () => {
+      try {
+        const result = await window.mt5API.resetSimulator(balance);
+        if (result.success) {
+          showMessage(result.data.message, 'success');
+          await loadSimulatorSettings();
+          
+          // Refresh displays
+          if (isConnected) {
+            await handleRefreshAccount();
+            await handleRefreshPositions();
+          }
+        } else {
+          showMessage('Failed to reset simulator: ' + result.error, 'error');
+        }
+      } catch (error) {
+        console.error('Error resetting simulator:', error);
+        showMessage('Error resetting simulator: ' + error.message, 'error');
+      }
+    }
+  );
 }
 
 async function handleExecuteTrade() {
@@ -2998,6 +3111,13 @@ function showSettingsModal() {
   document.getElementById('testTwilioBtn').onclick = testTwilioConnection;
   document.getElementById('testFirecrawlBtn').onclick = testFirecrawlConnection;
   document.getElementById('testOpenRouterBtn').onclick = testOpenRouterConnection;
+  
+  // Simulator mode event listeners
+  document.getElementById('settingsSimulatorMode').onchange = async (e) => {
+    const enabled = e.target.value === 'true';
+    await toggleSimulatorMode(enabled);
+  };
+  document.getElementById('resetSimulatorBtn').onclick = resetSimulator;
   
   // Track changes in settings form
   setupSettingsChangeTracking();
