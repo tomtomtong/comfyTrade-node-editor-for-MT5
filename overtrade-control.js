@@ -25,27 +25,27 @@ class OvertradeControl {
 
   loadSettings() {
     try {
-      const saved = localStorage.getItem('overtradeSettings');
-      if (saved) {
-        this.settings = { ...this.settings, ...JSON.parse(saved) };
-      }
-      
-      const history = localStorage.getItem('overtradeHistory');
-      if (history) {
-        this.tradeHistory = JSON.parse(history);
-        this.cleanupOldTrades();
-      }
-      
-      // Load last warning time
-      const lastWarning = localStorage.getItem('overtradeLastWarning');
-      if (lastWarning) {
-        this.lastWarningTime = parseInt(lastWarning);
-      }
-      
-      // Load warning count
-      const warningCount = localStorage.getItem('overtradeWarningCount');
-      if (warningCount) {
-        this.warningCount = parseInt(warningCount);
+      if (window.settingsManager) {
+        const saved = window.settingsManager.get('overtradeControl');
+        if (saved) {
+          this.settings = { ...this.settings, ...saved };
+        }
+        
+        const history = window.settingsManager.get('overtradeHistory');
+        if (history) {
+          this.tradeHistory = history;
+          this.cleanupOldTrades();
+        }
+        
+        const lastWarning = window.settingsManager.get('overtradeLastWarning');
+        if (lastWarning) {
+          this.lastWarningTime = lastWarning;
+        }
+        
+        const warningCount = window.settingsManager.get('overtradeWarningCount');
+        if (warningCount) {
+          this.warningCount = warningCount;
+        }
       }
       
       console.log('Overtrade control loaded:', {
@@ -58,17 +58,21 @@ class OvertradeControl {
     }
   }
 
-  saveSettings() {
+  async saveSettings() {
     try {
-      localStorage.setItem('overtradeSettings', JSON.stringify(this.settings));
-      localStorage.setItem('overtradeHistory', JSON.stringify(this.tradeHistory));
-      localStorage.setItem('overtradeLastWarning', this.lastWarningTime ? this.lastWarningTime.toString() : '0');
-      localStorage.setItem('overtradeWarningCount', this.warningCount.toString());
-      
-      console.log('Overtrade data saved:', {
-        tradeCount: this.tradeHistory.length,
-        settings: this.settings
-      });
+      if (window.settingsManager) {
+        await window.settingsManager.update({
+          'overtradeControl': this.settings,
+          'overtradeHistory': this.tradeHistory,
+          'overtradeLastWarning': this.lastWarningTime || 0,
+          'overtradeWarningCount': this.warningCount
+        });
+        
+        console.log('Overtrade data saved:', {
+          tradeCount: this.tradeHistory.length,
+          settings: this.settings
+        });
+      }
     } catch (error) {
       console.error('Error saving overtrade settings:', error);
     }

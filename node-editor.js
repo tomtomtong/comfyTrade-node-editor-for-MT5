@@ -56,11 +56,13 @@ class NodeEditor {
 
     // Check for output socket click FIRST (start connection) - higher priority than connection line
     for (let node of this.nodes) {
-      const socket = this.getOutputSocketPos(node);
-      const dist = Math.hypot(x - socket.x, y - socket.y);
-      if (dist < 8) {
-        this.connectingFrom = node;
-        return;
+      for (let i = 0; i < node.outputs.length; i++) {
+        const socket = this.getOutputSocketPos(node, i);
+        const dist = Math.hypot(x - socket.x, y - socket.y);
+        if (dist < 8) {
+          this.connectingFrom = { node: node, outputIndex: i };
+          return;
+        }
       }
     }
 
@@ -73,7 +75,7 @@ class NodeEditor {
           // Find existing connection to this input and start from its source
           const existingConn = this.connections.find(c => c.to === node && c.toInput === i);
           if (existingConn) {
-            this.connectingFrom = existingConn.from;
+            this.connectingFrom = { node: existingConn.from, outputIndex: existingConn.fromOutput || 0 };
             return;
           }
         }
@@ -126,13 +128,13 @@ class NodeEditor {
 
       // Check if released on an input socket
       for (let node of this.nodes) {
-        if (node === this.connectingFrom) continue;
+        if (node === this.connectingFrom.node) continue;
         
         for (let i = 0; i < node.inputs.length; i++) {
           const socket = this.getInputSocketPos(node, i);
           const dist = Math.hypot(x - socket.x, y - socket.y);
           if (dist < 8) {
-            this.addConnection(this.connectingFrom, node, i);
+            this.addConnection(this.connectingFrom.node, node, i, this.connectingFrom.outputIndex);
             break;
           }
         }
@@ -202,12 +204,13 @@ class NodeEditor {
   calculateNodeHeight(nodeConfig) {
     const baseHeight = 80;
     const inputHeight = nodeConfig.inputs.length * 25;
+    const outputHeight = nodeConfig.outputs.length > 1 ? (nodeConfig.outputs.length - 1) * 25 : 0;
     
     // Estimate parameter text height
     const paramCount = Object.keys(nodeConfig.params).length;
     const estimatedParamHeight = paramCount > 0 ? Math.max(30, paramCount * 15) : 0;
     
-    return baseHeight + inputHeight + estimatedParamHeight;
+    return baseHeight + Math.max(inputHeight, outputHeight) + estimatedParamHeight;
   }
 
   getNodeConfig(type) {
@@ -335,6 +338,28 @@ class NodeEditor {
         }
       },
 
+      'yfinance-data': {
+        title: 'yFinance Data',
+        inputs: ['trigger'],
+        outputs: ['string', 'trigger'],
+        params: { 
+          symbol: 'AAPL',
+          dataType: 'price',
+          period: '1d',
+          interval: '1m'
+        }
+      },
+
+      'trigger-output': {
+        title: 'Trigger Output',
+        inputs: ['string'],
+        outputs: ['trigger'],
+        params: { 
+          condition: 'always',
+          threshold: ''
+        }
+      },
+
     };
     
     // Return config or a default fallback for unknown types
@@ -346,21 +371,26 @@ class NodeEditor {
     };
   }
 
-  addConnection(fromNode, toNode, inputIndex) {
+  addConnection(fromNode, toNode, inputIndex, outputIndex = 0) {
     // Validate connection types - allow trigger-to-trigger and string-to-string connections
     if (fromNode.outputs.length === 0 || toNode.inputs.length === 0) {
       console.log('Cannot connect: missing output or input');
       return;
     }
 
-    // Validate input index
+    // Validate input and output indices
     if (inputIndex >= toNode.inputs.length) {
       console.log('Cannot connect: invalid input index');
       return;
     }
+    
+    if (outputIndex >= fromNode.outputs.length) {
+      console.log('Cannot connect: invalid output index');
+      return;
+    }
 
     // Validate connection type compatibility
-    const fromOutputType = fromNode.outputs[0]; // Assuming single output for now
+    const fromOutputType = fromNode.outputs[outputIndex];
     const toInputType = toNode.inputs[inputIndex];
     
     if (fromOutputType !== toInputType) {
@@ -370,7 +400,7 @@ class NodeEditor {
 
     // Check if this exact connection already exists
     const existingConnection = this.connections.find(
-      conn => conn.from === fromNode && conn.to === toNode && conn.toInput === inputIndex
+      conn => conn.from === fromNode && conn.to === toNode && conn.toInput === inputIndex && conn.fromOutput === outputIndex
     );
     
     if (existingConnection) {
@@ -387,10 +417,11 @@ class NodeEditor {
     this.connections.push({
       from: fromNode,
       to: toNode,
-      toInput: inputIndex
+      toInput: inputIndex,
+      fromOutput: outputIndex
     });
     
-    console.log(`✓ Connection added: ${fromNode.title} → ${toNode.title} (Total connections from ${fromNode.title}: ${this.connections.filter(c => c.from === fromNode).length})`);
+    console.log(`✓ Connection added: ${fromNode.title}[${outputIndex}] → ${toNode.title}[${inputIndex}] (Total connections from ${fromNode.title}: ${this.connections.filter(c => c.from === fromNode).length})`);
   }
 
   removeNode(node) {
@@ -567,10 +598,10 @@ class NodeEditor {
     };
   }
 
-  getOutputSocketPos(node) {
+  getOutputSocketPos(node, index = 0) {
     return {
       x: node.x + node.width,
-      y: node.y + 40
+      y: node.y + 40 + index * 25
     };
   }
 
@@ -588,11 +619,11 @@ class NodeEditor {
 
     // Draw connections
     for (let conn of this.connections) {
-      const from = this.getOutputSocketPos(conn.from);
+      const from = this.getOutputSocketPos(conn.from, conn.fromOutput || 0);
       const to = this.getInputSocketPos(conn.to, conn.toInput);
       
       // Determine connection type and color
-      const connectionType = conn.from.outputs[0]; // Assuming single output
+      const connectionType = conn.from.outputs[conn.fromOutput || 0];
       const isHovered = conn === this.hoveredConnection;
       
       let connectionColor = '#64B5F6'; // Default trigger color
@@ -631,7 +662,7 @@ class NodeEditor {
 
     // Draw connecting line
     if (this.connectingFrom) {
-      const from = this.getOutputSocketPos(this.connectingFrom);
+      const from = this.getOutputSocketPos(this.connectingFrom.node, this.connectingFrom.outputIndex);
       ctx.strokeStyle = '#FFA726';
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
@@ -809,10 +840,10 @@ class NodeEditor {
       ctx.fillText(label, pos.x + 10, pos.y + 4);
     }
 
-    // Output socket
-    if (node.outputs.length > 0) {
-      const outputType = node.outputs[0];
-      const pos = this.getOutputSocketPos(node);
+    // Output sockets
+    for (let i = 0; i < node.outputs.length; i++) {
+      const outputType = node.outputs[i];
+      const pos = this.getOutputSocketPos(node, i);
       
       // Set color based on output type
       ctx.fillStyle = outputType === 'string' ? '#FF9800' : '#4CAF50';
@@ -1008,7 +1039,7 @@ class NodeEditor {
     // Find all connected nodes and execute the flow
     const connectedNodes = this.connections
       .filter(c => c.from === node)
-      .map(c => ({ node: c.to, inputIndex: c.toInput }));
+      .map(c => ({ node: c.to, inputIndex: c.toInput, fromOutput: c.fromOutput || 0 }));
     
     console.log('Connected nodes from trigger:', connectedNodes.length);
     connectedNodes.forEach((cn, idx) => {
@@ -1020,7 +1051,7 @@ class NodeEditor {
     }
     
     // Execute the connected nodes in sequence with async support
-    for (let { node: connectedNode, inputIndex } of connectedNodes) {
+    for (let { node: connectedNode, inputIndex, fromOutput } of connectedNodes) {
       console.log(`Executing connected node: ${connectedNode.title}`);
       // Add small delay to make execution visible
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -1267,11 +1298,18 @@ class NodeEditor {
             if (node.inputs.length > 1 && node.inputs[1] === 'string') {
               // Find string input connection
               const stringConnection = this.connections.find(c => c.to === node && c.toInput === 1);
-              if (stringConnection && stringConnection.from.type === 'string-input') {
-                // Get the string value from the connected string input node
-                console.log('Found string input connection, using custom message');
-                alertMessage = stringConnection.from.params.value || 'Custom message';
-                console.log('Using string input for Twilio message:', alertMessage);
+              if (stringConnection) {
+                if (stringConnection.from.type === 'string-input') {
+                  // Get the string value from the connected string input node
+                  console.log('Found string input connection, using custom message');
+                  alertMessage = stringConnection.from.params.value || 'Custom message';
+                  console.log('Using string input for Twilio message:', alertMessage);
+                } else if (stringConnection.from.type === 'yfinance-data') {
+                  // Get the fetched data from yfinance node
+                  console.log('Found yfinance data connection, using fetched data');
+                  alertMessage = `${node.params.message}\n\n${stringConnection.from.params.symbol}: ${stringConnection.from.fetchedData || 'No data'}`;
+                  console.log('Using yfinance data for Twilio message:', alertMessage);
+                }
               }
             }
             
@@ -1345,6 +1383,28 @@ class NodeEditor {
           
           result = true; // Alert nodes don't stop flow
           break;
+
+        case 'trigger-output':
+          console.log('Trigger Output node processing input:', inputResult);
+          
+          // The trigger output node converts string input to trigger output
+          if (node.params.condition === 'always') {
+            result = true; // Always trigger
+            console.log('✓ Trigger Output: Always condition - triggering');
+          } else if (node.params.condition === 'not_empty' && inputResult && inputResult.toString().trim() !== '') {
+            result = true; // Trigger if input is not empty
+            console.log('✓ Trigger Output: Not empty condition - triggering');
+          } else if (node.params.condition === 'contains' && inputResult && inputResult.toString().includes(node.params.threshold)) {
+            result = true; // Trigger if input contains threshold text
+            console.log('✓ Trigger Output: Contains condition - triggering');
+          } else if (node.params.condition === 'numeric_gt' && !isNaN(parseFloat(inputResult)) && parseFloat(inputResult) > parseFloat(node.params.threshold || 0)) {
+            result = true; // Trigger if numeric input is greater than threshold
+            console.log('✓ Trigger Output: Numeric greater than condition - triggering');
+          } else {
+            result = false; // Don't trigger
+            console.log('✗ Trigger Output: Condition not met - not triggering');
+          }
+          break;
           
         case 'end-strategy':
           console.log('End Strategy node reached:', node.params.message);
@@ -1367,6 +1427,55 @@ class NodeEditor {
           
           result = false; // End strategy nodes stop the flow
           break;
+
+        case 'yfinance-data':
+          console.log('Fetching yFinance data for:', node.params.symbol);
+          
+          try {
+            if (window.mt5API && window.mt5API.getYFinanceData) {
+              const yfinanceResult = await window.mt5API.getYFinanceData({
+                symbol: node.params.symbol,
+                dataType: node.params.dataType,
+                period: node.params.period,
+                interval: node.params.interval
+              });
+              
+              if (yfinanceResult.success && yfinanceResult.data) {
+                console.log('✓ yFinance data fetched successfully:', yfinanceResult.data);
+                
+                // Store the fetched data in the node for string output connections
+                node.fetchedData = yfinanceResult.data.value;
+                
+                if (window.showMessage) {
+                  window.showMessage(`yFinance data: ${node.params.symbol} = ${node.fetchedData}`, 'success');
+                }
+                
+                result = true; // Continue trigger flow
+              } else {
+                console.error('✗ yFinance data fetch failed:', yfinanceResult.error);
+                if (window.showMessage) {
+                  window.showMessage(`yFinance fetch failed: ${yfinanceResult.error}`, 'error');
+                }
+                node.fetchedData = 'Error fetching data';
+                result = false; // Stop trigger flow on error
+              }
+            } else {
+              console.error('yFinance API not available');
+              if (window.showMessage) {
+                window.showMessage('yFinance API not available - check Python bridge', 'error');
+              }
+              node.fetchedData = 'API not available';
+              result = false; // Stop trigger flow on error
+            }
+          } catch (error) {
+            console.error('Error fetching yFinance data:', error);
+            if (window.showMessage) {
+              window.showMessage(`yFinance error: ${error.message}`, 'error');
+            }
+            node.fetchedData = 'Error: ' + error.message;
+            result = false; // Stop trigger flow on error
+          }
+          break;
       }
     }
     
@@ -1383,12 +1492,25 @@ class NodeEditor {
     // Continue the trigger chain to connected nodes
     const connectedNodes = this.connections
       .filter(c => c.from === node)
-      .map(c => ({ node: c.to, inputIndex: c.toInput }));
+      .map(c => ({ node: c.to, inputIndex: c.toInput, fromOutput: c.fromOutput || 0 }));
     
-    for (let { node: connectedNode, inputIndex: targetInput } of connectedNodes) {
+    for (let { node: connectedNode, inputIndex: targetInput, fromOutput } of connectedNodes) {
+      // Determine what to pass based on output type
+      let outputValue = result;
+      
+      if (node.type === 'yfinance-data') {
+        if (fromOutput === 0) {
+          // String output - pass the fetched data
+          outputValue = node.fetchedData || 'No data';
+        } else if (fromOutput === 1) {
+          // Trigger output - pass the boolean result
+          outputValue = result;
+        }
+      }
+      
       // Add small delay to make execution visible
       await new Promise(resolve => setTimeout(resolve, 200));
-      await this.executeNode(connectedNode, targetInput, result);
+      await this.executeNode(connectedNode, targetInput, outputValue);
     }
     
     // Clear this node as executing (only if it's still the current one)

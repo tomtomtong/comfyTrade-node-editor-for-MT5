@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 from twilio_alerts import TwilioAlerts
 from simulator import TradingSimulator
+import yfinance as yf
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,12 +31,18 @@ class MT5Bridge:
         self.load_twilio_config()
     
     def load_twilio_config(self):
-        """Load Twilio configuration from config file"""
+        """Load Twilio configuration from unified settings file"""
         try:
-            with open('twilio_config.json', 'r') as f:
-                config = json.load(f)
-                
-            twilio_config = config.get('twilio', {})
+            # Try to load from unified settings first
+            try:
+                with open('app_settings.json', 'r') as f:
+                    settings = json.load(f)
+                    twilio_config = settings.get('twilio', {})
+            except FileNotFoundError:
+                # Fallback to old config file
+                with open('twilio_config.json', 'r') as f:
+                    config = json.load(f)
+                    twilio_config = config.get('twilio', {})
             self.twilio_config = twilio_config  # Store for later retrieval
             self.alert_config = config.get('notifications', {})
             
@@ -404,27 +411,76 @@ class MT5Bridge:
         return {"success": True, "message": "Position modified"}
     
     def update_twilio_config(self, config_data):
-        """Update Twilio configuration"""
+        """Update Twilio configuration in unified settings"""
         try:
-            # Load existing config
+            # Load existing unified settings
             try:
-                with open('twilio_config.json', 'r') as f:
+                with open('app_settings.json', 'r') as f:
                     current_config = json.load(f)
             except FileNotFoundError:
+                # Create default unified settings structure
                 current_config = {
-                    "twilio": {"account_sid": "", "auth_token": "", "from_number": "", "enabled": False},
-                    "notifications": {"recipient_number": "", "method": "sms", "alerts": {"take_profit": True, "stop_loss": True, "position_opened": False, "position_closed": False}}
+                    "twilio": {
+                        "enabled": False,
+                        "accountSid": "",
+                        "authToken": "",
+                        "fromNumber": "",
+                        "recipientNumber": "",
+                        "method": "sms",
+                        "alerts": {
+                            "take_profit": True,
+                            "stop_loss": True,
+                            "position_opened": False,
+                            "position_closed": False
+                        }
+                    }
                 }
             
-            # Update with new data
-            if 'twilio' in config_data:
-                current_config['twilio'].update(config_data['twilio'])
-            if 'notifications' in config_data:
-                current_config['notifications'].update(config_data['notifications'])
+            # Ensure twilio section exists
+            if 'twilio' not in current_config:
+                current_config['twilio'] = {}
             
-            # Save updated config
-            with open('twilio_config.json', 'w') as f:
+            # Update with new data (convert from old format to new format)
+            if 'twilio' in config_data:
+                twilio_data = config_data['twilio']
+                current_config['twilio'].update({
+                    'enabled': twilio_data.get('enabled', False),
+                    'accountSid': twilio_data.get('account_sid', ''),
+                    'authToken': twilio_data.get('auth_token', ''),
+                    'fromNumber': twilio_data.get('from_number', '')
+                })
+            
+            if 'notifications' in config_data:
+                notifications_data = config_data['notifications']
+                current_config['twilio'].update({
+                    'recipientNumber': notifications_data.get('recipient_number', ''),
+                    'method': notifications_data.get('method', 'sms'),
+                    'alerts': notifications_data.get('alerts', {})
+                })
+            
+            # Save updated config to unified settings
+            with open('app_settings.json', 'w') as f:
                 json.dump(current_config, f, indent=2)
+            
+            # Also maintain backward compatibility by updating old file
+            try:
+                old_config = {
+                    "twilio": {
+                        "account_sid": current_config['twilio'].get('accountSid', ''),
+                        "auth_token": current_config['twilio'].get('authToken', ''),
+                        "from_number": current_config['twilio'].get('fromNumber', ''),
+                        "enabled": current_config['twilio'].get('enabled', False)
+                    },
+                    "notifications": {
+                        "recipient_number": current_config['twilio'].get('recipientNumber', ''),
+                        "method": current_config['twilio'].get('method', 'sms'),
+                        "alerts": current_config['twilio'].get('alerts', {})
+                    }
+                }
+                with open('twilio_config.json', 'w') as f:
+                    json.dump(old_config, f, indent=2)
+            except Exception as e:
+                logger.warning(f"Could not update legacy twilio_config.json: {e}")
             
             # Reload configuration
             self.load_twilio_config()
@@ -764,6 +820,90 @@ class MT5Bridge:
             logger.error(f"Error getting closed positions: {e}")
             return {"error": str(e)}
     
+    def get_yfinance_data(self, symbol, data_type='price', period='1d', interval='1m'):
+        """Get data from yFinance for the specified symbol"""
+        try:
+            logger.info(f"Fetching yFinance data for {symbol}: {data_type}, period={period}, interval={interval}")
+            
+            # Create ticker object
+            ticker = yf.Ticker(symbol)
+            
+            if data_type == 'price':
+                # Get current price (last close price)
+                hist = ticker.history(period='1d', interval='1m')
+                if hist.empty:
+                    return {"error": f"No data available for symbol {symbol}"}
+                
+                current_price = hist['Close'].iloc[-1]
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "dataType": data_type,
+                    "value": str(round(current_price, 4)),
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            elif data_type == 'info':
+                # Get basic info about the ticker
+                info = ticker.info
+                if not info:
+                    return {"error": f"No info available for symbol {symbol}"}
+                
+                # Extract key information
+                company_name = info.get('longName', info.get('shortName', symbol))
+                sector = info.get('sector', 'N/A')
+                market_cap = info.get('marketCap', 'N/A')
+                
+                info_string = f"{company_name} | Sector: {sector} | Market Cap: {market_cap}"
+                
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "dataType": data_type,
+                    "value": info_string,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            elif data_type == 'volume':
+                # Get current volume
+                hist = ticker.history(period='1d', interval='1m')
+                if hist.empty:
+                    return {"error": f"No data available for symbol {symbol}"}
+                
+                current_volume = hist['Volume'].iloc[-1]
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "dataType": data_type,
+                    "value": str(int(current_volume)),
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            elif data_type == 'change':
+                # Get percentage change
+                hist = ticker.history(period='2d', interval='1d')
+                if len(hist) < 2:
+                    return {"error": f"Insufficient data for change calculation for {symbol}"}
+                
+                previous_close = hist['Close'].iloc[-2]
+                current_close = hist['Close'].iloc[-1]
+                change_percent = ((current_close - previous_close) / previous_close) * 100
+                
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "dataType": data_type,
+                    "value": str(round(change_percent, 2)) + "%",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            else:
+                return {"error": f"Unsupported data type: {data_type}"}
+                
+        except Exception as e:
+            logger.error(f"Error fetching yFinance data for {symbol}: {e}")
+            return {"error": str(e)}
+    
     def execute_node_strategy(self, node_graph):
         """Execute a node-based trading strategy"""
         if not self.connected_to_mt5:
@@ -945,6 +1085,14 @@ class MT5Bridge:
             elif action == 'resetSimulator':
                 initial_balance = data.get('initialBalance', 10000.0)
                 result = self.reset_simulator(initial_balance)
+                response['data'] = result
+            
+            elif action == 'getYFinanceData':
+                symbol = data.get('symbol')
+                data_type = data.get('dataType', 'price')
+                period = data.get('period', '1d')
+                interval = data.get('interval', '1m')
+                result = self.get_yfinance_data(symbol, data_type, period, interval)
                 response['data'] = result
             
             else:

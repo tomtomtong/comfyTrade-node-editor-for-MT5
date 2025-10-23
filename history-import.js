@@ -115,8 +115,10 @@ async function importFromMT5() {
         </div>
       `;
 
-      // Store in localStorage for backtesting
-      localStorage.setItem('historicalData', JSON.stringify(importedHistoryData));
+      // Store in settings for backtesting
+      if (window.settingsManager) {
+        window.settingsManager.set('historicalData', importedHistoryData);
+      }
       
       showMessage(`Backtest mode activated with ${result.data.bars} bars!`, 'success');
       
@@ -202,8 +204,10 @@ async function importFromCSV() {
       </div>
     `;
 
-    // Store in localStorage for backtesting
-    localStorage.setItem('historicalData', JSON.stringify(importedHistoryData));
+    // Store in settings for backtesting
+    if (window.settingsManager) {
+      window.settingsManager.set('historicalData', importedHistoryData);
+    }
     
     showMessage(`Backtest mode activated with ${data.length} bars from CSV!`, 'success');
     
@@ -265,7 +269,9 @@ function clearHistoricalData() {
 }
 
 function executeClearHistoricalData() {
-  localStorage.removeItem('historicalData');
+  if (window.settingsManager) {
+    window.settingsManager.set('historicalData', null);
+  }
   importedHistoryData = null;
   
   const indicator = document.getElementById('backtestIndicator');
@@ -278,10 +284,10 @@ function executeClearHistoricalData() {
 }
 
 function getHistoricalData() {
-  if (!importedHistoryData) {
-    const stored = localStorage.getItem('historicalData');
+  if (!importedHistoryData && window.settingsManager) {
+    const stored = window.settingsManager.get('historicalData');
     if (stored) {
-      importedHistoryData = JSON.parse(stored);
+      importedHistoryData = stored;
     }
   }
   return importedHistoryData;
@@ -289,9 +295,10 @@ function getHistoricalData() {
 
 // Check if backtest mode should be enabled on load
 function checkBacktestMode() {
-  const stored = localStorage.getItem('historicalData');
-  if (stored) {
-    importedHistoryData = JSON.parse(stored);
+  if (window.settingsManager) {
+    const stored = window.settingsManager.get('historicalData');
+    if (stored) {
+      importedHistoryData = stored;
     enableBacktestMode();
   }
 }

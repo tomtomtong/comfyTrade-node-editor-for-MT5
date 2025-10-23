@@ -1,0 +1,101 @@
+{
+  "openTradingView": false,
+  "ai": {
+    "enabled": false,
+    "firecrawl": {
+      "enabled": false,
+      "apiKey": "",
+      "baseUrl": "https://api.firecrawl.dev"
+    },
+    "openRouter": {
+      "enabled": false,
+      "apiKey": "",
+      "model": "anthropic/claude-3.5-sonnet",
+      "baseUrl": "https://openrouter.ai/api/v1"
+    },
+    "features": {
+      "marketAnalysis": true,
+      "newsAnalysis": true,
+      "strategyOptimization": false,
+      "riskAssessment": true
+    }
+  },
+  "twilio": {
+    "enabled": false,
+    "accountSid": "",
+    "authToken": "",
+    "fromNumber": "",
+    "recipientNumber": "",
+    "method": "sms",
+    "alerts": {
+      "take_profit": true,
+      "stop_loss": true,
+      "position_opened": false,
+      "position_closed": false
+    }
+  },
+  "volumeControl": {
+    "enabled": true,
+    "maxVolume": 1,
+    "warningThreshold": 0.8,
+    "autoReduce": false,
+    "reductionFactor": 0.5,
+    "symbolLimits": {
+      "XAUUSD": 0.01,
+      "HK50.CASH": 0.5,
+      "BTCUSD": 0.01,
+      "ETHUSD": 0.01,
+      "USOIL.CASH": 0.01
+    }
+  },
+  "overtradeControl": {
+    "enabled": true,
+    "maxTrades": 5,
+    "timePeriod": "hour",
+    "reminderFrequency": "first",
+    "applyToManual": true,
+    "applyToStrategy": true,
+    "applyToNodes": true,
+    "applyToOpenPositions": true,
+    "applyToClosePositions": false,
+    "maxTradesPerHour": 10,
+    "maxTradesPerDay": 50,
+    "cooldownMinutes": 5,
+    "warningEnabled": true,
+    "blockTrading": false
+  },
+  "overtradeHistory": [
+    {
+      "timestamp": 1761199873916,
+      "type": "manual",
+      "data": {
+        "symbol": "XAUUSD",
+        "type": "BUY",
+        "volume": 0.01,
+        "stopLoss": 0,
+        "takeProfit": 0,
+        "action": "executeOrder"
+      },
+      "action": "executeOrder",
+      "positionType": "open"
+    }
+  ],
+  "overtradeLastWarning": 0,
+  "overtradeWarningCount": 0,
+  "ui": {
+    "panelSizes": {
+      "rightSidebarWidth": 357,
+      "bottomPanelHeight": 250
+    },
+    "theme": "dark"
+  },
+  "historicalData": null,
+  "mt5Trading": {
+    "symbol": "BTCUSD",
+    "orderType": "BUY",
+    "condition": "BELOW",
+    "targetPrice": 105000,
+    "volume": 0.01,
+    "checkInterval": 5
+  }
+}

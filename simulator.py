@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 class TradingSimulator:
-    def __init__(self, storage_file='simulator_positions.json'):
+    def __init__(self, storage_file='app_settings.json'):
         self.storage_file = storage_file
         self.positions = []
         self.closed_positions = []
@@ -18,32 +18,58 @@ class TradingSimulator:
         self.load_positions()
     
     def load_positions(self):
-        """Load positions from disk"""
+        """Load positions from unified settings file"""
         if os.path.exists(self.storage_file):
             try:
                 with open(self.storage_file, 'r') as f:
                     data = json.load(f)
-                    self.positions = data.get('positions', [])
-                    self.closed_positions = data.get('closed_positions', [])
-                    self.next_ticket = data.get('next_ticket', 1000000)
-                    self.initial_balance = data.get('initial_balance', 10000.0)
+                    simulator_data = data.get('simulator', {})
+                    self.positions = simulator_data.get('positions', [])
+                    self.closed_positions = simulator_data.get('closed_positions', [])
+                    self.next_ticket = simulator_data.get('next_ticket', 1000000)
+                    self.initial_balance = simulator_data.get('initial_balance', 10000.0)
             except Exception as e:
                 print(f"Error loading simulator positions: {e}")
                 self.positions = []
                 self.closed_positions = []
     
     def save_positions(self):
-        """Save positions to disk"""
+        """Save positions to unified settings file"""
         try:
-            data = {
+            # Load existing settings
+            try:
+                with open(self.storage_file, 'r') as f:
+                    data = json.load(f)
+            except FileNotFoundError:
+                data = {}
+            
+            # Update simulator section
+            data['simulator'] = {
                 'positions': self.positions,
                 'closed_positions': self.closed_positions,
                 'next_ticket': self.next_ticket,
                 'initial_balance': self.initial_balance,
                 'last_updated': datetime.now().isoformat()
             }
+            
+            # Save back to unified settings
             with open(self.storage_file, 'w') as f:
                 json.dump(data, f, indent=2)
+                
+            # Also maintain backward compatibility
+            try:
+                legacy_data = {
+                    'positions': self.positions,
+                    'closed_positions': self.closed_positions,
+                    'next_ticket': self.next_ticket,
+                    'initial_balance': self.initial_balance,
+                    'last_updated': datetime.now().isoformat()
+                }
+                with open('simulator_positions.json', 'w') as f:
+                    json.dump(legacy_data, f, indent=2)
+            except Exception as e:
+                print(f"Warning: Could not update legacy simulator file: {e}")
+                
         except Exception as e:
             print(f"Error saving simulator positions: {e}")
     

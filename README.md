@@ -246,6 +246,9 @@ Want to start fresh? **Settings → General → Simulator Mode → Reset Simulat
 - **Logic Gates**: AND/OR gates for complex conditions
 - **Trade Nodes**: Open, close, and modify positions
 - **Twilio Alert**: Send SMS/WhatsApp notifications
+- **yFinance Data**: Fetch real-time stock data from Yahoo Finance (price, volume, company info, daily change)
+- **Trigger Output**: Convert string data to trigger signals with customizable conditions
+- **String Input**: Provide custom text messages for alerts
 
 #### Test Buttons Guide
 Each trading node includes test functionality:
@@ -333,6 +336,39 @@ AppConfig.updateTwilioSettings({
 });
 const settings = AppConfig.getTwilioSettings();
 ```
+
+### Data Source Nodes
+
+#### yFinance Data Node
+Fetches real-time financial data from Yahoo Finance API.
+
+**Features:**
+- **Multiple Data Types**: Current price, company info, volume, daily change percentage
+- **Dual Outputs**: String output (data value) + Trigger output (for flow control)
+- **Flexible Periods**: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y
+- **Various Intervals**: 1m, 2m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo
+
+**Usage Example:**
+1. Add yFinance Data node
+2. Set symbol (e.g., "AAPL", "TSLA", "MSFT")
+3. Choose data type (price, info, volume, change)
+4. Connect string output to Twilio Alert for notifications
+5. Connect trigger output to continue strategy flow
+
+#### Trigger Output Node
+Converts string data into trigger signals with conditional logic.
+
+**Conditions:**
+- **Always**: Always triggers regardless of input
+- **Not Empty**: Triggers when input string is not empty
+- **Contains**: Triggers when input contains specific text
+- **Numeric Greater Than**: Triggers when numeric input exceeds threshold
+
+**Usage Example:**
+1. Connect yFinance Data (string output) to Trigger Output (string input)
+2. Set condition (e.g., "Numeric Greater Than" with threshold "100")
+3. Connect Trigger Output to trade execution nodes
+4. Strategy triggers trades only when stock price > $100
 
 ### Adding New Node Types
 

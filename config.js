@@ -1,63 +1,39 @@
-// Application Configuration
+// Application Configuration - Updated to use centralized settings
 const AppConfig = {
-
-  // Twilio configuration
-  twilioSettings: {
-    enabled: false,
-    accountSid: '',
-    authToken: '',
-    fromNumber: '',
-    recipientNumber: '',
-    method: 'sms',
-    alerts: {
-      take_profit: true,
-      stop_loss: true,
-      position_opened: false,
-      position_closed: false
-    }
-  },
-  
-
   
   // Get Twilio settings
   getTwilioSettings() {
-    return { ...this.twilioSettings };
+    return window.settingsManager ? window.settingsManager.get('twilio') : {
+      enabled: false,
+      accountSid: '',
+      authToken: '',
+      fromNumber: '',
+      recipientNumber: '',
+      method: 'sms',
+      alerts: {
+        take_profit: true,
+        stop_loss: true,
+        position_opened: false,
+        position_closed: false
+      }
+    };
   },
   
   // Update Twilio settings
-  updateTwilioSettings(settings) {
-    this.twilioSettings = {
-      ...this.twilioSettings,
-      ...settings
-    };
-    this.saveToLocalStorage();
-  },
-  
-  // Save configuration to localStorage
-  saveToLocalStorage() {
-    localStorage.setItem('appConfig', JSON.stringify({
-      twilioSettings: this.twilioSettings
-    }));
-  },
-  
-  // Load configuration from localStorage
-  loadFromLocalStorage() {
-    const saved = localStorage.getItem('appConfig');
-    if (saved) {
-      try {
-        const config = JSON.parse(saved);
-        if (config.twilioSettings && typeof config.twilioSettings === 'object') {
-          this.twilioSettings = {
-            ...this.twilioSettings,
-            ...config.twilioSettings
-          };
-        }
-      } catch (e) {
-        console.error('Failed to load config:', e);
-      }
+  async updateTwilioSettings(settings) {
+    if (window.settingsManager) {
+      const currentSettings = window.settingsManager.get('twilio') || {};
+      const updatedSettings = { ...currentSettings, ...settings };
+      await window.settingsManager.set('twilio', updatedSettings);
     }
+  },
+  
+  // Deprecated methods for backward compatibility
+  saveToLocalStorage() {
+    console.warn('AppConfig.saveToLocalStorage() is deprecated. Settings are now saved automatically.');
+  },
+  
+  loadFromLocalStorage() {
+    console.warn('AppConfig.loadFromLocalStorage() is deprecated. Settings are now loaded automatically.');
   }
 };
-
-// Load config on startup
-AppConfig.loadFromLocalStorage();

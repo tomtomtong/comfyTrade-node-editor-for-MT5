@@ -3516,3 +3516,127 @@ ume Warning Modal Styles */
     margin-right: 0;
   }
 }
+/* 
+Settings Migration Modal */
+.migration-modal .modal-content {
+  max-width: 600px;
+  padding: 30px;
+}
+
+.migration-info {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.migration-info ul {
+  margin: 10px 0 0 20px;
+  padding: 0;
+}
+
+.migration-info li {
+  margin: 5px 0;
+  color: #495057;
+}
+
+.migration-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #007bff, #0056b3);
+  width: 0%;
+  animation: progressAnimation 3s ease-in-out infinite;
+}
+
+@keyframes progressAnimation {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 100%; }
+}
+
+#migrationLog {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#migrationLogContent div {
+  margin: 5px 0;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+#migrationLogContent div:contains("✓") {
+  color: #28a745;
+}
+
+#migrationLogContent div:contains("✗") {
+  color: #dc3545;
+}/* Settings 
+Backup Modal */
+.backup-modal .modal-content {
+  max-width: 500px;
+  padding: 25px;
+}
+
+.backup-info {
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.backup-info ul {
+  margin: 10px 0 0 20px;
+  padding: 0;
+}
+
+.backup-info li {
+  margin: 5px 0;
+  color: #1976d2;
+}
+
+.warning-box {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+  color: #856404;
+}
+
+.warning-box p {
+  margin: 5px 0;
+}
+
+.backup-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.backup-buttons .btn {
+  min-width: 120px;
+}

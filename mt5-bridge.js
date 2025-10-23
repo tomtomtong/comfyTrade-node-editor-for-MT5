@@ -441,6 +441,16 @@ class MT5Bridge {
     return response.data;
   }
 
+  async getYFinanceData(params) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log(`Getting yFinance data for: ${params.symbol}`);
+    const response = await this.sendMessage('getYFinanceData', params);
+    return response.data;
+  }
+
   isConnected() {
     return this.connected;
   }

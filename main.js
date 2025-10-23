@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
+const fs = require('fs').promises;
 const MT5Bridge = require('./mt5-bridge');
 
 let mainWindow;
@@ -233,6 +234,15 @@ ipcMain.handle('mt5:resetSimulator', async (event, initialBalance) => {
     }
 });
 
+ipcMain.handle('mt5:getYFinanceData', async (event, params) => {
+    try {
+        const result = await mt5Bridge.getYFinanceData(params);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 // Handler for opening external URLs
 ipcMain.handle('electron:openExternal', async (event, url) => {
     try {
@@ -240,5 +250,30 @@ ipcMain.handle('electron:openExternal', async (event, url) => {
         return { success: true };
     } catch (error) {
         return { success: false, error: error.message };
+    }
+});
+
+// Settings file handlers
+ipcMain.handle('settings:load', async (event, filename) => {
+    try {
+        const filePath = path.join(__dirname, filename);
+        const data = await fs.readFile(filePath, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            // File doesn't exist, return null to trigger migration
+            return null;
+        }
+        throw error;
+    }
+});
+
+ipcMain.handle('settings:save', async (event, filename, settings) => {
+    try {
+        const filePath = path.join(__dirname, filename);
+        await fs.writeFile(filePath, JSON.stringify(settings, null, 2), 'utf8');
+        return { success: true };
+    } catch (error) {
+        throw error;
     }
 });

@@ -12,9 +12,11 @@ class VolumeControl {
 
   loadSettings() {
     try {
-      const saved = localStorage.getItem('volumeControlSettings');
-      if (saved) {
-        this.settings = { ...this.settings, ...JSON.parse(saved) };
+      if (window.settingsManager) {
+        const saved = window.settingsManager.get('volumeControl');
+        if (saved) {
+          this.settings = { ...this.settings, ...saved };
+        }
       }
       
       console.log('Volume control loaded:', {
@@ -27,10 +29,12 @@ class VolumeControl {
     }
   }
 
-  saveSettings() {
+  async saveSettings() {
     try {
-      localStorage.setItem('volumeControlSettings', JSON.stringify(this.settings));
-      console.log('Volume control settings saved:', this.settings);
+      if (window.settingsManager) {
+        await window.settingsManager.set('volumeControl', this.settings);
+        console.log('Volume control settings saved:', this.settings);
+      }
     } catch (error) {
       console.error('Error saving volume control settings:', error);
     }
@@ -240,12 +244,15 @@ class VolumeControl {
     }
   }
 
-  executeClearAllSettings() {
-    localStorage.removeItem('volumeControlSettings');
+  async executeClearAllSettings() {
     this.settings = {
       enabled: false,
       symbolLimits: {}
     };
+    
+    if (window.settingsManager) {
+      await window.settingsManager.set('volumeControl', this.settings);
+    }
     
     showMessage('Volume control settings cleared', 'info');
     console.log('Volume control settings cleared');

@@ -1,0 +1,4 @@
+MetaTrader5>=5.0.45
+websockets>=12.0
+twilio>=8.0.0
+yfinance>=0.2.18

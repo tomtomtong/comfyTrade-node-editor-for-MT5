@@ -21,9 +21,12 @@ contextBridge.exposeInMainWorld('mt5API', {
   getClosedPositions: (daysBack) => ipcRenderer.invoke('mt5:getClosedPositions', daysBack),
   toggleSimulatorMode: (enabled) => ipcRenderer.invoke('mt5:toggleSimulatorMode', enabled),
   getSimulatorStatus: () => ipcRenderer.invoke('mt5:getSimulatorStatus'),
-  resetSimulator: (initialBalance) => ipcRenderer.invoke('mt5:resetSimulator', initialBalance)
+  resetSimulator: (initialBalance) => ipcRenderer.invoke('mt5:resetSimulator', initialBalance),
+  getYFinanceData: (params) => ipcRenderer.invoke('mt5:getYFinanceData', params)
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  openExternal: (url) => ipcRenderer.invoke('electron:openExternal', url)
+  openExternal: (url) => ipcRenderer.invoke('electron:openExternal', url),
+  loadSettings: (filename) => ipcRenderer.invoke('settings:load', filename),
+  saveSettings: (filename, settings) => ipcRenderer.invoke('settings:save', filename, settings)
 });

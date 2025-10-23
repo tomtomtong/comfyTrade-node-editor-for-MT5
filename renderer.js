@@ -515,7 +515,7 @@ function openTradingViewForSymbol(symbol) {
   if (!symbol) return;
   
   // Check if TradingView opening is enabled in settings
-  const tradingViewEnabled = localStorage.getItem('openTradingView') !== 'false';
+  const tradingViewEnabled = window.settingsManager ? window.settingsManager.get('openTradingView') !== false : true;
   if (!tradingViewEnabled) {
     console.log('TradingView opening is disabled in settings');
     return;
@@ -706,7 +706,7 @@ window.openTradingViewForSymbol = openTradingViewForSymbol;
 
 // Load general settings
 async function loadGeneralSettings() {
-  const openTradingView = localStorage.getItem('openTradingView') !== 'false'; // Default to true
+  const openTradingView = window.settingsManager ? window.settingsManager.get('openTradingView') !== false : true;
   document.getElementById('settingsOpenTradingView').value = openTradingView ? 'true' : 'false';
   
   // Load simulator mode settings
@@ -1927,6 +1927,91 @@ function updatePropertiesPanel(node) {
             </label>
             <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
               When enabled, the message will come from a connected String Input node instead of the default message parameter.
+            </small>
+          </div>
+        `;
+      } else if (key === 'dataType' && node.type === 'yfinance-data') {
+        return `
+          <div class="property-item">
+            <label>Data Type:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value)">
+              <option value="price" ${value === 'price' ? 'selected' : ''}>Current Price</option>
+              <option value="info" ${value === 'info' ? 'selected' : ''}>Company Info</option>
+              <option value="volume" ${value === 'volume' ? 'selected' : ''}>Current Volume</option>
+              <option value="change" ${value === 'change' ? 'selected' : ''}>Daily Change %</option>
+            </select>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Select what type of data to fetch from yFinance
+            </small>
+          </div>
+        `;
+      } else if (key === 'period' && node.type === 'yfinance-data') {
+        return `
+          <div class="property-item">
+            <label>Period:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value)">
+              <option value="1d" ${value === '1d' ? 'selected' : ''}>1 Day</option>
+              <option value="5d" ${value === '5d' ? 'selected' : ''}>5 Days</option>
+              <option value="1mo" ${value === '1mo' ? 'selected' : ''}>1 Month</option>
+              <option value="3mo" ${value === '3mo' ? 'selected' : ''}>3 Months</option>
+              <option value="6mo" ${value === '6mo' ? 'selected' : ''}>6 Months</option>
+              <option value="1y" ${value === '1y' ? 'selected' : ''}>1 Year</option>
+              <option value="2y" ${value === '2y' ? 'selected' : ''}>2 Years</option>
+            </select>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Time period for historical data (used for some data types)
+            </small>
+          </div>
+        `;
+      } else if (key === 'interval' && node.type === 'yfinance-data') {
+        return `
+          <div class="property-item">
+            <label>Interval:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value)">
+              <option value="1m" ${value === '1m' ? 'selected' : ''}>1 Minute</option>
+              <option value="2m" ${value === '2m' ? 'selected' : ''}>2 Minutes</option>
+              <option value="5m" ${value === '5m' ? 'selected' : ''}>5 Minutes</option>
+              <option value="15m" ${value === '15m' ? 'selected' : ''}>15 Minutes</option>
+              <option value="30m" ${value === '30m' ? 'selected' : ''}>30 Minutes</option>
+              <option value="60m" ${value === '60m' ? 'selected' : ''}>1 Hour</option>
+              <option value="90m" ${value === '90m' ? 'selected' : ''}>90 Minutes</option>
+              <option value="1h" ${value === '1h' ? 'selected' : ''}>1 Hour</option>
+              <option value="1d" ${value === '1d' ? 'selected' : ''}>1 Day</option>
+              <option value="5d" ${value === '5d' ? 'selected' : ''}>5 Days</option>
+              <option value="1wk" ${value === '1wk' ? 'selected' : ''}>1 Week</option>
+              <option value="1mo" ${value === '1mo' ? 'selected' : ''}>1 Month</option>
+            </select>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Data interval for historical data
+            </small>
+          </div>
+        `;
+      } else if (key === 'condition' && node.type === 'trigger-output') {
+        return `
+          <div class="property-item">
+            <label>Trigger Condition:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value)">
+              <option value="always" ${value === 'always' ? 'selected' : ''}>Always Trigger</option>
+              <option value="not_empty" ${value === 'not_empty' ? 'selected' : ''}>Not Empty</option>
+              <option value="contains" ${value === 'contains' ? 'selected' : ''}>Contains Text</option>
+              <option value="numeric_gt" ${value === 'numeric_gt' ? 'selected' : ''}>Numeric Greater Than</option>
+            </select>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Condition to evaluate the input string before triggering
+            </small>
+          </div>
+        `;
+      } else if (key === 'threshold' && node.type === 'trigger-output') {
+        return `
+          <div class="property-item">
+            <label>Threshold Value:</label>
+            <input type="text" 
+                   value="${value}" 
+                   placeholder="Enter threshold value..."
+                   data-param="${key}"
+                   onchange="updateNodeParam('${key}', this.value)">
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              For 'Contains': text to search for. For 'Numeric GT': number to compare against.
             </small>
           </div>
         `;
@@ -3350,7 +3435,9 @@ async function updateOvertradeStatusInSettings() {
 async function saveAllSettings() {
   // Save general settings
   const openTradingView = document.getElementById('settingsOpenTradingView').value === 'true';
-  localStorage.setItem('openTradingView', openTradingView);
+  if (window.settingsManager) {
+    await window.settingsManager.set('openTradingView', openTradingView);
+  }
   
   // Save overtrade settings
   if (window.overtradeControl) {
@@ -4546,24 +4633,26 @@ function setupTwilioChangeTracking() {
 // AI Analysis Settings Functions
 function loadAiAnalysisSettings() {
   try {
+    if (!window.settingsManager) return;
+    
     // Load main AI enabled setting
-    const aiEnabled = localStorage.getItem('aiEnabled') === 'true';
+    const aiEnabled = window.settingsManager.get('ai.enabled') || false;
     document.getElementById('settingsAiEnabled').value = aiEnabled ? 'true' : 'false';
     
     // Load Firecrawl settings
-    const firecrawlEnabled = localStorage.getItem('aiFirecrawlEnabled') === 'true';
-    const firecrawlApiKey = localStorage.getItem('aiFirecrawlApiKey') || '';
-    const firecrawlBaseUrl = localStorage.getItem('aiFirecrawlBaseUrl') || 'https://api.firecrawl.dev';
+    const firecrawlEnabled = window.settingsManager.get('ai.firecrawl.enabled') || false;
+    const firecrawlApiKey = window.settingsManager.get('ai.firecrawl.apiKey') || '';
+    const firecrawlBaseUrl = window.settingsManager.get('ai.firecrawl.baseUrl') || 'https://api.firecrawl.dev';
     
     document.getElementById('settingsFirecrawlEnabled').value = firecrawlEnabled ? 'true' : 'false';
     document.getElementById('settingsFirecrawlApiKey').value = firecrawlApiKey;
     document.getElementById('settingsFirecrawlBaseUrl').value = firecrawlBaseUrl;
     
     // Load OpenRouter settings
-    const openRouterEnabled = localStorage.getItem('aiOpenRouterEnabled') === 'true';
-    const openRouterApiKey = localStorage.getItem('aiOpenRouterApiKey') || '';
-    const openRouterModel = localStorage.getItem('aiOpenRouterModel') || 'anthropic/claude-3.5-sonnet';
-    const openRouterBaseUrl = localStorage.getItem('aiOpenRouterBaseUrl') || 'https://openrouter.ai/api/v1';
+    const openRouterEnabled = window.settingsManager.get('ai.openRouter.enabled') || false;
+    const openRouterApiKey = window.settingsManager.get('ai.openRouter.apiKey') || '';
+    const openRouterModel = window.settingsManager.get('ai.openRouter.model') || 'anthropic/claude-3.5-sonnet';
+    const openRouterBaseUrl = window.settingsManager.get('ai.openRouter.baseUrl') || 'https://openrouter.ai/api/v1';
     
     document.getElementById('settingsOpenRouterEnabled').value = openRouterEnabled ? 'true' : 'false';
     document.getElementById('settingsOpenRouterApiKey').value = openRouterApiKey;
@@ -4571,10 +4660,10 @@ function loadAiAnalysisSettings() {
     document.getElementById('settingsOpenRouterBaseUrl').value = openRouterBaseUrl;
     
     // Load AI feature settings
-    const marketAnalysis = localStorage.getItem('aiMarketAnalysis') !== 'false';
-    const newsAnalysis = localStorage.getItem('aiNewsAnalysis') !== 'false';
-    const strategyOptimization = localStorage.getItem('aiStrategyOptimization') === 'true';
-    const riskAssessment = localStorage.getItem('aiRiskAssessment') !== 'false';
+    const marketAnalysis = window.settingsManager.get('ai.features.marketAnalysis') !== false;
+    const newsAnalysis = window.settingsManager.get('ai.features.newsAnalysis') !== false;
+    const strategyOptimization = window.settingsManager.get('ai.features.strategyOptimization') || false;
+    const riskAssessment = window.settingsManager.get('ai.features.riskAssessment') !== false;
     
     document.getElementById('settingsAiMarketAnalysis').checked = marketAnalysis;
     document.getElementById('settingsAiNewsAnalysis').checked = newsAnalysis;
@@ -4586,20 +4675,17 @@ function loadAiAnalysisSettings() {
   }
 }
 
-function saveAiAnalysisSettings() {
+async function saveAiAnalysisSettings() {
   try {
+    if (!window.settingsManager) return;
+    
     // Save main AI enabled setting
     const aiEnabled = document.getElementById('settingsAiEnabled').value === 'true';
-    localStorage.setItem('aiEnabled', aiEnabled);
     
     // Save Firecrawl settings
     const firecrawlEnabled = document.getElementById('settingsFirecrawlEnabled').value === 'true';
     const firecrawlApiKey = document.getElementById('settingsFirecrawlApiKey').value;
     const firecrawlBaseUrl = document.getElementById('settingsFirecrawlBaseUrl').value;
-    
-    localStorage.setItem('aiFirecrawlEnabled', firecrawlEnabled);
-    localStorage.setItem('aiFirecrawlApiKey', firecrawlApiKey);
-    localStorage.setItem('aiFirecrawlBaseUrl', firecrawlBaseUrl);
     
     // Save OpenRouter settings
     const openRouterEnabled = document.getElementById('settingsOpenRouterEnabled').value === 'true';
@@ -4607,21 +4693,27 @@ function saveAiAnalysisSettings() {
     const openRouterModel = document.getElementById('settingsOpenRouterModel').value;
     const openRouterBaseUrl = document.getElementById('settingsOpenRouterBaseUrl').value;
     
-    localStorage.setItem('aiOpenRouterEnabled', openRouterEnabled);
-    localStorage.setItem('aiOpenRouterApiKey', openRouterApiKey);
-    localStorage.setItem('aiOpenRouterModel', openRouterModel);
-    localStorage.setItem('aiOpenRouterBaseUrl', openRouterBaseUrl);
-    
     // Save AI feature settings
     const marketAnalysis = document.getElementById('settingsAiMarketAnalysis').checked;
     const newsAnalysis = document.getElementById('settingsAiNewsAnalysis').checked;
     const strategyOptimization = document.getElementById('settingsAiStrategyOptimization').checked;
     const riskAssessment = document.getElementById('settingsAiRiskAssessment').checked;
     
-    localStorage.setItem('aiMarketAnalysis', marketAnalysis);
-    localStorage.setItem('aiNewsAnalysis', newsAnalysis);
-    localStorage.setItem('aiStrategyOptimization', strategyOptimization);
-    localStorage.setItem('aiRiskAssessment', riskAssessment);
+    // Update all AI settings at once
+    await window.settingsManager.update({
+      'ai.enabled': aiEnabled,
+      'ai.firecrawl.enabled': firecrawlEnabled,
+      'ai.firecrawl.apiKey': firecrawlApiKey,
+      'ai.firecrawl.baseUrl': firecrawlBaseUrl,
+      'ai.openRouter.enabled': openRouterEnabled,
+      'ai.openRouter.apiKey': openRouterApiKey,
+      'ai.openRouter.model': openRouterModel,
+      'ai.openRouter.baseUrl': openRouterBaseUrl,
+      'ai.features.marketAnalysis': marketAnalysis,
+      'ai.features.newsAnalysis': newsAnalysis,
+      'ai.features.strategyOptimization': strategyOptimization,
+      'ai.features.riskAssessment': riskAssessment
+    });
     
     console.log('AI Analysis settings saved successfully');
   } catch (error) {

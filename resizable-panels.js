@@ -160,15 +160,18 @@ class ResizablePanels {
             bottomPanelHeight: parseInt(window.getComputedStyle(bottomPanel).height, 10)
         };
         
-        localStorage.setItem('panelSizes', JSON.stringify(sizes));
+        if (window.settingsManager) {
+            window.settingsManager.set('ui.panelSizes', sizes);
+        }
     }
 
     loadSavedSizes() {
-        const savedSizes = localStorage.getItem('panelSizes');
-        if (!savedSizes) return;
+        if (!window.settingsManager) return;
+        
+        const sizes = window.settingsManager.get('ui.panelSizes');
+        if (!sizes) return;
         
         try {
-            const sizes = JSON.parse(savedSizes);
             
             const rightSidebar = document.querySelector('.right-sidebar');
             const bottomPanel = document.querySelector('.bottom-panel');
