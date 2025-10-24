@@ -11,7 +11,7 @@ class ResizablePanels {
         this.startY = 0;
         this.startWidth = 0;
         this.startHeight = 0;
-        
+
         this.init();
     }
 
@@ -48,7 +48,7 @@ class ResizablePanels {
         // Global mouse events
         document.addEventListener('mousemove', (e) => this.handleResize(e));
         document.addEventListener('mouseup', () => this.stopResize());
-        
+
         // Keyboard shortcut to reset all panels (Ctrl+Shift+R)
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.shiftKey && e.key === 'R') {
@@ -56,7 +56,7 @@ class ResizablePanels {
                 this.resetToDefaults();
             }
         });
-        
+
         // Prevent text selection during resize
         document.addEventListener('selectstart', (e) => {
             if (this.isResizing) {
@@ -69,10 +69,10 @@ class ResizablePanels {
         e.preventDefault();
         this.isResizing = true;
         this.currentHandle = type;
-        
+
         this.startX = e.clientX;
         this.startY = e.clientY;
-        
+
         if (type === 'right') {
             const rightSidebar = document.querySelector('.right-sidebar');
             this.startWidth = parseInt(window.getComputedStyle(rightSidebar).width, 10);
@@ -82,10 +82,10 @@ class ResizablePanels {
             this.startHeight = parseInt(window.getComputedStyle(bottomPanel).height, 10);
             bottomPanel.querySelector('.resize-handle-top').classList.add('active');
         }
-        
+
         document.body.style.cursor = type === 'right' ? 'ew-resize' : 'ns-resize';
         document.body.style.userSelect = 'none';
-        
+
         // Add visual feedback
         document.body.classList.add('resizing');
         this.createSizeTooltip();
@@ -93,7 +93,7 @@ class ResizablePanels {
 
     handleResize(e) {
         if (!this.isResizing) return;
-        
+
         if (this.currentHandle === 'right') {
             this.resizeRightSidebar(e);
         } else if (this.currentHandle === 'bottom') {
@@ -105,12 +105,12 @@ class ResizablePanels {
         const rightSidebar = document.querySelector('.right-sidebar');
         const deltaX = this.startX - e.clientX; // Inverted because we're resizing from the left edge
         const newWidth = this.startWidth + deltaX;
-        
+
         // Apply constraints
         const minWidth = 200;
         const maxWidth = 600;
         const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-        
+
         rightSidebar.style.width = constrainedWidth + 'px';
         this.updateSizeTooltip(`Width: ${constrainedWidth}px`, e.clientX, e.clientY);
     }
@@ -119,67 +119,64 @@ class ResizablePanels {
         const bottomPanel = document.querySelector('.bottom-panel');
         const deltaY = this.startY - e.clientY; // Inverted because we're resizing from the top edge
         const newHeight = this.startHeight + deltaY;
-        
+
         // Apply constraints
         const minHeight = 100;
         const maxHeight = 500;
         const constrainedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
-        
+
         bottomPanel.style.height = constrainedHeight + 'px';
         this.updateSizeTooltip(`Height: ${constrainedHeight}px`, e.clientX, e.clientY);
     }
 
     stopResize() {
         if (!this.isResizing) return;
-        
+
         this.isResizing = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-        
+
         // Remove visual feedback
         document.body.classList.remove('resizing');
         this.removeSizeTooltip();
-        
+
         // Remove active class from handles
         document.querySelectorAll('.resize-handle').forEach(handle => {
             handle.classList.remove('active');
         });
-        
+
         // Save the new sizes
         this.saveSizes();
-        
+
         this.currentHandle = null;
     }
 
     saveSizes() {
         const rightSidebar = document.querySelector('.right-sidebar');
         const bottomPanel = document.querySelector('.bottom-panel');
-        
+
         const sizes = {
             rightSidebarWidth: parseInt(window.getComputedStyle(rightSidebar).width, 10),
             bottomPanelHeight: parseInt(window.getComputedStyle(bottomPanel).height, 10)
         };
-        
-        if (window.settingsManager) {
-            window.settingsManager.set('ui.panelSizes', sizes);
-        }
+
+        localStorage.setItem('panelSizes', JSON.stringify(sizes));
     }
 
     loadSavedSizes() {
-        if (!window.settingsManager) return;
-        
-        const sizes = window.settingsManager.get('ui.panelSizes');
-        if (!sizes) return;
-        
+        const savedSizes = localStorage.getItem('panelSizes');
+        if (!savedSizes) return;
+
         try {
-            
+            const sizes = JSON.parse(savedSizes);
+
             const rightSidebar = document.querySelector('.right-sidebar');
             const bottomPanel = document.querySelector('.bottom-panel');
-            
+
             if (sizes.rightSidebarWidth && rightSidebar) {
                 rightSidebar.style.width = sizes.rightSidebarWidth + 'px';
             }
-            
+
             if (sizes.bottomPanelHeight && bottomPanel) {
                 bottomPanel.style.height = sizes.bottomPanelHeight + 'px';
             }
@@ -190,7 +187,7 @@ class ResizablePanels {
 
     createSizeTooltip() {
         if (document.getElementById('resize-tooltip')) return;
-        
+
         const tooltip = document.createElement('div');
         tooltip.id = 'resize-tooltip';
         tooltip.style.cssText = `
@@ -229,15 +226,15 @@ class ResizablePanels {
     resetToDefaults() {
         const rightSidebar = document.querySelector('.right-sidebar');
         const bottomPanel = document.querySelector('.bottom-panel');
-        
+
         if (rightSidebar) {
             rightSidebar.style.width = '300px';
         }
-        
+
         if (bottomPanel) {
             bottomPanel.style.height = '200px';
         }
-        
+
         this.saveSizes();
     }
 }

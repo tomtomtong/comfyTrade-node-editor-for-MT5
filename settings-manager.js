@@ -101,18 +101,35 @@ class SettingsManager {
         const fileSettings = await window.electronAPI.loadSettings(this.settingsFile);
         if (fileSettings) {
           this.settings = this.mergeSettings(this.defaultSettings, fileSettings);
-          console.log('Settings loaded from file:', this.settingsFile);
+          console.log('✅ Settings loaded from file:', this.settingsFile);
           return;
         }
       }
       
       // Fallback: migrate from localStorage if file doesn't exist
+      console.log('📦 Migrating settings from localStorage to file system...');
       this.migrateFromLocalStorage();
       await this.saveSettings();
       
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('❌ Error loading settings:', error.message);
+      
+      // Show user-friendly error message for JSON parse errors
+      if (error.message.includes('Invalid JSON format')) {
+        console.error('🔧 SOLUTION: Check your app_settings.json file for syntax errors');
+        console.error('   - Make sure all quotes are properly closed');
+        console.error('   - Check for missing commas between properties');
+        console.error('   - Ensure no trailing commas after the last property');
+        console.error('   - Verify all brackets { } are properly matched');
+        
+        // Show a user notification if possible
+        if (typeof showMessage === 'function') {
+          showMessage('Settings file has invalid JSON format. Check console for details.', 'error');
+        }
+      }
+      
       // Use default settings if loading fails
+      console.log('🔄 Using default settings due to loading error');
       this.settings = { ...this.defaultSettings };
     }
   }
@@ -366,6 +383,22 @@ class SettingsManager {
     this.settings = { ...this.defaultSettings };
     await this.saveSettings();
   }
+  
+  // Test function to simulate loading invalid JSON (for debugging)
+  async testInvalidJson() {
+    console.log('🧪 Testing invalid JSON error logging...');
+    const originalFile = this.settingsFile;
+    this.settingsFile = 'app_settings_test_invalid.json';
+    
+    try {
+      await this.loadSettings();
+    } catch (error) {
+      console.log('✅ Error logging test completed');
+    }
+    
+    // Restore original file
+    this.settingsFile = originalFile;
+  }
 }
 
 // Create global instance and initialize
@@ -380,3 +413,8 @@ if (document.readyState === 'loading') {
   // DOM is already loaded
   window.settingsManager.loadSettings();
 }
+
+// Add helpful console messages for debugging
+console.log('🔧 Settings Manager initialized');
+console.log('💡 If you see JSON parse errors, check the console for detailed error information');
+console.log('📁 Settings are stored in: app_settings.json');

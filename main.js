@@ -262,17 +262,40 @@ ipcMain.handle('electron:openExternal', async (event, url) => {
     }
 });
 
-// Settings file handlers
+// Settings file handlers with comprehensive JSON error logging
 ipcMain.handle('settings:load', async (event, filename) => {
     try {
         const filePath = path.join(__dirname, filename);
         const data = await fs.readFile(filePath, 'utf8');
-        return JSON.parse(data);
+        
+        // Attempt to parse JSON with detailed error logging
+        try {
+            return JSON.parse(data);
+        } catch (parseError) {
+            console.error(`❌ JSON Parse Error in ${filename}:`);
+            console.error(`   File path: ${filePath}`);
+            console.error(`   Parse error: ${parseError.message}`);
+            console.error(`   File content preview (first 200 chars):`);
+            console.error(`   "${data.substring(0, 200)}${data.length > 200 ? '...' : ''}"`);
+            
+            // Try to identify common JSON issues
+            if (data.trim() === '') {
+                console.error(`   Issue: File is empty`);
+            } else if (!data.trim().startsWith('{') && !data.trim().startsWith('[')) {
+                console.error(`   Issue: File doesn't start with { or [ (not valid JSON)`);
+            } else if (!data.trim().endsWith('}') && !data.trim().endsWith(']')) {
+                console.error(`   Issue: File doesn't end with } or ] (incomplete JSON)`);
+            }
+            
+            throw new Error(`Invalid JSON format in ${filename}: ${parseError.message}`);
+        }
     } catch (error) {
         if (error.code === 'ENOENT') {
             // File doesn't exist, return null to trigger migration
+            console.log(`📁 Settings file ${filename} not found, will create new one`);
             return null;
         }
+        console.error(`❌ Error loading settings file ${filename}:`, error.message);
         throw error;
     }
 });

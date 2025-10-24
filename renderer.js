@@ -79,12 +79,52 @@ function logMT5Response(action, response, requestData = null) {
 }
 
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initializeNodeEditor();
   setupEventListeners();
   updateStrategyButtons(); // Set initial button state
   window.historyImport.checkBacktestMode();
+  
+  // Auto-load all settings on startup with a small delay to ensure all systems are ready
+  setTimeout(async () => {
+    await loadAllSettingsOnStartup();
+  }, 100);
 });
+
+// Auto-load all settings when application starts
+async function loadAllSettingsOnStartup() {
+  try {
+    console.log('🔄 Auto-loading settings on startup...');
+    
+    // Wait for settings manager to be ready
+    if (window.settingsManager) {
+      // Load all settings components
+      loadGeneralSettings();
+      loadOvertradeSettings();
+      loadVolumeControlSettings();
+      loadTwilioSettings();
+      loadAiAnalysisSettings();
+      
+      // Ensure control systems are properly initialized
+      if (window.overtradeControl) {
+        window.overtradeControl.loadSettings();
+        console.log('✅ Overtrade control settings loaded');
+      }
+      
+      if (window.volumeControl) {
+        window.volumeControl.loadSettings();
+        console.log('✅ Volume control settings loaded');
+      }
+      
+      console.log('✅ All settings loaded successfully on startup');
+    } else {
+      console.log('⏳ Settings manager not ready yet, retrying in 500ms...');
+      setTimeout(loadAllSettingsOnStartup, 500);
+    }
+  } catch (error) {
+    console.error('❌ Error auto-loading settings on startup:', error);
+  }
+}
 
 function initializeNodeEditor() {
   const canvas = document.getElementById('nodeCanvas');
@@ -2541,10 +2581,38 @@ function loadGraph() {
     
     reader.onload = (event) => {
       try {
-        const graph = JSON.parse(event.target.result);
+        // Attempt to parse JSON with detailed error logging
+        let graph;
+        try {
+          graph = JSON.parse(event.target.result);
+        } catch (parseError) {
+          console.error(`❌ JSON Parse Error in strategy file:`);
+          console.error(`   Parse error: ${parseError.message}`);
+          console.error(`   File content preview (first 200 chars):`);
+          const content = event.target.result;
+          console.error(`   "${content.substring(0, 200)}${content.length > 200 ? '...' : ''}"`);
+          
+          // Try to identify common JSON issues
+          if (content.trim() === '') {
+            console.error(`   Issue: Strategy file is empty`);
+            showMessage('Strategy file is empty', 'error');
+          } else if (!content.trim().startsWith('{') && !content.trim().startsWith('[')) {
+            console.error(`   Issue: Strategy file doesn't start with { or [ (not valid JSON)`);
+            showMessage('Strategy file is not valid JSON - must start with { or [', 'error');
+          } else if (!content.trim().endsWith('}') && !content.trim().endsWith(']')) {
+            console.error(`   Issue: Strategy file doesn't end with } or ] (incomplete JSON)`);
+            showMessage('Strategy file is incomplete - missing closing bracket', 'error');
+          } else {
+            showMessage(`Invalid JSON in strategy file: ${parseError.message}`, 'error');
+          }
+          return;
+        }
+        
         nodeEditor.importGraph(graph);
+        console.log('✅ Strategy loaded successfully');
         showMessage('Strategy loaded!', 'success');
       } catch (error) {
+        console.error('❌ Error loading strategy:', error.message);
         showMessage('Failed to load strategy: ' + error.message, 'error');
       }
     };
@@ -3760,10 +3828,55 @@ function removeVolumeLimit(symbol) {
 async function loadSettingsFromFile(file) {
   try {
     const text = await file.text();
-    const data = JSON.parse(text);
+    
+    // Attempt to parse JSON with detailed error logging
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error(`❌ JSON Parse Error in uploaded settings file:`);
+      console.error(`   File name: ${file.name}`);
+      console.error(`   Parse error: ${parseError.message}`);
+      console.error(`   File content preview (first 200 chars):`);
+      console.error(`   "${text.substring(0, 200)}${text.length > 200 ? '...' : ''}"`);
+      
+      // Try to identify common JSON issues
+      if (text.trim() === '') {
+        console.error(`   Issue: File is empty`);
+        showMessage('Settings file is empty', 'error');
+      } else if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+        console.error(`   Issue: File doesn't start with { or [ (not valid JSON)`);
+        showMessage('Settings file is not valid JSON - must start with { or [', 'error');
+      } else if (!text.trim().endsWith('}') && !text.trim().endsWith(']')) {
+        console.error(`   Issue: File doesn't end with } or ] (incomplete JSON)`);
+        showMessage('Settings file is incomplete - missing closing bracket', 'error');
+      } else {
+        showMessage(`Invalid JSON in settings file: ${parseError.message}`, 'error');
+      }
+      
+      // Clear the file input
+      const fileInput = document.getElementById('loadSettingsFileInput');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      return;
+    }
+    
+    // Validate that this is a raw settings format (like app_settings.json)
+    if (!data.volumeControl && !data.overtradeControl && !data.twilio && !data.ai && !data.openTradingView) {
+      console.error('❌ Invalid settings file format - not recognized as settings file');
+      showMessage('Invalid settings file format', 'error');
+      
+      // Clear the file input
+      const fileInput = document.getElementById('loadSettingsFileInput');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      return;
+    }
     
     // Load volume control settings if present
-    if (data.settings && window.volumeControl) {
+    if (window.volumeControl) {
       const success = window.volumeControl.importSettings(JSON.stringify(data));
       
       if (success) {
@@ -3779,10 +3892,12 @@ async function loadSettingsFromFile(file) {
         loadTwilioSettings();
         loadAiAnalysisSettings();
         
+        console.log('✅ Settings loaded successfully from file:', file.name);
         showMessage('Settings loaded successfully', 'success');
       }
     } else {
-      showMessage('Invalid settings file format', 'error');
+      console.error('❌ Failed to import settings');
+      showMessage('Failed to import settings', 'error');
     }
     
     // Clear the file input
@@ -3792,8 +3907,14 @@ async function loadSettingsFromFile(file) {
     }
     
   } catch (error) {
-    console.error('Error loading settings file:', error);
+    console.error('❌ Error loading settings file:', error.message);
     showMessage('Failed to load settings file', 'error');
+    
+    // Clear the file input
+    const fileInput = document.getElementById('loadSettingsFileInput');
+    if (fileInput) {
+      fileInput.value = '';
+    }
   }
 }
 
@@ -4983,3 +5104,15 @@ function setupAiAnalysisChangeTracking() {
     }
   });
 }
+
+// Test function for JSON error logging (available in console)
+window.testInvalidJsonLogging = () => {
+  console.log('🧪 Testing JSON error logging...');
+  if (window.settingsManager && window.settingsManager.testInvalidJson) {
+    window.settingsManager.testInvalidJson();
+  } else {
+    console.log('❌ Settings manager not available');
+  }
+};
+
+console.log('🔧 Debug: To test JSON error logging, run: testInvalidJsonLogging()');

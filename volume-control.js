@@ -224,19 +224,55 @@ class VolumeControl {
   // Import settings from backup
   importSettings(jsonData) {
     try {
-      const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+      let data;
       
-      if (data.settings) {
-        this.settings = { ...this.settings, ...data.settings };
-        this.saveSettings();
-        showMessage('Volume control settings imported successfully', 'success');
-        console.log('Imported volume control data from:', data.exportDate);
-        return true;
+      if (typeof jsonData === 'string') {
+        // Attempt to parse JSON with detailed error logging
+        try {
+          data = JSON.parse(jsonData);
+        } catch (parseError) {
+          console.error(`❌ JSON Parse Error in volume control settings:`);
+          console.error(`   Parse error: ${parseError.message}`);
+          console.error(`   Data preview (first 200 chars):`);
+          console.error(`   "${jsonData.substring(0, 200)}${jsonData.length > 200 ? '...' : ''}"`);
+          
+          // Try to identify common JSON issues
+          if (jsonData.trim() === '') {
+            console.error(`   Issue: Volume control data is empty`);
+            showMessage('Volume control data is empty', 'error');
+          } else if (!jsonData.trim().startsWith('{') && !jsonData.trim().startsWith('[')) {
+            console.error(`   Issue: Volume control data doesn't start with { or [ (not valid JSON)`);
+            showMessage('Volume control data is not valid JSON', 'error');
+          } else {
+            showMessage(`Invalid JSON in volume control data: ${parseError.message}`, 'error');
+          }
+          return false;
+        }
       } else {
+        data = jsonData;
+      }
+      
+      // Handle raw settings format only
+      let settingsToImport;
+      if (data.volumeControl) {
+        // Raw settings format (like app_settings.json) - extract volumeControl
+        settingsToImport = data.volumeControl;
+      } else if (data.enabled !== undefined || data.symbolLimits !== undefined) {
+        // Direct volume control settings format
+        settingsToImport = data;
+      } else {
+        console.error('❌ Invalid volume control data format - no volumeControl settings found');
         throw new Error('Invalid data format');
       }
+      
+      // Import only volume control specific settings
+      this.settings = { ...this.settings, ...settingsToImport };
+      this.saveSettings();
+      showMessage('Volume control settings imported successfully', 'success');
+      console.log('✅ Imported volume control data');
+      return true;
     } catch (error) {
-      console.error('Error importing volume control data:', error);
+      console.error('❌ Error importing volume control data:', error.message);
       showMessage('Failed to import volume control data', 'error');
       return false;
     }

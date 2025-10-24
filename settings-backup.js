@@ -12,15 +12,8 @@ class SettingsBackup {
       }
 
       const settings = window.settingsManager.getAll();
-      const backup = {
-        version: this.backupVersion,
-        timestamp: new Date().toISOString(),
-        platform: navigator.platform,
-        userAgent: navigator.userAgent,
-        settings: settings
-      };
 
-      const dataStr = JSON.stringify(backup, null, 2);
+      const dataStr = JSON.stringify(settings, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
@@ -49,15 +42,41 @@ class SettingsBackup {
       }
 
       const text = await file.text();
-      const backup = JSON.parse(text);
+      
+      // Attempt to parse JSON with detailed error logging
+      let settings;
+      try {
+        settings = JSON.parse(text);
+      } catch (parseError) {
+        console.error(`❌ JSON Parse Error in backup file:`);
+        console.error(`   File name: ${file.name}`);
+        console.error(`   Parse error: ${parseError.message}`);
+        console.error(`   File content preview (first 200 chars):`);
+        console.error(`   "${text.substring(0, 200)}${text.length > 200 ? '...' : ''}"`);
+        
+        // Try to identify common JSON issues
+        if (text.trim() === '') {
+          console.error(`   Issue: File is empty`);
+          throw new Error('Backup file is empty');
+        } else if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+          console.error(`   Issue: File doesn't start with { or [ (not valid JSON)`);
+          throw new Error('Backup file is not valid JSON - must start with { or [');
+        } else if (!text.trim().endsWith('}') && !text.trim().endsWith(']')) {
+          console.error(`   Issue: File doesn't end with } or ] (incomplete JSON)`);
+          throw new Error('Backup file is incomplete - missing closing bracket');
+        } else {
+          throw new Error(`Invalid JSON in backup file: ${parseError.message}`);
+        }
+      }
 
-      // Validate backup format
-      if (!backup.version || !backup.settings) {
-        throw new Error('Invalid backup file format');
+      // Validate settings format
+      if (!settings.volumeControl && !settings.overtradeControl && !settings.twilio && !settings.ai && !settings.openTradingView) {
+        console.error('❌ Invalid settings file format - not recognized as settings file');
+        throw new Error('Invalid settings file format');
       }
 
       // Show confirmation dialog
-      const confirmed = await this.showImportConfirmation(backup);
+      const confirmed = await this.showImportConfirmation(settings);
       if (!confirmed) {
         return false;
       }
@@ -66,7 +85,7 @@ class SettingsBackup {
       await this.createAutoBackup();
 
       // Import the settings
-      window.settingsManager.settings = backup.settings;
+      window.settingsManager.settings = settings;
       await window.settingsManager.saveSettings();
 
       // Reload the page to apply new settings
@@ -87,15 +106,9 @@ class SettingsBackup {
   async createAutoBackup() {
     try {
       const settings = window.settingsManager.getAll();
-      const backup = {
-        version: this.backupVersion,
-        timestamp: new Date().toISOString(),
-        type: 'auto-backup',
-        settings: settings
-      };
 
       // Store in localStorage as emergency backup
-      localStorage.setItem('mt5-trader-emergency-backup', JSON.stringify(backup));
+      localStorage.setItem('mt5-trader-emergency-backup', JSON.stringify(settings));
       console.log('Emergency backup created');
     } catch (error) {
       console.error('Failed to create emergency backup:', error);
@@ -103,7 +116,7 @@ class SettingsBackup {
   }
 
   // Show import confirmation dialog
-  showImportConfirmation(backup) {
+  showImportConfirmation(settings) {
     return new Promise((resolve) => {
       const modal = document.createElement('div');
       modal.className = 'modal backup-modal';
@@ -111,11 +124,12 @@ class SettingsBackup {
         <div class="modal-content">
           <h2>⚠️ Import Settings</h2>
           <div class="backup-info">
-            <p><strong>Backup Information:</strong></p>
+            <p><strong>Settings Information:</strong></p>
             <ul>
-              <li><strong>Created:</strong> ${new Date(backup.timestamp).toLocaleString()}</li>
-              <li><strong>Version:</strong> ${backup.version}</li>
-              <li><strong>Platform:</strong> ${backup.platform || 'Unknown'}</li>
+              <li><strong>AI Analysis:</strong> ${settings.ai?.enabled ? 'Enabled' : 'Disabled'}</li>
+              <li><strong>Volume Control:</strong> ${settings.volumeControl?.enabled ? 'Enabled' : 'Disabled'}</li>
+              <li><strong>Overtrade Control:</strong> ${settings.overtradeControl?.enabled ? 'Enabled' : 'Disabled'}</li>
+              <li><strong>Twilio Alerts:</strong> ${settings.twilio?.enabled ? 'Enabled' : 'Disabled'}</li>
             </ul>
           </div>
           <div class="warning-box">
@@ -153,8 +167,29 @@ class SettingsBackup {
         throw new Error('No emergency backup found');
       }
 
-      const backup = JSON.parse(backupStr);
-      window.settingsManager.settings = backup.settings;
+      // Attempt to parse JSON with detailed error logging
+      let settings;
+      try {
+        settings = JSON.parse(backupStr);
+      } catch (parseError) {
+        console.error(`❌ JSON Parse Error in emergency backup:`);
+        console.error(`   Parse error: ${parseError.message}`);
+        console.error(`   Backup content preview (first 200 chars):`);
+        console.error(`   "${backupStr.substring(0, 200)}${backupStr.length > 200 ? '...' : ''}"`);
+        
+        // Try to identify common JSON issues
+        if (backupStr.trim() === '') {
+          console.error(`   Issue: Emergency backup is empty`);
+          throw new Error('Emergency backup is empty');
+        } else if (!backupStr.trim().startsWith('{') && !backupStr.trim().startsWith('[')) {
+          console.error(`   Issue: Emergency backup doesn't start with { or [ (not valid JSON)`);
+          throw new Error('Emergency backup is not valid JSON');
+        } else {
+          throw new Error(`Invalid JSON in emergency backup: ${parseError.message}`);
+        }
+      }
+
+      window.settingsManager.settings = settings;
       await window.settingsManager.saveSettings();
 
       showMessage('Emergency backup restored successfully', 'success');
