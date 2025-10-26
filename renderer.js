@@ -94,7 +94,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Auto-load all settings when application starts
 async function loadAllSettingsOnStartup() {
   try {
-    console.log('🔄 Auto-loading settings on startup...');
     
     // Wait for settings manager to be ready
     if (window.settingsManager) {
@@ -108,17 +107,13 @@ async function loadAllSettingsOnStartup() {
       // Ensure control systems are properly initialized
       if (window.overtradeControl) {
         window.overtradeControl.loadSettings();
-        console.log('✅ Overtrade control settings loaded');
       }
       
       if (window.volumeControl) {
         window.volumeControl.loadSettings();
-        console.log('✅ Volume control settings loaded');
       }
       
-      console.log('✅ All settings loaded successfully on startup');
     } else {
-      console.log('⏳ Settings manager not ready yet, retrying in 500ms...');
       setTimeout(loadAllSettingsOnStartup, 500);
     }
   } catch (error) {
@@ -129,29 +124,24 @@ async function loadAllSettingsOnStartup() {
 // Reload settings from JSON file (like manual load but automatic)
 async function reloadSettingsFromFile() {
   try {
-    console.log('🔄 Reloading settings from JSON file...');
     
     if (window.settingsManager && window.electronAPI && window.electronAPI.loadSettings) {
       const fileSettings = await window.electronAPI.loadSettings('app_settings.json');
       if (fileSettings) {
         // Update settings manager with fresh data
         window.settingsManager.settings = window.settingsManager.mergeSettings(window.settingsManager.defaultSettings, fileSettings);
-        console.log('✅ Settings reloaded from JSON file');
         
         // Reload all control systems with fresh settings
         if (window.overtradeControl) {
           window.overtradeControl.loadSettings();
-          console.log('✅ Overtrade control settings reloaded');
         }
         
         if (window.volumeControl) {
           window.volumeControl.loadSettings();
-          console.log('✅ Volume control settings reloaded');
         }
         
         return true;
       } else {
-        console.log('📁 No settings file found or file is empty');
         return false;
       }
     } else {
@@ -413,7 +403,6 @@ function initializeSymbolInput() {
   symbolInput = new SymbolInput(container, {
     placeholder: 'Enter symbol (e.g., EURUSD)',
     onSymbolSelect: (symbol, symbolData) => {
-      console.log('Selected symbol:', symbol, symbolData);
       updateCurrentPrice(symbol);
     },
     onSymbolChange: (symbol) => {
@@ -449,7 +438,6 @@ async function updateMarketDataPreview(symbol) {
     
     if (result.success) {
       // Could add a small market data preview here
-      console.log('Market data for', symbol, result.data);
     }
   } catch (error) {
     console.error('Error getting market data:', error);
@@ -468,28 +456,12 @@ async function updateCurrentPrice(symbol) {
     // Show loading state
     showCurrentPriceLoading();
     
-    console.log(`🔄 Fetching current price for: ${symbol}`);
     const result = await window.mt5API.getMarketData(symbol);
     
-    // Log the complete response for debugging
-    console.log(`📊 Price Response for ${symbol}:`, {
-      success: result.success,
-      data: result.data,
-      error: result.error,
-      timestamp: new Date().toISOString()
-    });
     
     if (result.success && result.data) {
       const data = result.data;
       
-      // Log successful price data
-      console.log(`✅ Price data received for ${symbol}:`, {
-        bid: data.bid,
-        ask: data.ask,
-        spread: data.spread || (data.ask - data.bid).toFixed(5),
-        volume: data.volume,
-        time: data.time
-      });
       
       // Show the price display
       document.getElementById('currentPriceGroup').style.display = 'block';
@@ -910,10 +882,6 @@ async function handleExecuteTrade() {
   const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value) || 0;
   const takeProfit = parseFloat(document.getElementById('tradeTakeProfit').value) || 0;
   
-  // Debug logging
-  console.log('handleExecuteTrade - type from select:', type);
-  console.log('handleExecuteTrade - selected index:', document.getElementById('tradeType').selectedIndex);
-  console.log('handleExecuteTrade - all options:', Array.from(document.getElementById('tradeType').options).map(o => ({value: o.value, text: o.text, selected: o.selected})));
   
   if (!symbol) {
     showMessage('Please enter a symbol', 'error');
@@ -980,10 +948,6 @@ function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) 
   // Store the trade data
   pendingTradeData = { symbol, type, volume, stopLoss, takeProfit };
   
-  // Debug logging
-  console.log('showTradeConfirmationModal called with:', { symbol, type, volume, stopLoss, takeProfit });
-  console.log('type value:', type, 'type of type:', typeof type);
-  console.log('type.toUpperCase():', type.toUpperCase());
   
   // Open TradingView immediately when showing confirmation
   openTradingViewForSymbol(symbol);
@@ -1023,7 +987,6 @@ function hideTradeConfirmationModal() {
 }
 
 async function confirmTradeExecution() {
-  console.log('confirmTradeExecution called, pendingTradeData:', pendingTradeData);
   
   if (!pendingTradeData) {
     console.error('No pending trade data found!');
@@ -1040,7 +1003,6 @@ async function confirmTradeExecution() {
   
   try {
     const { symbol, type, volume, stopLoss, takeProfit } = tradeDataToExecute;
-    console.log('Executing trade with data:', tradeDataToExecute);
     
     const orderData = {
       symbol,
@@ -1071,25 +1033,6 @@ async function confirmTradeExecution() {
   pendingTradeData = null;
 }
 
-// Debug function to check modal state
-window.debugTradeConfirmation = function() {
-  console.log('=== TRADE CONFIRMATION DEBUG ===');
-  console.log('pendingTradeData:', pendingTradeData);
-  console.log('Modal visible:', document.getElementById('tradeConfirmationModal').classList.contains('show'));
-  console.log('Trade type select value:', document.getElementById('tradeType').value);
-  console.log('Trade type select selectedIndex:', document.getElementById('tradeType').selectedIndex);
-  
-  const confirmElements = {
-    symbol: document.getElementById('confirmTradeSymbol').textContent,
-    type: document.getElementById('confirmTradeType').textContent,
-    volume: document.getElementById('confirmTradeVolume').textContent,
-    stopLoss: document.getElementById('confirmTradeStopLoss').textContent,
-    takeProfit: document.getElementById('confirmTradeTakeProfit').textContent
-  };
-  console.log('Confirmation modal elements:', confirmElements);
-  console.log('=== END DEBUG ===');
-  return { pendingTradeData, confirmElements };
-}
 
 async function handleConnect() {
   // Use default connection settings - no need for user input
@@ -1374,44 +1317,7 @@ window.updatePriceFromPercent = updatePriceFromPercent;
 window.updatePercentFromPrice = updatePercentFromPrice;
 
 // Price testing function for console debugging
-window.testCurrentPrice = async function(symbol) {
-  if (!symbol) {
-    symbol = prompt('Enter symbol to test (e.g., TSLA, EURUSD):');
-    if (!symbol) return;
-  }
-  
-  console.log(`🧪 Testing current price fetch for: ${symbol}`);
-  console.log('='.repeat(50));
-  
-  if (!isConnected) {
-    console.log('❌ Not connected to MT5');
-    return;
-  }
-  
-  if (!window.mt5API) {
-    console.log('❌ MT5 API not available');
-    return;
-  }
-  
-  try {
-    // This will trigger all the detailed logging we added
-    await updateCurrentPrice(symbol);
-    console.log('='.repeat(50));
-    console.log('✅ Price test completed - check logs above for details');
-  } catch (error) {
-    console.log('='.repeat(50));
-    console.log('❌ Price test failed:', error.message);
-  }
-};
 
-// Quick price check function
-window.checkPrice = function(symbol) {
-  if (!symbol) {
-    console.log('Usage: checkPrice("TSLA") or checkPrice("EURUSD")');
-    return;
-  }
-  return window.testCurrentPrice(symbol);
-};
 
 // Node editor percentage calculation functions
 function updateNodePriceFromPercent(priceKey, nodeId) {

@@ -529,18 +529,15 @@ class NodeEditor {
   addConnection(fromNode, toNode, inputIndex, outputIndex = 0) {
     // Validate connection types - allow trigger-to-trigger and string-to-string connections
     if (fromNode.outputs.length === 0 || toNode.inputs.length === 0) {
-      console.log('Cannot connect: missing output or input');
       return;
     }
 
     // Validate input and output indices
     if (inputIndex >= toNode.inputs.length) {
-      console.log('Cannot connect: invalid input index');
       return;
     }
     
     if (outputIndex >= fromNode.outputs.length) {
-      console.log('Cannot connect: invalid output index');
       return;
     }
 
@@ -549,7 +546,6 @@ class NodeEditor {
     const toInputType = toNode.inputs[inputIndex];
     
     if (fromOutputType !== toInputType) {
-      console.log(`Cannot connect: incompatible types (${fromOutputType} → ${toInputType})`);
       return;
     }
 
@@ -559,7 +555,6 @@ class NodeEditor {
     );
     
     if (existingConnection) {
-      console.log('Connection already exists between these nodes');
       return;
     }
 
@@ -576,7 +571,6 @@ class NodeEditor {
       fromOutput: outputIndex
     });
     
-    console.log(`✓ Connection added: ${fromNode.title}[${outputIndex}] → ${toNode.title}[${inputIndex}] (Total connections from ${fromNode.title}: ${this.connections.filter(c => c.from === fromNode).length})`);
   }
 
   removeNode(node) {
@@ -613,12 +607,10 @@ class NodeEditor {
     // Show undo hint
     this.showUndoHint();
     
-    console.log('Node deleted. Press Ctrl+Z to undo.');
   }
 
   undoLastDeletion() {
     if (this.undoStack.length === 0) {
-      console.log('Nothing to undo');
       return;
     }
     
@@ -654,7 +646,6 @@ class NodeEditor {
         this.hideUndoHint();
       }
       
-      console.log('Node deletion undone');
     }
   }
 
@@ -1233,9 +1224,6 @@ class NodeEditor {
     // Visual feedback
     node.lastTriggerTime = Date.now();
     
-    console.log('=== Trigger started:', node.title, '===');
-    console.log('Trigger node:', node);
-    console.log('Trigger params:', node.params);
     
     // Clear execution state for new trigger cycle
     this.executionState.clear();
@@ -1245,10 +1233,6 @@ class NodeEditor {
       .filter(c => c.from === node)
       .map(c => ({ node: c.to, inputIndex: c.toInput, fromOutput: c.fromOutput || 0 }));
     
-    console.log('Connected nodes from trigger:', connectedNodes.length);
-    connectedNodes.forEach((cn, idx) => {
-      console.log(`  ${idx + 1}. ${cn.node.title} (${cn.node.type})`);
-    });
     
     if (connectedNodes.length === 0) {
       console.warn('⚠️ No nodes connected to trigger! Connect the trigger output to other nodes.');
@@ -1256,7 +1240,6 @@ class NodeEditor {
     
     // Execute the connected nodes in sequence with async support
     for (let { node: connectedNode, inputIndex, fromOutput } of connectedNodes) {
-      console.log(`Executing connected node: ${connectedNode.title}`);
       // Add small delay to make execution visible
       await new Promise(resolve => setTimeout(resolve, 200));
       await this.executeNode(connectedNode, inputIndex, true);
@@ -1266,7 +1249,6 @@ class NodeEditor {
       window.onTriggerExecute(node, connectedNodes.map(c => c.node));
     }
     
-    console.log('=== Trigger completed:', node.title, '===');
   }
 
   async executeNode(node, inputIndex = 0, inputResult = true) {
@@ -1274,9 +1256,6 @@ class NodeEditor {
     this.setCurrentExecutingNode(node);
     
     // Execute the node's specific logic based on its type
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('▶ Executing node:', node.title, 'Type:', node.type);
-    console.log('  Input index:', inputIndex, 'Input result:', inputResult);
     
     let result = true; // Default: continue flow
     
@@ -1286,47 +1265,36 @@ class NodeEditor {
       
       // If we haven't received all inputs yet, don't continue
       if (result === null) {
-        console.log('Logic gate waiting for more inputs:', node.title);
         return null;
       }
     } else {
       // Execute node-specific logic and get boolean result
       switch (node.type) {
         case 'string-input':
-          console.log('String input node triggered, providing value:', node.params.value);
           // Store the string value for string output connections
           node.stringValue = node.params.value;
           result = true; // Continue trigger flow
           break;
 
         case 'indicator-ma':
-          console.log('Calculating Moving Average with period:', node.params.period);
           result = true; // Indicators always pass through
           break;
           
         case 'indicator-rsi':
-          console.log('Calculating RSI with period:', node.params.period);
           result = true; // Indicators always pass through
           break;
           
         case 'conditional-check':
           result = await this.evaluateConditional(node);
           if (result) {
-            console.log('✓ Conditional check PASSED:', node.params.symbol);
           } else {
-            console.log('✗ Conditional check FAILED:', node.params.symbol, '- Flow stopped');
           }
           break;
           
         case 'trade-signal':
-          console.log('=== TRADE-SIGNAL NODE EXECUTION START ===');
-          console.log('Node params:', node.params);
-          console.log('MT5 API available:', !!window.mt5API);
-          console.log('Overtrade control available:', !!window.overtradeControl);
           
           // Execute the actual trade
           if (window.mt5API) {
-            console.log('MT5 API found, preparing order...');
             try {
               const orderData = {
                 symbol: node.params.symbol,
@@ -1337,16 +1305,12 @@ class NodeEditor {
               };
               
               // Check overtrade control before executing
-              console.log('Checking overtrade control...');
               const shouldProceed = await window.overtradeControl.checkBeforeTrade('node', orderData);
-              console.log('Overtrade control result:', shouldProceed);
               
               if (shouldProceed) {
-                console.log('Sending order to MT5...');
                 const tradeResult = await window.mt5API.executeOrder(orderData);
                 
                 if (tradeResult.success && tradeResult.data.success) {
-                  console.log('✓ Trade executed successfully via node:', tradeResult.data);
                   
                   // Open TradingView for the traded symbol
                   if (window.openTradingViewForSymbol) {
@@ -1367,7 +1331,6 @@ class NodeEditor {
                   result = false; // Mark as failed
                 }
               } else {
-                console.log('Trade blocked by overtrade control');
                 if (window.showMessage) {
                   window.showMessage('Trade blocked by overtrade control', 'warning');
                 }
@@ -1389,11 +1352,9 @@ class NodeEditor {
             }
             result = false; // Mark as failed
           }
-          console.log('=== TRADE-SIGNAL NODE EXECUTION END ===');
           break;
           
         case 'close-position':
-          console.log('Closing position:', 'Ticket:', node.params.ticket, 'Type:', node.params.closeType);
           
           // Execute the actual position closure
           if (node.params.ticket && window.mt5API) {
@@ -1409,7 +1370,6 @@ class NodeEditor {
                       closedCount++;
                     }
                   }
-                  console.log(`✓ Closed ${closedCount} positions via node`);
                   if (window.handleRefreshPositions) {
                     window.handleRefreshPositions();
                   }
@@ -1417,7 +1377,6 @@ class NodeEditor {
                     window.showMessage(`Closed ${closedCount} positions`, 'success');
                   }
                 } else {
-                  console.log('No positions to close');
                   if (window.showMessage) {
                     window.showMessage('No positions to close', 'info');
                   }
@@ -1427,7 +1386,6 @@ class NodeEditor {
                 const closeResult = await window.mt5API.closePosition(node.params.ticket);
                 
                 if (closeResult.success && closeResult.data.success) {
-                  console.log('✓ Position closed successfully via node:', closeResult.data);
                   if (window.handleRefreshPositions) {
                     window.handleRefreshPositions();
                   }
@@ -1459,7 +1417,6 @@ class NodeEditor {
           break;
           
         case 'modify-position':
-          console.log('Modifying position:', 'Ticket:', node.params.ticket, 'SL:', node.params.stopLoss, 'TP:', node.params.takeProfit);
           
           // Execute the actual modification
           if (node.params.ticket && window.mt5API) {
@@ -1471,7 +1428,6 @@ class NodeEditor {
               );
               
               if (modifyResult.success && modifyResult.data.success) {
-                console.log('Position modified successfully via node');
                 if (window.handleRefreshPositions) {
                   window.handleRefreshPositions();
                 }
@@ -1489,7 +1445,6 @@ class NodeEditor {
 
 
         case 'twilio-alert':
-          console.log('Sending Twilio alert:', node.params.message);
           
           try {
             // Check if there's a string input connected (second input)
@@ -1500,14 +1455,10 @@ class NodeEditor {
               if (stringConnection) {
                 if (stringConnection.from.type === 'string-input') {
                   // Get the string value from the connected string input node
-                  console.log('Found string input connection, using custom message');
                   alertMessage = stringConnection.from.params.value || 'Custom message';
-                  console.log('Using string input for Twilio message:', alertMessage);
                 } else if (stringConnection.from.type === 'yfinance-data') {
                   // Get the fetched data from yfinance node
-                  console.log('Found yfinance data connection, using fetched data');
                   alertMessage = `${node.params.message}\n\n${stringConnection.from.params.symbol}: ${stringConnection.from.fetchedData || 'No data'}`;
-                  console.log('Using yfinance data for Twilio message:', alertMessage);
                 }
               }
             }
@@ -1556,7 +1507,6 @@ class NodeEditor {
               });
               
               if (alertResult.success && alertResult.data && alertResult.data.success) {
-                console.log('✓ Twilio alert sent successfully via node');
                 if (window.showMessage) {
                   window.showMessage('Twilio alert sent successfully', 'success');
                 }
