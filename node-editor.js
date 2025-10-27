@@ -534,6 +534,17 @@ class NodeEditor {
         }
       },
 
+      'string-contains': {
+        title: 'String Contains',
+        inputs: ['trigger', 'string'],
+        outputs: ['trigger'],
+        params: { 
+          keyword: 'word',
+          caseSensitive: false,
+          passOnMatch: true
+        }
+      },
+
     };
     
     // Return config or a default fallback for unknown types
@@ -1907,6 +1918,71 @@ class NodeEditor {
             console.error('Error in String Output node:', error);
             if (window.showMessage) {
               window.showMessage(`String Output error: ${error.message}`, 'error');
+            }
+            result = false;
+          }
+          break;
+
+        case 'string-contains':
+          console.log('Processing String Contains node');
+          
+          try {
+            // Get input string from connected node (second input is string)
+            let inputText = '';
+            
+            // Check if there's a string input connected (input index 1)
+            const stringInputConn = this.connections.find(c => c.to === node && c.toInput === 1);
+            if (stringInputConn) {
+              if (stringInputConn.from.type === 'string-input') {
+                inputText = stringInputConn.from.stringValue || stringInputConn.from.params.value || '';
+              } else if (stringInputConn.from.type === 'llm-node') {
+                inputText = stringInputConn.from.llmResponse || '';
+              } else if (stringInputConn.from.type === 'yfinance-data') {
+                inputText = stringInputConn.from.fetchedData || '';
+              } else if (stringInputConn.from.type === 'firecrawl-node') {
+                inputText = stringInputConn.from.firecrawlData || '';
+              } else if (typeof inputResult === 'string') {
+                inputText = inputResult;
+              } else {
+                inputText = inputResult ? inputResult.toString() : '';
+              }
+            }
+            
+            // Get keyword to search for
+            const keyword = node.params.keyword || '';
+            
+            // Perform case-sensitive or case-insensitive search
+            let containsKeyword = false;
+            if (node.params.caseSensitive) {
+              containsKeyword = inputText.includes(keyword);
+            } else {
+              containsKeyword = inputText.toLowerCase().includes(keyword.toLowerCase());
+            }
+            
+            // Determine result based on passOnMatch setting
+            if (node.params.passOnMatch) {
+              // Pass trigger if keyword is found
+              result = containsKeyword;
+            } else {
+              // Pass trigger if keyword is NOT found
+              result = !containsKeyword;
+            }
+            
+            // Log the result
+            console.log(`String Contains: "${keyword}" ${containsKeyword ? 'FOUND' : 'NOT FOUND'} in input text`);
+            console.log(`Result: ${result ? 'PASS' : 'BLOCK'} trigger`);
+            
+            // Show message
+            if (window.showMessage) {
+              const matchStatus = containsKeyword ? 'contains' : 'does not contain';
+              const flowStatus = result ? 'PASSED' : 'BLOCKED';
+              window.showMessage(`String ${matchStatus} "${keyword}" - Flow ${flowStatus}`, result ? 'success' : 'warning');
+            }
+            
+          } catch (error) {
+            console.error('Error in String Contains node:', error);
+            if (window.showMessage) {
+              window.showMessage(`String Contains error: ${error.message}`, 'error');
             }
             result = false;
           }

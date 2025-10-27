@@ -2112,6 +2112,51 @@ function updatePropertiesPanel(node) {
             </small>
           </div>
         `;
+      } else if (key === 'keyword' && node.type === 'string-contains') {
+        return `
+          <div class="property-item">
+            <label>Keyword to Search:</label>
+            <input type="text" 
+                   value="${value}" 
+                   data-param="${key}"
+                   placeholder="Enter word or phrase"
+                   onchange="updateNodeParam('${key}', this.value)">
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              The word or phrase to search for in the input string
+            </small>
+          </div>
+        `;
+      } else if (key === 'caseSensitive' && node.type === 'string-contains') {
+        return `
+          <div class="property-item">
+            <label>
+              <input type="checkbox" 
+                     ${value ? 'checked' : ''} 
+                     data-param="${key}"
+                     onchange="updateNodeParam('${key}', this.checked)">
+              Case Sensitive
+            </label>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              When enabled, search will be case-sensitive (e.g., "Word" ≠ "word")
+            </small>
+          </div>
+        `;
+      } else if (key === 'passOnMatch' && node.type === 'string-contains') {
+        return `
+          <div class="property-item">
+            <label>
+              <input type="checkbox" 
+                     ${value ? 'checked' : ''} 
+                     data-param="${key}"
+                     onchange="updateNodeParam('${key}', this.checked)">
+              Pass Trigger on Match
+            </label>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              When enabled: pass trigger if keyword IS found<br>
+              When disabled: pass trigger if keyword is NOT found
+            </small>
+          </div>
+        `;
       } else {
         return `
           <div class="property-item">
