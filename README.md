@@ -1,6 +1,6 @@
 # MT5 Trading Strategy Executor
 
-A comprehensive Electron desktop application that provides a visual trading platform for MetaTrader 5, featuring a node-based strategy builder, historical data backtesting, advanced risk management tools, and real-time Twilio notifications.
+A comprehensive Electron desktop application that provides a visual trading platform for MetaTrader 5, featuring a node-based strategy builder, historical data backtesting, advanced risk management tools, and real-time notifications.
 
 ## 🚀 Quick Start
 
@@ -45,7 +45,8 @@ A comprehensive Electron desktop application that provides a visual trading plat
 ### Advanced Features
 - **Multi-Flow Management**: Run multiple trading strategies simultaneously with independent control
 - **Simulator Mode**: Practice trading with real market data without financial risk
-
+- **Custom Node Plugins**: Create and import custom nodes to extend functionality
+- **Python Script Node**: Execute custom Python code within your strategy workflow
 - **Node Editor**: Triggers, indicators (MA, RSI), conditional logic, and trade execution nodes
 - **Historical Data Import**: Support for 8 timeframes with data persistence
 - **Symbol Input**: Autocomplete and MT5 symbol fetching
@@ -69,8 +70,7 @@ A comprehensive Electron desktop application that provides a visual trading plat
 ┌─────────────────────────────────────────────────────────────┐
 │                     Electron Frontend                       │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │ Node Editor │  │ Trade Dialog│  │             │        │
-│  │             │  │             │  │             │        │
+│  │ Node Editor │  │ Trade Dialog│  │ Settings    │        │
 │  └─────────────┘  └─────────────┘  └─────────────┘        │
 └─────────────────────┼───────────────────────────────────────┘
                       │ WebSocket (port 8765)
@@ -127,8 +127,10 @@ mt5-trader/
 │   ├── node-editor.js          # Node-based strategy builder engine
 │   ├── history-import.js       # Historical data import functionality
 │   ├── symbol-input.js         # Symbol input with autocomplete
-
 │   ├── overtrade-control.js    # Risk management controls
+│   ├── volume-control.js       # Volume limit controls
+│   ├── resizable-panels.js     # UI panel management
+│   ├── settings-manager.js     # Unified settings system
 │   └── styles.css              # Application styling and themes
 │
 ├── Backend Files (Electron + Python)
@@ -136,13 +138,20 @@ mt5-trader/
 │   ├── preload.js              # Secure API bridge between renderer and main
 │   ├── mt5-bridge.js           # WebSocket client for Python communication
 │   ├── mt5_bridge.py           # Python bridge for MT5 API integration
-│   └── simulator.py            # Simulator mode for risk-free practice
+│   ├── simulator.py            # Simulator mode for risk-free practice
+│   └── twilio_alerts.py        # Twilio notification service
+│
+├── Plugin System
+│   ├── node-plugin-manager.js  # Plugin management system
+│   └── plugins/
+│       ├── examples/           # Example plugins
+│       └── README.md           # Plugin documentation
 │
 ├── Configuration Files
 │   ├── package.json            # Node.js dependencies and build scripts
 │   ├── requirements.txt        # Python dependencies
 │   ├── config.js               # Application configuration management
-│   └── sample_history.csv      # Example CSV format for data import
+│   └── app_settings.json       # Unified settings storage
 │
 └── Build & Distribution
     ├── dist/                   # Build output directory (generated)
@@ -209,34 +218,6 @@ Practice trading strategies using real MT5 market data without executing actual 
 - ✅ Trade history tracking
 - ✅ Risk-free practice environment
 
-#### 📊 Monitor Your Performance
-
-Go to **Settings → General → Simulator Mode** to see:
-- Balance & Equity
-- Open & Closed Positions
-- Total Profit/Loss
-
-#### 🔄 Reset Anytime
-
-Want to start fresh? **Settings → General → Simulator Mode → Reset Simulator**
-
-#### 🎯 Practice Tips
-- **Practice strategies** before going live
-- **Test different symbols** without risk
-- **Learn position management** safely
-- **Track your progress** over time
-
-**⚠️ Remember**: Simulator positions are NOT real trades. Switch back to "Real Trading" when ready.
-
-
-4. **Remove Symbols**: Click × button next to any symbol
-5. **Save Changes**: Click Close to save
-
-#### Common Symbols to Add
-- **Forex Majors**: EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD
-- **Metals**: XAUUSD (Gold), XAGUSD (Silver)
-- **Indices**: US30 (Dow Jones), NAS100 (Nasdaq), SPX500 (S&P 500)
-
 ### Node-Based Strategy Builder
 
 #### Available Node Types
@@ -245,18 +226,12 @@ Want to start fresh? **Settings → General → Simulator Mode → Reset Simulat
 - **Logic Gates**: AND/OR gates for complex conditions
 - **Trade Nodes**: Open, close, and modify positions
 - **Twilio Alert**: Send SMS/WhatsApp notifications
-- **yFinance Data**: Fetch real-time stock data from Yahoo Finance (price, volume, company info, daily change)
-- **LLM Node**: AI-powered analysis using OpenRouter (supports GPT, Claude, Gemini, Llama models)
-- **Trigger Output**: Convert string data to trigger signals with customizable conditions
-- **String Input**: Provide custom text messages for alerts
-
-#### Test Buttons Guide
-Each trading node includes test functionality:
-- **🧪 Test Condition**: Tests if condition evaluates to TRUE or FALSE
-- **🧪 Test Logic**: Shows connected inputs and gate behavior
-- **🧪 Test Close**: Tests position closure functionality
-- **🧪 Test Modify**: Tests SL/TP modification with validation
-- **📱 Test Alert**: Sends test notification with current parameters
+- **yFinance Data**: Fetch real-time stock data from Yahoo Finance
+- **LLM Node**: AI-powered analysis using OpenRouter
+- **Trigger Output**: Convert string data to trigger signals
+- **String Input**: Provide custom text messages
+- **Python Script**: Execute custom Python code
+- **Custom Plugins**: Import community-created nodes
 
 ### TradingView Integration
 
@@ -296,30 +271,6 @@ Automatically opens TradingView charts when you open positions for instant visua
    - Positions are opened/closed (if enabled)
    - Custom alerts from Twilio Alert nodes
 
-### Alert Message Examples
-
-#### Take Profit Alert
-```
-🎯 TAKE PROFIT HIT!
-
-Symbol: EURUSD
-Ticket: 123456789
-Type: BUY
-Volume: 0.1
-Profit: $25.50
-TP Level: 1.1250
-Current Price: 1.1251
-
-Time: 2024-10-10 14:30:25
-MT5 Trader Alert
-```
-
-### Cost Considerations
-- **SMS**: ~$0.0075 per message
-- **WhatsApp**: ~$0.005 per message
-- **Free Trial**: Twilio provides free credits for testing
-- **Typical Usage**: 10-20 alerts per day = $0.05-$0.15 daily cost
-
 ## 🤖 OpenRouter AI Integration
 
 ### Prerequisites
@@ -340,121 +291,79 @@ MT5 Trader Alert
 2. **Using LLM Nodes**:
    - Add LLM Node from node palette
    - Configure prompt template (use `{input}` placeholder for dynamic data)
-   - Connect string input from other nodes (yFinance, String Input, etc.)
+   - Connect string input from other nodes
    - Connect outputs to alerts or other nodes
-   - LLM node automatically uses your OpenRouter configuration
 
-### Supported Models
-- **OpenAI**: GPT-3.5 Turbo, GPT-4, GPT-4 Turbo, GPT-4o, GPT-4o Mini
-- **Anthropic**: Claude 3 Haiku, Claude 3 Sonnet, Claude 3.5 Sonnet
-- **Google**: Gemini Pro
-- **Meta**: Llama 3.1 8B, Llama 3.1 70B
+## 🐍 Python Script Node
 
-### Usage Examples
+Execute custom Python code within your trading strategy workflow.
 
-#### Market Analysis with AI
-1. Add yFinance Data node → set symbol to "AAPL"
-2. Add LLM Node → set prompt: "Analyze this stock data and provide trading insight: {input}"
-3. Connect yFinance string output to LLM string input
-4. Add Twilio Alert → connect LLM string output to alert
-5. Result: AI analysis of Apple stock sent via SMS
+### Quick Start
 
-#### Price Alert with AI Commentary
-1. Add Conditional Check → monitor price conditions
-2. Add LLM Node → prompt: "The price condition was triggered. Provide market context: {input}"
-3. Connect conditional trigger to LLM trigger input
-4. Add String Input → connect to LLM for additional context
-5. Result: Smart alerts with AI-generated market commentary
+1. Add "🐍 Python Script" node from Signals category
+2. Write your Python code in the Properties panel
+3. Set the `result` variable for output
+4. Test with "🐍 Run Script" button
+5. Connect to your strategy
 
-### Cost Considerations
-- **GPT-4o Mini**: ~$0.15 per 1M input tokens (most cost-effective)
-- **Claude 3.5 Sonnet**: ~$3 per 1M input tokens (high quality)
-- **Typical Usage**: 10-20 AI calls per day = $0.01-$0.10 daily cost
-- **Free Credits**: OpenRouter provides free credits for testing
+### Example Scripts
 
-## 👨‍💻 Developer Guide
-
-### Persistence System
-
-Twilio settings use localStorage-based persistence through `AppConfig`:
-
-```javascript
-// Twilio Settings
-AppConfig.updateTwilioSettings({
-  enabled: true,
-  accountSid: 'AC...',
-  authToken: '...',
-  fromNumber: '+1234567890'
-});
-const settings = AppConfig.getTwilioSettings();
+**Simple Calculation:**
+```python
+result = "The answer is: " + str(42 * 2)
 ```
 
-### Data Source Nodes
+**Process Input Data:**
+```python
+result = input_data.upper()
+```
 
-#### yFinance Data Node
-Fetches real-time financial data from Yahoo Finance API.
+**JSON Processing:**
+```python
+import json
+data = json.loads(input_data)
+result = f"Symbol: {data['symbol']}, Price: {data['price']}"
+```
 
-**Features:**
-- **Multiple Data Types**: Current price, company info, volume, daily change percentage
-- **Dual Outputs**: String output (data value) + Trigger output (for flow control)
-- **Flexible Periods**: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y
-- **Various Intervals**: 1m, 2m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo
+### Available Modules
+- `datetime` - Date and time operations
+- `json` - JSON encoding/decoding
+- `math` - Mathematical functions
+- `re` - Regular expressions
 
-**Usage Example:**
-1. Add yFinance Data node
-2. Set symbol (e.g., "AAPL", "TSLA", "MSFT")
-3. Choose data type (price, info, volume, change)
-4. Connect string output to Twilio Alert for notifications
-5. Connect trigger output to continue strategy flow
+## 🔌 Custom Node Plugin System
 
-#### Trigger Output Node
-Converts string data into trigger signals with conditional logic.
+Create and share custom nodes without modifying the core application.
 
-**Conditions:**
-- **Always**: Always triggers regardless of input
-- **Not Empty**: Triggers when input string is not empty
-- **Contains**: Triggers when input contains specific text
-- **Numeric Greater Than**: Triggers when numeric input exceeds threshold
+### Using Plugins
 
-**Usage Example:**
-1. Connect yFinance Data (string output) to Trigger Output (string input)
-2. Set condition (e.g., "Numeric Greater Than" with threshold "100")
-3. Connect Trigger Output to trade execution nodes
-4. Strategy triggers trades only when stock price > $100
+1. Click "📦 Import" button in Node Library
+2. Select plugin `.js` file
+3. Find node in "Custom Nodes" category
+4. Use like any built-in node
 
-### Adding New Node Types
+### Creating Plugins
 
-1. **Define Node Configuration** in `node-editor.js`:
+**Minimal Template:**
 ```javascript
-{
-  type: 'my-custom-node',
-  inputs: 1,
-  outputs: 1,
-  params: {
-    myParam: 'default value'
+module.exports = {
+  id: 'my-node',
+  title: 'My Node',
+  inputs: ['trigger'],
+  outputs: ['trigger'],
+  params: {},
+  async execute(node, inputData, context) {
+    // Your logic here
+    return true;
   }
-}
+};
 ```
 
-2. **Add Execution Logic** and **UI Components**
+### Example Plugins
 
-### Debug Functions
-
-#### Console Commands for Testing
-```javascript
-// Test open position functionality
-window.testOpenPositionNode()
-
-// Test modify position with specific parameters
-window.testModifyPositionNode(ticketId, stopLoss, takeProfit)
-
-// Debug symbol input issues
-window.debugSymbolInput()
-window.fixSymbolInput()
-
-// Debug strategy execution
-window.debugStrategy()
-```
+Check `plugins/examples/` for:
+- **text-transformer.js** - Text manipulation
+- **math-calculator.js** - Mathematical operations
 
 ## 🔧 Troubleshooting
 
@@ -492,21 +401,6 @@ window.debugStrategy()
 - Check console for errors
 - Restart the application if needed
 
-### Twilio Issues
-
-#### Settings Don't Persist
-**Solution**: Settings now use unified localStorage system
-- Check `app_settings.json` exists and is properly formatted
-- Verify localStorage permissions
-- Use "Save Settings" button
-
-#### Alerts Not Received
-**Common Fixes**:
-1. Check Twilio configuration in Settings
-2. Verify phone number format (+1234567890)
-3. Ensure positions have TP/SL levels set
-4. Check Twilio account balance
-
 ### Python Bridge Issues
 
 #### Connection Problems
@@ -522,6 +416,26 @@ python mt5_bridge.py
 
 # Test MT5 connection
 python -c "import MetaTrader5 as mt5; print(mt5.initialize())"
+```
+
+## 👨‍💻 Developer Guide
+
+### Debug Functions
+
+#### Console Commands for Testing
+```javascript
+// Test open position functionality
+window.testOpenPositionNode()
+
+// Test modify position with specific parameters
+window.testModifyPositionNode(ticketId, stopLoss, takeProfit)
+
+// Debug symbol input issues
+window.debugSymbolInput()
+window.fixSymbolInput()
+
+// Debug strategy execution
+window.debugStrategy()
 ```
 
 ## 🤝 Contributing
@@ -552,18 +466,6 @@ python -c "import MetaTrader5 as mt5; print(mt5.initialize())"
 - **HTML/CSS**: Semantic markup, consistent class naming
 - **File Naming**: Kebab-case for JS files, snake_case for Python
 
-### Testing Checklist
-
-#### Manual Testing
-
-- Verify MT5 integration
-- Test node editor operations
-- Validate historical data import
-- Test Twilio alerts (SMS and WhatsApp)
-- Verify settings persistence
-- Test multi-flow management
-- Test simulator mode
-
 ## 📄 License
 
 MIT License - see LICENSE file for details.
@@ -579,34 +481,8 @@ For issues, questions, or contributions:
 4. Create a new issue with detailed information
 5. Include system information and error logs
 
-### Debug Information to Include
-
-When reporting issues, include:
-- Console output from relevant debug functions
-- Error messages from browser console
-- MT5 connection status
-- Twilio configuration status (without credentials)
-- Steps to reproduce the issue
-
-### Common Debug Commands
-
-```javascript
-// Strategy execution issues
-window.debugStrategy()
-
-// Position testing
-window.testOpenPositionNode()
-window.testModifyPositionNode()
-
-// Symbol input issues  
-window.debugSymbolInput()
-
-// Configuration check
-console.log(AppConfig.getTwilioSettings())
-```
-
 ---
 
 **Built with ❤️ for the trading community**
 
-*This application provides a comprehensive trading platform with visual strategy building, real-time notifications, advanced risk management, multi-flow execution, and risk-free simulator mode. The unified persistence system ensures your settings are always saved, while extensive testing features help you build reliable trading strategies.*
+*This application provides a comprehensive trading platform with visual strategy building, real-time notifications, advanced risk management, multi-flow execution, and risk-free simulator mode.*

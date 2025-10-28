@@ -5321,15 +5321,3 @@ function setupAiAnalysisChangeTracking() {
     }
   });
 }
-
-// Test function for JSON error logging (available in console)
-window.testInvalidJsonLogging = () => {
-  console.log('🧪 Testing JSON error logging...');
-  if (window.settingsManager && window.settingsManager.testInvalidJson) {
-    window.settingsManager.testInvalidJson();
-  } else {
-    console.log('❌ Settings manager not available');
-  }
-};
-
-console.log('🔧 Debug: To test JSON error logging, run: testInvalidJsonLogging()');

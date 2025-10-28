@@ -383,22 +383,6 @@ class SettingsManager {
     this.settings = { ...this.defaultSettings };
     await this.saveSettings();
   }
-  
-  // Test function to simulate loading invalid JSON (for debugging)
-  async testInvalidJson() {
-    console.log('🧪 Testing invalid JSON error logging...');
-    const originalFile = this.settingsFile;
-    this.settingsFile = 'app_settings_test_invalid.json';
-    
-    try {
-      await this.loadSettings();
-    } catch (error) {
-      console.log('✅ Error logging test completed');
-    }
-    
-    // Restore original file
-    this.settingsFile = originalFile;
-  }
 }
 
 // Create global instance and initialize
