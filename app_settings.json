@@ -57,12 +57,7 @@
     "applyToStrategy": true,
     "applyToNodes": true,
     "applyToOpenPositions": true,
-    "applyToClosePositions": false,
-    "maxTradesPerHour": 10,
-    "maxTradesPerDay": 50,
-    "cooldownMinutes": 5,
-    "warningEnabled": true,
-    "blockTrading": false
+    "applyToClosePositions": false
   },
   "overtradeHistory": [],
   "overtradeLastWarning": 0,

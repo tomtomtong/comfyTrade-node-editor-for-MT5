@@ -3643,3 +3643,505 @@ Backup Modal */
 .backup-buttons .btn {
   min-width: 120px;
 }
+
+/* ============================================
+   LIGHT MODE THEME FOR SIMULATOR
+   ============================================ */
+body.light-mode {
+  background: #e9ecef;
+  color: #333;
+}
+
+.light-mode .app-container {
+  background: #f5f5f5;
+}
+
+.light-mode .toolbar {
+  background: #f0f0f0;
+  border-bottom: 2px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.light-mode h1 {
+  color: #2e7d32;
+}
+
+.light-mode h3 {
+  color: #1976d2;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.light-mode h4 {
+  color: #666;
+}
+
+.light-mode .sidebar {
+  background: #f2f2f2;
+  border-right: 1px solid #e0e0e0;
+}
+
+.light-mode .left-sidebar {
+  border-right: 1px solid #e0e0e0;
+}
+
+.light-mode .right-sidebar {
+  border-left: 1px solid #e0e0e0;
+}
+
+.light-mode .node-btn {
+  background: #f7f7f7;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.light-mode .node-btn:hover {
+  background: #e3f2fd;
+  border-color: #1976d2;
+}
+
+.light-mode .node-btn.trigger-btn {
+  background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
+  border: 2px solid #4caf50;
+  color: white;
+}
+
+.light-mode .node-btn.trigger-btn:hover {
+  background: linear-gradient(135deg, #a5d6a7 0%, #81c784 100%);
+}
+
+.light-mode .node-btn.control-btn {
+  background: linear-gradient(135deg, #ff8a65 0%, #ff7043 100%);
+  border: 2px solid #ff5722;
+  color: white;
+}
+
+.light-mode .node-btn.control-btn:hover {
+  background: linear-gradient(135deg, #ffab91 0%, #ff8a65 100%);
+}
+
+.light-mode .editor-container {
+  background: #f2f2f2;
+}
+
+.light-mode #nodeCanvas {
+  background: #f7f7f7;
+}
+
+.light-mode .canvas-hint {
+  background: rgba(255,255,255,0.95);
+  color: #666;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.light-mode .properties-panel,
+.light-mode .account-panel,
+.light-mode .overtrade-reminder-panel {
+  background: #f0f0f0;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .property-item input,
+.light-mode .property-item select {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.light-mode .property-item input:focus,
+.light-mode .property-item select:focus {
+  border-color: #1976d2;
+  background: #ffffff;
+}
+
+.light-mode .info-item {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.light-mode .info-item .label {
+  color: #666;
+}
+
+.light-mode .bottom-panel {
+  background: #f0f0f0;
+  border-top: 2px solid #e0e0e0;
+}
+
+.light-mode .positions-tab-btn {
+  background: #f2f2f2;
+  color: #666;
+}
+
+.light-mode .positions-tab-btn:hover {
+  background: #e3f2fd;
+  color: #333;
+}
+
+.light-mode .positions-tab-btn.active {
+  background: #1976d2;
+  color: white;
+}
+
+.light-mode .position-item,
+.light-mode .closed-position-item {
+  background: #f7f7f7;
+  border: 1px solid #e0e0e0;
+  color: #333;
+}
+
+.light-mode .position-details,
+.light-mode .closed-position-details {
+  color: #666;
+}
+
+.light-mode .closed-position-timing {
+  color: #999;
+  border-top: 1px solid #e0e0e0;
+}
+
+.light-mode .modal {
+  background: rgba(0,0,0,0.5);
+}
+
+.light-mode .modal-content {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.light-mode .modal-content h2 {
+  color: #1976d2;
+}
+
+.light-mode .connection-info {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .connection-info p {
+  color: #333;
+}
+
+.light-mode .connection-details {
+  color: #666 !important;
+}
+
+.light-mode .form-group input,
+.light-mode .form-group select,
+.light-mode .form-group textarea {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.light-mode .form-group input:focus,
+.light-mode .form-group select:focus,
+.light-mode .form-group textarea:focus {
+  border-color: #1976d2;
+  background: #ffffff;
+}
+
+.light-mode .form-group label {
+  color: #666;
+}
+
+.light-mode .btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.light-mode .btn-secondary:hover {
+  background: #bdbdbd;
+}
+
+.light-mode .symbol-input-wrapper .symbol-input {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.light-mode .symbol-input:focus {
+  border-color: #1976d2;
+  background: #ffffff;
+}
+
+.light-mode .symbol-dropdown {
+  background: #f7f7f7;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.light-mode .symbol-search {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.light-mode .symbol-search-input {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.light-mode .symbol-item {
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+}
+
+.light-mode .symbol-item:hover {
+  background: #e3f2fd;
+}
+
+.light-mode .symbol-desc {
+  color: #666;
+}
+
+.light-mode .symbol-details {
+  color: #999;
+}
+
+.light-mode .settings-tabs {
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.light-mode .settings-tab-btn {
+  color: #666;
+}
+
+.light-mode .settings-tab-btn:hover {
+  color: #333;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.light-mode .settings-tab-btn.active {
+  color: #2e7d32;
+  border-bottom-color: #2e7d32;
+  background: rgba(46, 125, 50, 0.05);
+}
+
+.light-mode .overtrade-status,
+.light-mode .volume-status {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .status-item {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .status-item .label {
+  color: #666;
+}
+
+.light-mode .status-item span:last-child {
+  color: #333;
+}
+
+.light-mode .log-content {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  color: #333;
+}
+
+.light-mode .log-entry {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.light-mode .import-tabs {
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.light-mode .tab-btn {
+  color: #666;
+}
+
+.light-mode .tab-btn:hover {
+  color: #333;
+}
+
+.light-mode .tab-btn.active {
+  color: #1976d2;
+  border-bottom-color: #1976d2;
+}
+
+.light-mode .twilio-config-section,
+.light-mode .notification-config-section,
+.light-mode .twilio-test-section {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .twilio-config-section h4,
+.light-mode .notification-config-section h4,
+.light-mode .twilio-test-section h4 {
+  color: #1976d2;
+}
+
+.light-mode .closed-positions-filter-panel {
+  background: #f0f0f0;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .filter-controls select {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.light-mode .no-selection,
+.light-mode .no-data {
+  color: #999;
+}
+
+.light-mode .current-price-display {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .price-value {
+  background: #f7f7f7;
+  color: #2e7d32;
+}
+
+.light-mode .price-refresh {
+  border-top: 1px solid #e0e0e0;
+}
+
+.light-mode .price-time {
+  color: #999;
+}
+
+.light-mode .volume-control-section {
+  background: rgba(33, 150, 243, 0.05);
+  border: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.light-mode .volume-limit-item {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light-mode .volume-limit-input {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.light-mode ::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.light-mode ::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+}
+
+.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #9e9e9e;
+}
+
+.light-mode .simulator-section {
+  background: rgba(46, 125, 50, 0.05);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.light-mode .simulator-status {
+  background: rgba(46, 125, 50, 0.03);
+}
+
+.light-mode .simulator-status .status-item {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.light-mode .alert-details {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .alert-detail-item {
+  color: #333;
+}
+
+.light-mode .checkbox-group label {
+  color: #333;
+}
+
+.light-mode .run-option {
+  background: #f5f5f5;
+  border: 2px solid #e0e0e0;
+}
+
+.light-mode .run-option:hover {
+  border-color: #2e7d32;
+  background: #f9f9f9;
+}
+
+.light-mode .run-option label {
+  color: #333;
+}
+
+.light-mode .run-option label strong {
+  color: #2e7d32;
+}
+
+.light-mode .run-option label small {
+  color: #666;
+}
+
+.light-mode #periodicSettings {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .warning-details {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+.light-mode .warning-item {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.light-mode .warning-item span:first-child {
+  color: #666;
+}
+
+.light-mode .warning-item span:last-child {
+  color: #333;
+}
+
+.light-mode .history-status .success-message {
+  background: rgba(46, 125, 50, 0.1);
+  border: 1px solid #2e7d32;
+}
+
+.light-mode .history-status .success-message p {
+  color: #2e7d32;
+}
+
+.light-mode .closed-positions-summary {
+  background: #f5f5f5;
+}
+
+.light-mode .summary-value {
+  color: #333;
+}
+
+/* Light mode simulator badge */
+.light-mode .simulator-mode-indicator {
+  background: #2e7d32;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Add smooth transition for theme switching */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.toolbar,
+.sidebar,
+.editor-container,
+.bottom-panel,
+.modal-content,
+.properties-panel,
+.account-panel {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}

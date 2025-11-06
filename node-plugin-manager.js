@@ -330,6 +330,7 @@ class NodePluginManager {
     const button = document.createElement('button');
     button.className = 'node-btn signal-btn';
     button.setAttribute('data-type', plugin.id);
+    button.setAttribute('data-plugin', 'true');
     button.textContent = `${icon} ${plugin.title}`;
     
     if (plugin.description) {
@@ -357,6 +358,7 @@ class NodePluginManager {
   getCategoryTitle(category) {
     const titles = {
       custom: 'Custom Nodes',
+      ai: 'AI',
       indicators: 'Indicators',
       logic: 'Logic',
       trading: 'Trading',

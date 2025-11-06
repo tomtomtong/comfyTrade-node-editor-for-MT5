@@ -80,7 +80,7 @@ function logMT5Response(action, response, requestData = null) {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
-  initializeNodeEditor();
+  await initializeNodeEditor();
   setupEventListeners();
   updateStrategyButtons(); // Set initial button state
   window.historyImport.checkBacktestMode();
@@ -154,12 +154,34 @@ async function reloadSettingsFromFile() {
   }
 }
 
-function initializeNodeEditor() {
+async function initializeNodeEditor() {
   const canvas = document.getElementById('nodeCanvas');
   nodeEditor = new NodeEditor(canvas);
   
   // Initialize plugin manager
   window.nodePluginManager = new NodePluginManager(nodeEditor);
+  
+  // Auto-load built-in example plugins
+  try {
+    // Load HTTP Request plugin
+    const response = await fetch('./plugins/examples/http-request.js');
+    const text = await response.text();
+    
+    // Parse the plugin definition (similar to handlePluginImport)
+    const moduleExports = {};
+    const module = { exports: moduleExports };
+    eval(text);
+    const httpRequestPlugin = module.exports;
+    
+    if (httpRequestPlugin && typeof httpRequestPlugin === 'object') {
+      window.nodePluginManager.loadPlugin(httpRequestPlugin);
+      console.log('✓ HTTP Request plugin loaded successfully');
+    } else {
+      console.error('Failed to parse HTTP Request plugin');
+    }
+  } catch (e) {
+    console.error('Failed to auto-load built-in plugins:', e);
+  }
   
   // Canvas starts empty - users can add nodes from the palette
 }
@@ -242,7 +264,10 @@ function setupEventListeners() {
   // Node palette buttons
   document.querySelectorAll('.node-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const type = e.target.dataset.type;
+      const target = e.currentTarget;
+      // Ignore plugin buttons; they have their own handler
+      if (target.dataset && target.dataset.plugin === 'true') return;
+      const type = target.dataset.type;
       const canvas = document.getElementById('nodeCanvas');
       const rect = canvas.getBoundingClientRect();
       const screenX = rect.width / 2 - 90 + Math.random() * 100;
@@ -851,11 +876,13 @@ async function loadSimulatorSettings() {
           document.getElementById('simProfit').textContent = `$${status.account_summary.profit.toFixed(2)}`;
         }
         
-        // Show simulator indicator
+        // Show simulator indicator and enable light mode
         showSimulatorIndicator();
+        toggleLightMode(true);
       } else {
         statusSection.style.display = 'none';
         hideSimulatorIndicator();
+        toggleLightMode(false);
       }
     }
   } catch (error) {
@@ -864,14 +891,7 @@ async function loadSimulatorSettings() {
 }
 
 function showSimulatorIndicator() {
-  let indicator = document.getElementById('simulatorModeIndicator');
-  if (!indicator) {
-    indicator = document.createElement('div');
-    indicator.id = 'simulatorModeIndicator';
-    indicator.className = 'simulator-mode-indicator';
-    indicator.textContent = '🎮 SIMULATOR MODE';
-    document.body.appendChild(indicator);
-  }
+  // No-op: simulator mode badge removed per request
 }
 
 function hideSimulatorIndicator() {
@@ -888,6 +908,9 @@ async function toggleSimulatorMode(enabled) {
       showMessage(result.data.message, 'success');
       await loadSimulatorSettings();
       
+      // Toggle light mode theme with notification
+      toggleLightMode(enabled, true);
+      
       // Refresh account and positions to show simulator data
       if (isConnected) {
         await handleRefreshAccount();
@@ -899,6 +922,21 @@ async function toggleSimulatorMode(enabled) {
   } catch (error) {
     console.error('Error toggling simulator mode:', error);
     showMessage('Error toggling simulator mode: ' + error.message, 'error');
+  }
+}
+
+// Toggle light mode theme
+function toggleLightMode(enabled, showNotification = false) {
+  if (enabled) {
+    document.body.classList.add('light-mode');
+    if (showNotification) {
+      showMessage('🌞 Light mode activated for simulator', 'info');
+    }
+  } else {
+    document.body.classList.remove('light-mode');
+    if (showNotification) {
+      showMessage('🌙 Dark mode restored', 'info');
+    }
   }
 }
 
