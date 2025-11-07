@@ -1415,6 +1415,41 @@ body.resizing * {
   font-size: 14px;
 }
 
+/* Stop Loss / Take Profit Reminder */
+.sl-tp-reminder {
+  margin-top: 12px;
+  margin-bottom: 8px;
+  padding: 12px;
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.reminder-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.reminder-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.reminder-text {
+  flex: 1;
+  color: #ffc107;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.reminder-text strong {
+  color: #ffc107;
+  font-weight: 600;
+}
+
 .loss-text {
   flex: 1;
 }
@@ -3444,15 +3479,14 @@ olume Status Grid - Matching Overtrade Style */
 .volume-limit-actions .btn-small {
   padding: 2px 6px;
   font-size: 10px;
-}
-
-
   min-width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-}/* Vol
+}
+
+/* Vol
 ume Warning Modal Styles */
 .volume-warning-modal {
   max-width: 500px;
@@ -3643,7 +3677,7 @@ Backup Modal */
 .backup-buttons .btn {
   min-width: 120px;
 }
-
+git 
 /* ============================================
    LIGHT MODE THEME FOR SIMULATOR
    ============================================ */

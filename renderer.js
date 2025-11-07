@@ -426,6 +426,9 @@ function showTradeModal() {
   if (stopLossInput) stopLossInput.value = '';
   if (takeProfitInput) takeProfitInput.value = '';
   
+  // Show the SL/TP reminder
+  showSlTpReminder();
+  
   // Update current price if symbol is already selected
   const currentSymbol = symbolInput ? symbolInput.getValue() : '';
   if (currentSymbol && currentSymbol.length >= 6) {
@@ -564,6 +567,26 @@ function setDefaultStopLossTakeProfit(bidPrice = null, askPrice = null) {
     takeProfitInput.value = takeProfit.toFixed(5);
     console.log(`Set default Take Profit: ${takeProfit.toFixed(5)} (${tradeType}, ${tradeType === 'BUY' ? 'Ask' : 'Bid'}: ${tradeType === 'BUY' ? ask : bid})`);
   }
+  
+  // Show reminder after setting defaults
+  showSlTpReminder();
+}
+
+// Show/hide the SL/TP reminder
+function showSlTpReminder() {
+  const reminder = document.getElementById('slTpReminder');
+  if (!reminder) return;
+  
+  // Show the reminder
+  reminder.style.display = 'block';
+}
+
+function hideSlTpReminder() {
+  const reminder = document.getElementById('slTpReminder');
+  if (!reminder) return;
+  
+  // Hide the reminder
+  reminder.style.display = 'none';
 }
 
 function initializeSymbolInput() {

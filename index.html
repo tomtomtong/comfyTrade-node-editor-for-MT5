@@ -281,6 +281,14 @@
           <label>Take Profit (optional):</label>
           <input type="number" id="tradeTakeProfit" step="0.00001" placeholder="0 for none">
         </div>
+        <div id="slTpReminder" class="sl-tp-reminder" style="display: none;">
+          <div class="reminder-content">
+            <span class="reminder-icon">⚠️</span>
+            <div class="reminder-text">
+              <strong>Review Required:</strong> Please review and adjust your Stop Loss and Take Profit values before executing the trade. Default values (3%) are pre-filled but may need tuning based on your strategy.
+            </div>
+          </div>
+        </div>
         <div class="modal-buttons">
           <button id="confirmTradeBtn" class="btn btn-primary">Execute Trade</button>
           <button id="cancelTradeBtn" class="btn btn-secondary">Cancel</button>
