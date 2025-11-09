@@ -1,0 +1,60 @@
+{
+  "positions": [
+    {
+      "ticket": 1000000,
+      "symbol": "EURUSD",
+      "type": "BUY",
+      "volume": 0.1,
+      "open_price": 1.15484,
+      "current_price": 1.15419,
+      "sl": 0,
+      "tp": 0,
+      "profit": -6.500000000000395,
+      "open_time": "2025-11-10T07:29:07.601815",
+      "comment": "SIMULATOR"
+    },
+    {
+      "ticket": 1000001,
+      "symbol": "EURUSD",
+      "type": "BUY",
+      "volume": 0.1,
+      "open_price": 1.15475,
+      "current_price": 1.15419,
+      "sl": 0,
+      "tp": 0,
+      "profit": -5.599999999998939,
+      "open_time": "2025-11-10T07:29:59.765929",
+      "comment": "SIMULATOR"
+    },
+    {
+      "ticket": 1000002,
+      "symbol": "EURUSD",
+      "type": "BUY",
+      "volume": 0.1,
+      "open_price": 1.15496,
+      "current_price": 1.15419,
+      "sl": 0,
+      "tp": 0,
+      "profit": -7.699999999999374,
+      "open_time": "2025-11-10T07:33:18.957856",
+      "comment": "SIMULATOR"
+    },
+    {
+      "ticket": 1000003,
+      "symbol": "EURUSD",
+      "type": "BUY",
+      "volume": 0.1,
+      "open_price": 1.1547399999999999,
+      "current_price": 1.15419,
+      "sl": 0,
+      "tp": 0,
+      "profit": -5.499999999998284,
+      "open_time": "2025-11-10T07:39:21.154981",
+      "comment": "SIMULATOR"
+    }
+  ],
+  "closed_positions": [],
+  "next_ticket": 1000004,
+  "initial_balance": 10000.0,
+  "last_updated": "2025-11-10T07:57:05.381567"
+}

@@ -30,6 +30,7 @@ class MT5Bridge:
         self.simulator_mode = False  # Simulator mode flag
         self.simulator = TradingSimulator()  # Simulator instance
         self.load_twilio_config()
+        self.load_simulator_mode()
     
     def load_twilio_config(self):
         """Load Twilio configuration from unified settings file"""
@@ -465,9 +466,50 @@ class MT5Bridge:
             logger.error(f"Error updating Twilio config: {e}")
             return {"success": False, "error": str(e)}
     
+    def load_simulator_mode(self):
+        """Load simulator mode from settings file"""
+        try:
+            with open('app_settings.json', 'r') as f:
+                settings = json.load(f)
+                # Check if simulator mode is stored in settings
+                simulator_mode = settings.get('simulatorMode', False)
+                self.simulator_mode = simulator_mode
+                if simulator_mode:
+                    logger.info("Simulator mode loaded from settings: ENABLED")
+                else:
+                    logger.info("Simulator mode loaded from settings: DISABLED")
+        except FileNotFoundError:
+            logger.warning("app_settings.json not found. Using default simulator mode (DISABLED).")
+            self.simulator_mode = False
+        except Exception as e:
+            logger.error(f"Error loading simulator mode from settings: {e}")
+            self.simulator_mode = False
+    
+    def save_simulator_mode(self, enabled):
+        """Save simulator mode to settings file"""
+        try:
+            # Load existing settings
+            try:
+                with open('app_settings.json', 'r') as f:
+                    settings = json.load(f)
+            except FileNotFoundError:
+                settings = {}
+            
+            # Update simulator mode
+            settings['simulatorMode'] = enabled
+            
+            # Save updated settings
+            with open('app_settings.json', 'w') as f:
+                json.dump(settings, f, indent=2)
+            
+            logger.info(f"Simulator mode saved to settings: {'ENABLED' if enabled else 'DISABLED'}")
+        except Exception as e:
+            logger.error(f"Error saving simulator mode to settings: {e}")
+    
     def toggle_simulator_mode(self, enabled):
         """Toggle simulator mode on/off"""
         self.simulator_mode = enabled
+        self.save_simulator_mode(enabled)  # Persist to settings
         mode_str = "ENABLED" if enabled else "DISABLED"
         logger.info(f"Simulator mode {mode_str}")
         return {

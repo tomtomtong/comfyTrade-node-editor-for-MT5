@@ -113,6 +113,9 @@ async function loadAllSettingsOnStartup() {
         window.volumeControl.loadSettings();
       }
       
+      // Check simulator mode from settings and show UI if enabled
+      checkAndShowSimulatorModeFromSettings();
+      
     } else {
       setTimeout(loadAllSettingsOnStartup, 500);
     }
@@ -487,7 +490,8 @@ function setDefaultVolumeForSymbol(symbol) {
 
 // Helper function to set default stop loss and take profit values (3% from current price)
 // Can accept bid/ask prices directly, or read from DOM if not provided
-function setDefaultStopLossTakeProfit(bidPrice = null, askPrice = null) {
+// forceUpdate: if true, always update even if fields have values (used when symbol changes)
+function setDefaultStopLossTakeProfit(bidPrice = null, askPrice = null, forceUpdate = false) {
   const stopLossInput = document.getElementById('tradeStopLoss');
   const takeProfitInput = document.getElementById('tradeTakeProfit');
   const tradeTypeSelect = document.getElementById('tradeType');
@@ -552,18 +556,18 @@ function setDefaultStopLossTakeProfit(bidPrice = null, askPrice = null) {
   stopLoss = Math.round(stopLoss * 100000) / 100000;
   takeProfit = Math.round(takeProfit * 100000) / 100000;
   
-  // Check if fields are empty or zero (don't overwrite user input)
+  // Check if fields are empty or zero (don't overwrite user input unless forceUpdate is true)
   const stopLossValue = stopLossInput.value.trim();
   const takeProfitValue = takeProfitInput.value.trim();
   
-  // Set stop loss if field is empty or zero
-  if (!stopLossValue || stopLossValue === '0' || stopLossValue === '') {
+  // Set stop loss if field is empty, zero, or forceUpdate is true
+  if (forceUpdate || !stopLossValue || stopLossValue === '0' || stopLossValue === '') {
     stopLossInput.value = stopLoss.toFixed(5);
     console.log(`Set default Stop Loss: ${stopLoss.toFixed(5)} (${tradeType}, ${tradeType === 'BUY' ? 'Ask' : 'Bid'}: ${tradeType === 'BUY' ? ask : bid})`);
   }
   
-  // Set take profit if field is empty or zero
-  if (!takeProfitValue || takeProfitValue === '0' || takeProfitValue === '') {
+  // Set take profit if field is empty, zero, or forceUpdate is true
+  if (forceUpdate || !takeProfitValue || takeProfitValue === '0' || takeProfitValue === '') {
     takeProfitInput.value = takeProfit.toFixed(5);
     console.log(`Set default Take Profit: ${takeProfit.toFixed(5)} (${tradeType}, ${tradeType === 'BUY' ? 'Ask' : 'Bid'}: ${tradeType === 'BUY' ? ask : bid})`);
   }
@@ -677,7 +681,8 @@ async function updateCurrentPrice(symbol) {
       
       // Set default stop loss and take profit values (3% from current price)
       // Pass prices directly to avoid timing issues with DOM updates
-      setDefaultStopLossTakeProfit(data.bid, data.ask);
+      // Force update when symbol changes to ensure stop loss/take profit are updated
+      setDefaultStopLossTakeProfit(data.bid, data.ask, true);
       
       // Start auto-refresh if not already running
       startPriceAutoRefresh(symbol);
@@ -1025,6 +1030,41 @@ function showSimulatorIndicator() {
   // No-op: simulator mode badge removed per request
 }
 
+// Check simulator mode from settings file and show UI if enabled
+async function checkAndShowSimulatorModeFromSettings() {
+  try {
+    // Check settings file directly
+    if (window.electronAPI && window.electronAPI.loadSettings) {
+      const settings = await window.electronAPI.loadSettings('app_settings.json');
+      if (settings && settings.simulatorMode === true) {
+        // Simulator mode is enabled in settings, show UI elements
+        const statusSection = document.getElementById('simulatorStatus');
+        if (statusSection) {
+          statusSection.style.display = 'block';
+        }
+        
+        // Update dropdown
+        const dropdown = document.getElementById('settingsSimulatorMode');
+        if (dropdown) {
+          dropdown.value = 'true';
+        }
+        
+        // Update canvas indicator
+        if (nodeEditor) {
+          nodeEditor.setSimulatorMode(true);
+        }
+        
+        // If connected, load full simulator status
+        if (isConnected) {
+          await loadSimulatorSettings();
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error checking simulator mode from settings:', error);
+  }
+}
+
 function hideSimulatorIndicator() {
   const indicator = document.getElementById('simulatorModeIndicator');
   if (indicator) {
@@ -1283,6 +1323,9 @@ async function handleConnect() {
     
     handleRefreshAccount();
     handleRefreshPositions();
+    
+    // Load simulator settings to show simulator mode if enabled
+    await loadSimulatorSettings();
     
     // Reinitialize settings symbol input if settings modal is open
     if (document.getElementById('settingsModal').classList.contains('show')) {

@@ -447,6 +447,52 @@ class NodeEditor {
       params: { ...nodeConfig.params }
     };
     this.nodes.push(node);
+    
+    // Auto-connect to the previously created node (if it exists)
+    if (this.nodes.length > 1) {
+      // Get the previous node (the one before the current node)
+      const previousNode = this.nodes[this.nodes.length - 2];
+      
+      // Find compatible trigger output/input pair (only trigger-to-trigger)
+      if (previousNode && previousNode.outputs && previousNode.outputs.length > 0) {
+        // Try to find a trigger output
+        for (let outputIndex = 0; outputIndex < previousNode.outputs.length; outputIndex++) {
+          const outputType = previousNode.outputs[outputIndex];
+          
+          // Only connect trigger outputs
+          if (outputType !== 'trigger') continue;
+          
+          // Check if this output is already connected
+          const outputConnected = this.connections.some(
+            conn => conn.from === previousNode && conn.fromOutput === outputIndex
+          );
+          
+          if (outputConnected) continue;
+          
+          // Find matching trigger input in the new node
+          if (node.inputs && node.inputs.length > 0) {
+            for (let inputIndex = 0; inputIndex < node.inputs.length; inputIndex++) {
+              const inputType = node.inputs[inputIndex];
+              
+              // Only connect trigger-to-trigger
+              if (inputType === 'trigger') {
+                // Check if this input is already connected
+                const inputConnected = this.connections.some(
+                  conn => conn.to === node && conn.toInput === inputIndex
+                );
+                
+                if (!inputConnected) {
+                  // Found compatible trigger connection, create it
+                  this.addConnection(previousNode, node, inputIndex, outputIndex);
+                  return node; // Exit early after first successful connection
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
     return node;
   }
 
@@ -2465,8 +2511,9 @@ class NodeEditor {
             console.log(`String Contains: "${keyword}" ${containsKeyword ? 'FOUND' : 'NOT FOUND'} in input text`);
             console.log(`Result: ${result ? 'PASS' : 'BLOCK'} trigger`);
 
-            // Show detailed result modal when string contains keyword (check is true)
-            if (containsKeyword && window.showTestResultModal) {
+            // Show detailed result modal only when condition fails (result is false)
+            // Don't show popup if condition is true (result is true)
+            if (!result && containsKeyword && window.showTestResultModal) {
               // Truncate input text for display if too long
               const displayText = inputText.length > 200 
                 ? inputText.substring(0, 200) + '...' 
