@@ -2066,7 +2066,7 @@ function updatePropertiesPanel(node) {
                       rows="3" 
                       placeholder="Enter your alert message..."
                       onchange="updateNodeParam('${key}', this.value)"
-                      style="width: 100%; background: #333; color: #e0e0e0; border: 1px solid #555; border-radius: 4px; padding: 8px; font-size: 13px; resize: vertical;">${value}</textarea>
+                      style="width: 100%; background: #333; color: #e0e0e0; border: 1px solid #555; border-radius: 4px; padding: 8px; font-size: 13px; resize: both;">${value}</textarea>
             <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
               This message will be sent via Twilio when the node is triggered
             </small>
@@ -2094,7 +2094,7 @@ function updatePropertiesPanel(node) {
             <textarea data-param="${key}"
                      onchange="updateNodeParam('${key}', this.value)"
                      rows="4"
-                     style="width: 100%; resize: vertical; font-family: monospace;"
+                     style="width: 100%; resize: both; font-family: monospace;"
                      placeholder="Enter your custom message here...">${value}</textarea>
             <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
               This text will be sent as the Twilio message when connected to a Twilio Alert node.
@@ -2325,16 +2325,45 @@ function updatePropertiesPanel(node) {
           </div>
         `;
       } else if (key === 'prompt' && node.type === 'llm-node') {
+        // Get saved prompts
+        const savedPrompts = window.settingsManager ? window.settingsManager.get('ai.savedPrompts') || {} : {};
+        const savedPromptOptions = Object.keys(savedPrompts).map(name => 
+          `<option value="${name}">${name}</option>`
+        ).join('');
+        
         return `
           <div class="property-item">
             <label>Prompt Template:</label>
-            <textarea data-param="${key}"
-                     onchange="updateNodeParam('${key}', this.value)"
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <select id="savedPromptSelect-${node.id}" 
+                      style="flex: 1; padding: 6px; background: #1e1e1e; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; font-size: 12px;"
+                      onchange="loadSavedPrompt('${node.id}', this.value)">
+                <option value="">-- Select Saved Prompt --</option>
+                ${savedPromptOptions}
+              </select>
+              <button class="btn btn-success btn-small" 
+                      onclick="savePromptTemplate('${node.id}')"
+                      style="white-space: nowrap;">
+                💾 Save Prompt
+              </button>
+              <button class="btn btn-danger btn-small" 
+                      id="deletePromptBtn-${node.id}"
+                      onclick="deleteSavedPrompt('${node.id}')"
+                      style="white-space: nowrap; display: none;">
+                🗑️ Delete
+              </button>
+            </div>
+            <textarea id="promptTextarea-${node.id}" 
+                     data-param="${key}"
+                     data-node-id="${node.id}"
+                     oninput="updateNodeParamWithId('${key}', this.value, '${node.id}')"
+                     onchange="updateNodeParamWithId('${key}', this.value, '${node.id}')"
+                     onblur="updateNodeParamWithId('${key}', this.value, '${node.id}')"
                      rows="4"
-                     style="width: 100%; resize: vertical; font-family: monospace;"
+                     style="width: 100%; resize: both; font-family: monospace;"
                      placeholder="Enter your prompt template here...">${value}</textarea>
             <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
-              Use {input} as placeholder for the input text. Example: "Analyze this data: {input}"
+              Use {input} as placeholder for the input text. Multiple string inputs will be concatenated with newlines. Example: "Analyze this data: {input}"
             </small>
           </div>
         `;
@@ -2432,7 +2461,7 @@ function updatePropertiesPanel(node) {
             <label>Current Value:</label>
             <textarea readonly
                      rows="4"
-                     style="width: 100%; resize: vertical; font-family: monospace; background: #f5f5f5;"
+                     style="width: 100%; resize: both; font-family: monospace; background: #f5f5f5;"
                      placeholder="No value received yet...">${value}</textarea>
             <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
               This shows the current string value received from connected nodes (read-only)
@@ -2521,7 +2550,7 @@ function updatePropertiesPanel(node) {
             <textarea data-param="${key}"
                      onchange="updateNodeParam('${key}', this.value)"
                      rows="8"
-                     style="width: 100%; resize: vertical; font-family: 'Courier New', monospace; font-size: 12px;"
+                     style="width: 100%; resize: both; font-family: 'Courier New', monospace; font-size: 12px;"
                      placeholder="# Write your Python script here\n# Set 'result' variable for output\nresult = 'Hello from Python'">${value}</textarea>
             <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
               Write Python code. Set 'result' variable for string output.<br>
@@ -2769,6 +2798,232 @@ window.updateNodeParam = function(key, value) {
         nodeEditor.updatePeriodTrigger(node);
       }
     }
+  }
+};
+
+// Update node parameter with explicit node ID (for textareas and other elements)
+window.updateNodeParamWithId = function(key, value, nodeId) {
+  const node = nodeEditor.nodes.find(n => String(n.id) === String(nodeId));
+  if (node) {
+    node.params[key] = value;
+    
+    // Handle period trigger updates
+    if (node.type === 'trigger-period') {
+      if (key === 'enabled' || key === 'interval' || key === 'unit') {
+        nodeEditor.updatePeriodTrigger(node);
+      }
+    }
+  } else {
+    console.warn('Could not find node to update parameter:', key, 'nodeId:', nodeId);
+  }
+};
+
+// Custom prompt dialog function
+function showPromptDialog(title, message, defaultValue = '', callback) {
+  // Remove existing prompt modal if any
+  const existingModal = document.getElementById('promptDialogModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  // Create modal HTML
+  const modalHTML = `
+    <div id="promptDialogModal" class="modal show">
+      <div class="modal-content" style="max-width: 500px;">
+        <h2>${title}</h2>
+        <div class="form-group">
+          <label>${message}</label>
+          <input type="text" 
+                 id="promptDialogInput" 
+                 value="${defaultValue}"
+                 placeholder="Enter name..."
+                 style="width: 100%; padding: 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; font-size: 13px;"
+                 autofocus>
+        </div>
+        <div class="modal-buttons">
+          <button id="promptDialogOk" class="btn btn-primary">OK</button>
+          <button id="promptDialogCancel" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Add modal to body
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // Get elements
+  const modal = document.getElementById('promptDialogModal');
+  const input = document.getElementById('promptDialogInput');
+  const okBtn = document.getElementById('promptDialogOk');
+  const cancelBtn = document.getElementById('promptDialogCancel');
+  
+  // Focus input
+  input.focus();
+  input.select();
+  
+  // Handle OK button
+  okBtn.addEventListener('click', () => {
+    const value = input.value.trim();
+    modal.remove();
+    if (callback) {
+      callback(value);
+    }
+  });
+  
+  // Handle Cancel button
+  cancelBtn.addEventListener('click', () => {
+    modal.remove();
+    if (callback) {
+      callback(null);
+    }
+  });
+  
+  // Handle Enter key
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      okBtn.click();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelBtn.click();
+    }
+  });
+  
+  // Close on backdrop click
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      cancelBtn.click();
+    }
+  });
+}
+
+// Save prompt template
+window.savePromptTemplate = async function(nodeId) {
+  const node = nodeEditor.nodes.find(n => n.id == nodeId || String(n.id) === String(nodeId));
+  if (!node || node.type !== 'llm-node') {
+    showMessage('Error: LLM node not found', 'error');
+    return;
+  }
+  
+  const promptText = node.params.prompt || '';
+  if (!promptText.trim()) {
+    showMessage('Please enter a prompt template before saving', 'warning');
+    return;
+  }
+  
+  // Show custom prompt dialog
+  showPromptDialog('Save Prompt Template', 'Enter a name for this prompt template:', '', async (promptName) => {
+    if (!promptName || !promptName.trim()) {
+      return; // User cancelled or entered empty name
+    }
+    
+    try {
+      // Get current saved prompts
+      const savedPrompts = window.settingsManager.get('ai.savedPrompts') || {};
+      
+      // Save the prompt
+      savedPrompts[promptName.trim()] = promptText;
+      
+      // Update settings
+      await window.settingsManager.set('ai.savedPrompts', savedPrompts);
+      
+      showMessage(`Prompt "${promptName}" saved successfully!`, 'success');
+      
+      // Refresh the properties panel to update the dropdown
+      if (nodeEditor.selectedNode && nodeEditor.selectedNode.id === node.id) {
+        updatePropertiesPanel(nodeEditor.selectedNode);
+      }
+    } catch (error) {
+      console.error('Error saving prompt:', error);
+      showMessage('Error saving prompt: ' + error.message, 'error');
+    }
+  });
+};
+
+// Load saved prompt
+window.loadSavedPrompt = function(nodeId, promptName) {
+  if (!promptName || !promptName.trim()) {
+    // Clear selection
+    const deleteBtn = document.getElementById(`deletePromptBtn-${nodeId}`);
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
+    }
+    return;
+  }
+  
+  const node = nodeEditor.nodes.find(n => n.id == nodeId || String(n.id) === String(nodeId));
+  if (!node || node.type !== 'llm-node') {
+    showMessage('Error: LLM node not found', 'error');
+    return;
+  }
+  
+  try {
+    const savedPrompts = window.settingsManager.get('ai.savedPrompts') || {};
+    const savedPrompt = savedPrompts[promptName];
+    
+    if (!savedPrompt) {
+      showMessage('Prompt not found', 'error');
+      return;
+    }
+  
+    // Update the node's prompt parameter
+    node.params.prompt = savedPrompt;
+    
+    // Update the textarea
+    const textarea = document.getElementById(`promptTextarea-${nodeId}`);
+    if (textarea) {
+      textarea.value = savedPrompt;
+    }
+    
+    // If this node is selected, also update via updateNodeParam for consistency
+    if (nodeEditor.selectedNode && nodeEditor.selectedNode.id === node.id) {
+      updateNodeParam('prompt', savedPrompt);
+    }
+    
+    // Show delete button
+    const deleteBtn = document.getElementById(`deletePromptBtn-${nodeId}`);
+    if (deleteBtn) {
+      deleteBtn.style.display = 'inline-block';
+    }
+    
+    showMessage(`Prompt "${promptName}" loaded`, 'success');
+  } catch (error) {
+    console.error('Error loading prompt:', error);
+    showMessage('Error loading prompt: ' + error.message, 'error');
+  }
+};
+
+// Delete saved prompt
+window.deleteSavedPrompt = async function(nodeId) {
+  const select = document.getElementById(`savedPromptSelect-${nodeId}`);
+  if (!select || !select.value) {
+    showMessage('No prompt selected to delete', 'warning');
+    return;
+  }
+  
+  const promptName = select.value;
+  
+  if (!confirm(`Are you sure you want to delete the prompt "${promptName}"?`)) {
+    return;
+  }
+  
+  try {
+    const savedPrompts = window.settingsManager.get('ai.savedPrompts') || {};
+    delete savedPrompts[promptName];
+    
+    // Update settings
+    await window.settingsManager.set('ai.savedPrompts', savedPrompts);
+    
+    showMessage(`Prompt "${promptName}" deleted`, 'success');
+    
+    // Refresh the properties panel to update the dropdown
+    const node = nodeEditor.nodes.find(n => n.id == nodeId || String(n.id) === String(nodeId));
+    if (node && nodeEditor.selectedNode && nodeEditor.selectedNode.id === node.id) {
+      updatePropertiesPanel(nodeEditor.selectedNode);
+    }
+  } catch (error) {
+    console.error('Error deleting prompt:', error);
+    showMessage('Error deleting prompt: ' + error.message, 'error');
   }
 };
 

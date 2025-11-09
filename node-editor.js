@@ -539,7 +539,7 @@ class NodeEditor {
 
       'llm-node': {
         title: 'LLM Node',
-        inputs: ['trigger', 'string'],
+        inputs: ['trigger', 'string'], // Single string input
         outputs: ['string', 'trigger'],
         params: {
           model: '', // Will use model from OpenRouter settings if empty
@@ -650,7 +650,12 @@ class NodeEditor {
       conn => !(conn.to === toNode && conn.toInput === inputIndex)
     );
 
-    // Add the new connection (one output can connect to multiple inputs)
+    // Remove any existing connection from this output (one output can only connect to one node)
+    this.connections = this.connections.filter(
+      conn => !(conn.from === fromNode && conn.fromOutput === outputIndex)
+    );
+
+    // Add the new connection (one output can only connect to one node)
     this.connections.push({
       from: fromNode,
       to: toNode,
@@ -716,7 +721,9 @@ class NodeEditor {
           this.nodes.find(n => n.id === connData.to.id);
 
         if (fromNode && toNode) {
-          this.addConnection(fromNode, toNode, connData.toInput);
+          // Restore with the correct output index
+          const outputIndex = connData.fromOutput !== undefined ? connData.fromOutput : 0;
+          this.addConnection(fromNode, toNode, connData.toInput, outputIndex);
         }
       }
 
@@ -1269,7 +1276,8 @@ class NodeEditor {
       connections: this.connections.map(c => ({
         from: c.from.id,
         to: c.to.id,
-        toInput: c.toInput
+        toInput: c.toInput,
+        fromOutput: c.fromOutput || 0  // Save the output index (default to 0 for backward compatibility)
       }))
     };
   }
@@ -1292,7 +1300,9 @@ class NodeEditor {
       const fromNode = nodeMap.get(connData.from);
       const toNode = nodeMap.get(connData.to);
       if (fromNode && toNode) {
-        this.addConnection(fromNode, toNode, connData.toInput);
+        // Use fromOutput if available (for backward compatibility, default to 0)
+        const outputIndex = connData.fromOutput !== undefined ? connData.fromOutput : 0;
+        this.addConnection(fromNode, toNode, connData.toInput, outputIndex);
       }
     }
   }
@@ -1372,8 +1382,9 @@ class NodeEditor {
     this.executionState.clear();
 
     // Find all connected nodes and execute the flow
+    // Only follow trigger connections, not string connections
     const connectedNodes = this.connections
-      .filter(c => c.from === node)
+      .filter(c => c.from === node && node.outputs[c.fromOutput || 0] === 'trigger')
       .map(c => ({ node: c.to, inputIndex: c.toInput, fromOutput: c.fromOutput || 0 }));
 
 
@@ -1864,32 +1875,66 @@ class NodeEditor {
               break;
             }
 
-            // Get input text from connected string input or use default
-            let inputText = 'Hello';
-
-            // Check if there's a string input connected (second input)
-            if (node.inputs.length > 1 && node.inputs[1] === 'string') {
-              const stringConnection = this.connections.find(c => c.to === node && c.toInput === 1);
-              if (stringConnection) {
-                if (stringConnection.from.type === 'string-input') {
-                  inputText = stringConnection.from.params.value || 'Hello';
-                  console.log('Using string input for LLM:', inputText);
-                } else if (stringConnection.from.type === 'string-output') {
-                  inputText = stringConnection.from.stringValue || stringConnection.from.params.displayValue || 'Hello';
-                  console.log('Using string output for LLM:', inputText);
-                } else if (stringConnection.from.type === 'yfinance-data') {
-                  inputText = stringConnection.from.fetchedData || 'No data';
-                  console.log('Using yfinance data for LLM:', inputText);
-                } else if (stringConnection.from.type === 'alphavantage-data') {
-                  inputText = stringConnection.from.fetchedData || 'No data';
-                  console.log('Using Alpha Vantage data for LLM:', inputText);
-                }
+            // Get input text from all connected string inputs and concatenate them
+            const inputTexts = [];
+            
+            // Find all string input connections to this LLM node
+            const stringConnections = this.connections.filter(c => 
+              c.to === node && 
+              c.toInput > 0 && 
+              node.inputs[c.toInput] === 'string'
+            );
+            
+            // Collect string values from all connected nodes
+            for (const stringConnection of stringConnections) {
+              let stringValue = null;
+              
+              if (stringConnection.from.type === 'string-input') {
+                stringValue = stringConnection.from.params.value || '';
+              } else if (stringConnection.from.type === 'string-output') {
+                stringValue = stringConnection.from.stringValue || stringConnection.from.params.displayValue || '';
+              } else if (stringConnection.from.type === 'yfinance-data') {
+                stringValue = stringConnection.from.fetchedData || '';
+              } else if (stringConnection.from.type === 'alphavantage-data') {
+                stringValue = stringConnection.from.fetchedData || '';
+              } else if (stringConnection.from.type === 'llm-node') {
+                stringValue = stringConnection.from.llmResponse || '';
+              } else if (stringConnection.from.type === 'firecrawl-node') {
+                stringValue = stringConnection.from.firecrawlData || '';
+              } else if (stringConnection.from.type === 'python-script') {
+                stringValue = stringConnection.from.pythonOutput || '';
               }
+              
+              if (stringValue && stringValue.trim()) {
+                inputTexts.push(stringValue.trim());
+              }
+            }
+            
+            // Concatenate all string inputs with newlines
+            let inputText = inputTexts.length > 0 
+              ? inputTexts.join('\n\n') 
+              : 'Hello';
+            
+            if (inputTexts.length > 0) {
+              console.log(`Using ${inputTexts.length} string input(s) for LLM:`, inputTexts);
+            } else {
+              console.log('No string inputs connected, using default:', inputText);
             }
 
             // Prepare the prompt by replacing {input} placeholder
-            const finalPrompt = node.params.prompt.replace('{input}', inputText);
-            console.log('LLM prompt:', finalPrompt);
+            let finalPrompt = node.params.prompt;
+            
+            // Replace all {input} placeholders with the actual input text
+            if (finalPrompt.includes('{input}')) {
+              finalPrompt = finalPrompt.replaceAll('{input}', inputText);
+              console.log('LLM prompt (with {input} replaced):', finalPrompt);
+            } else if (inputTexts.length > 0) {
+              // If no {input} placeholder but we have string inputs, append them to the prompt
+              finalPrompt = finalPrompt + '\n\n' + inputText;
+              console.log('LLM prompt (with input appended):', finalPrompt);
+            } else {
+              console.log('LLM prompt (no string inputs):', finalPrompt);
+            }
 
             // Use model from node params or fallback to settings
             const modelToUse = node.params.model || openRouterSettings.model;
@@ -2300,12 +2345,14 @@ class NodeEditor {
       return result;
     }
 
-    // Continue the trigger chain to connected nodes
+    // Continue the trigger chain to connected nodes IN PARALLEL
+    // Only continue through trigger connections, not string connections
     const connectedNodes = this.connections
-      .filter(c => c.from === node)
+      .filter(c => c.from === node && node.outputs[c.fromOutput || 0] === 'trigger')
       .map(c => ({ node: c.to, inputIndex: c.toInput, fromOutput: c.fromOutput || 0 }));
 
-    for (let { node: connectedNode, inputIndex: targetInput, fromOutput } of connectedNodes) {
+    // Execute all connected nodes in parallel
+    const executionPromises = connectedNodes.map(async ({ node: connectedNode, inputIndex: targetInput, fromOutput }) => {
       // Determine what to pass based on output type
       let outputValue = result;
 
@@ -2369,8 +2416,11 @@ class NodeEditor {
 
       // Add small delay to make execution visible
       await new Promise(resolve => setTimeout(resolve, 200));
-      await this.executeNode(connectedNode, targetInput, outputValue);
-    }
+      return this.executeNode(connectedNode, targetInput, outputValue);
+    });
+
+    // Wait for all parallel executions to complete
+    await Promise.all(executionPromises);
 
     // Clear this node as executing (only if it's still the current one)
     if (this.currentExecutingNode === node) {

@@ -275,14 +275,16 @@ class NodePluginManager {
   }
 
   /**
-   * Continue flow to connected nodes
+   * Continue flow to connected nodes IN PARALLEL
    */
   async continueFlow(node, result) {
+    // Only continue through trigger connections, not string connections
     const connectedNodes = this.nodeEditor.connections
-      .filter(c => c.from === node)
+      .filter(c => c.from === node && node.outputs[c.fromOutput || 0] === 'trigger')
       .map(c => ({ node: c.to, inputIndex: c.toInput, fromOutput: c.fromOutput || 0 }));
 
-    for (let { node: connectedNode, inputIndex: targetInput, fromOutput } of connectedNodes) {
+    // Execute all connected nodes in parallel
+    const executionPromises = connectedNodes.map(async ({ node: connectedNode, inputIndex: targetInput, fromOutput }) => {
       // Determine what to pass based on output type
       let outputValue = result;
 
@@ -292,8 +294,11 @@ class NodePluginManager {
 
       // Add small delay to make execution visible
       await new Promise(resolve => setTimeout(resolve, 200));
-      await this.nodeEditor.executeNode(connectedNode, targetInput, outputValue);
-    }
+      return this.nodeEditor.executeNode(connectedNode, targetInput, outputValue);
+    });
+
+    // Wait for all parallel executions to complete
+    await Promise.all(executionPromises);
   }
 
   /**

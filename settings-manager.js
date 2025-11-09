@@ -30,7 +30,8 @@ class SettingsManager {
           newsAnalysis: true,
           strategyOptimization: false,
           riskAssessment: true
-        }
+        },
+        savedPrompts: {}
       },
       
       // Twilio settings

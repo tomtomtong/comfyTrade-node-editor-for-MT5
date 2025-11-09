@@ -23,6 +23,10 @@
       "newsAnalysis": true,
       "strategyOptimization": false,
       "riskAssessment": true
+    },
+    "savedPrompts": {
+      "test": "Please analyse this data",
+      "apple": "This is Apple recent price.  "
     }
   },
   "twilio": {
@@ -75,7 +79,28 @@
     "applyToOpenPositions": true,
     "applyToClosePositions": false
   },
-  "overtradeHistory": [],
+  "overtradeHistory": [
+    {
+      "timestamp": 1762677273675,
+      "type": "node",
+      "data": {
+        "nodeCount": 5,
+        "action": "executeNodeStrategy"
+      },
+      "action": "executeNodeStrategy",
+      "positionType": "open"
+    },
+    {
+      "timestamp": 1762677312895,
+      "type": "node",
+      "data": {
+        "nodeCount": 5,
+        "action": "executeNodeStrategy"
+      },
+      "action": "executeNodeStrategy",
+      "positionType": "open"
+    }
+  ],
   "overtradeLastWarning": 0,
   "overtradeWarningCount": 0,
   "ui": {
