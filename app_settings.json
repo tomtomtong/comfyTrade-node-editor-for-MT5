@@ -139,10 +139,10 @@
         "type": "BUY",
         "volume": 0.1,
         "open_price": 1.15484,
-        "current_price": 1.15792,
+        "current_price": 1.15751,
         "sl": 0,
         "tp": 0,
-        "profit": 30.79999999999972,
+        "profit": 26.699999999999505,
         "open_time": "2025-11-10T07:29:07.601815",
         "comment": "SIMULATOR"
       },
@@ -152,10 +152,10 @@
         "type": "BUY",
         "volume": 0.1,
         "open_price": 1.15475,
-        "current_price": 1.15792,
+        "current_price": 1.15751,
         "sl": 0,
         "tp": 0,
-        "profit": 31.70000000000117,
+        "profit": 27.600000000000957,
         "open_time": "2025-11-10T07:29:59.765929",
         "comment": "SIMULATOR"
       },
@@ -165,10 +165,10 @@
         "type": "BUY",
         "volume": 0.1,
         "open_price": 1.15496,
-        "current_price": 1.15792,
+        "current_price": 1.15751,
         "sl": 0,
         "tp": 0,
-        "profit": 29.60000000000074,
+        "profit": 25.500000000000522,
         "open_time": "2025-11-10T07:33:18.957856",
         "comment": "SIMULATOR"
       }
@@ -176,6 +176,6 @@
     "closed_positions": [],
     "next_ticket": 1000003,
     "initial_balance": 10000,
-    "last_updated": "2025-11-10T16:34:23.825478"
+    "last_updated": "2025-11-10T16:28:00.838487"
   }
 }
