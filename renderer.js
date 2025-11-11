@@ -197,6 +197,7 @@ function setupEventListeners() {
   document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
   document.getElementById('showLogBtn').addEventListener('click', showLogModal);
   document.getElementById('showAIMemoryBtn').addEventListener('click', showAIMemoryModal);
+  document.getElementById('toggleBottomPanelBtn').addEventListener('click', toggleBottomPanel);
   document.getElementById('runStrategyBtn').addEventListener('click', showRunStrategyModal);
   document.getElementById('stopStrategyBtn').addEventListener('click', stopNodeStrategy);
   
@@ -4172,6 +4173,23 @@ function showAIMemoryModal() {
 
 function hideAIMemoryModal() {
   document.getElementById('aiMemoryModal').classList.remove('show');
+}
+
+// Bottom Panel Toggle functionality
+function toggleBottomPanel() {
+  const bottomPanel = document.querySelector('.bottom-panel');
+  if (bottomPanel) {
+    bottomPanel.classList.toggle('visible');
+    // Update button text based on visibility
+    const btn = document.getElementById('toggleBottomPanelBtn');
+    if (btn) {
+      if (bottomPanel.classList.contains('visible')) {
+        btn.textContent = '📊 Hide Positions';
+      } else {
+        btn.textContent = '📊 Positions';
+      }
+    }
+  }
 }
 
 function updateAIMemoryDisplay() {

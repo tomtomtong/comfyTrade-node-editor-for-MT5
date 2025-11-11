@@ -330,6 +330,11 @@ h4 {
   max-height: 500px;
   overflow: hidden;
   position: relative;
+  display: none; /* Hidden by default */
+}
+
+.bottom-panel.visible {
+  display: block; /* Show when visible class is added */
 }
 
 /* Positions Panel */
