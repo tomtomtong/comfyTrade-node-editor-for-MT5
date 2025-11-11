@@ -132,8 +132,46 @@ class OvertradeControl {
     }
   }
 
+  async isSimulatorMode() {
+    // Check if simulator mode is enabled
+    try {
+      // First try to get simulator status from MT5 API
+      if (window.mt5API && window.mt5API.getSimulatorStatus) {
+        const result = await window.mt5API.getSimulatorStatus();
+        if (result && result.simulator_mode) {
+          return true;
+        }
+      }
+      // Fallback: check settings file directly
+      if (window.electronAPI && window.electronAPI.loadSettings) {
+        const settings = await window.electronAPI.loadSettings('app_settings.json');
+        if (settings && settings.simulatorMode === true) {
+          return true;
+        }
+      }
+    } catch (error) {
+      // If API call fails, try fallback to settings file
+      try {
+        if (window.electronAPI && window.electronAPI.loadSettings) {
+          const settings = await window.electronAPI.loadSettings('app_settings.json');
+          if (settings && settings.simulatorMode === true) {
+            return true;
+          }
+        }
+      } catch (fallbackError) {
+        console.error('Error checking simulator mode:', fallbackError);
+      }
+    }
+    return false;
+  }
+
   async shouldShowReminder(tradeType, tradeData = {}) {
     if (!this.settings.enabled) return false;
+    
+    // Don't show reminders in simulator mode
+    if (await this.isSimulatorMode()) {
+      return false;
+    }
     
     // Check if this trade type should trigger reminders
     const typeMap = {
@@ -170,7 +208,13 @@ class OvertradeControl {
     }
   }
 
-  recordTrade(tradeType, tradeData = {}) {
+  async recordTrade(tradeType, tradeData = {}) {
+    // Don't record trades in simulator mode
+    if (await this.isSimulatorMode()) {
+      console.log('Trade not recorded - simulator mode is enabled');
+      return;
+    }
+    
     // Record trades based on settings - can include both open and close positions
     const isOpenPosition = this.isNewPositionTrade(tradeData);
     const isClosePosition = this.isClosePositionTrade(tradeData);
@@ -254,6 +298,13 @@ class OvertradeControl {
 
   async checkAndShowReminder(tradeType, tradeData = {}) {
     return new Promise(async (resolve) => {
+      // Skip overtrade control in simulator mode
+      if (await this.isSimulatorMode()) {
+        console.log('Overtrade control skipped - simulator mode is enabled');
+        resolve(true);
+        return;
+      }
+      
       const shouldShow = await this.shouldShowReminder(tradeType);
       if (shouldShow) {
         this.pendingTradeResolve = resolve;
@@ -261,7 +312,7 @@ class OvertradeControl {
         this.showWarningModal();
       } else {
         // Record the trade and proceed
-        this.recordTrade(tradeType, tradeData);
+        await this.recordTrade(tradeType, tradeData);
         resolve(true);
       }
     });
@@ -334,13 +385,13 @@ class OvertradeControl {
     document.getElementById('overtradeWarningModal').classList.remove('show');
   }
 
-  proceedWithTrade() {
+  async proceedWithTrade() {
     this.lastWarningTime = Date.now();
     this.warningCount++;
     
     // Record the trade
     if (this.pendingTradeData) {
-      this.recordTrade(this.pendingTradeData.type, this.pendingTradeData.data);
+      await this.recordTrade(this.pendingTradeData.type, this.pendingTradeData.data);
     }
     
     // Save warning data immediately
@@ -365,10 +416,10 @@ class OvertradeControl {
     }
   }
 
-  disableReminders() {
+  async disableReminders() {
     this.settings.enabled = false;
     this.saveSettings();
-    this.proceedWithTrade();
+    await this.proceedWithTrade();
     showMessage('Overtrade reminders disabled', 'info');
   }
 

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MT5 Node-Based Strategy Builder</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -19,7 +20,6 @@
       </div>
       <div class="toolbar-right">
         <button id="tradeBtn" class="btn btn-success">New Trade</button>
-        <button id="backtestBtn" class="btn btn-info">Backtest</button>
         <button id="settingsBtn" class="btn btn-secondary">⚙ Settings</button>
         <button id="runStrategyBtn" class="btn btn-success">▶ Run Strategy</button>
         <button id="stopStrategyBtn" class="btn btn-danger" style="display: none;">⏹ Stop Strategy</button>
@@ -619,14 +619,6 @@
       
       <!-- General Tab -->
       <div id="generalTab" class="settings-tab active">
-        <div class="form-group">
-          <label>Open TradingView on Position Open:</label>
-          <select id="settingsOpenTradingView">
-            <option value="true">Enabled</option>
-            <option value="false">Disabled</option>
-          </select>
-          <small>Automatically open TradingView chart when a position is opened</small>
-        </div>
         
 
         
@@ -1007,8 +999,19 @@
       </div>
       
       <div class="confirmation-notice">
-        <p>📈 TradingView has been opened for analysis</p>
-        <p>⚠️ Please review the chart before confirming the trade</p>
+        <p>⚠️ Please review the trade details before confirming</p>
+      </div>
+      
+      <!-- 3 Month Daily Chart -->
+      <div class="chart-container-wrapper">
+        <h3 style="margin-top: 20px; margin-bottom: 10px;">📊 3-Month Daily Chart</h3>
+        <div id="chartLoading" class="chart-loading" style="text-align: center; padding: 20px; color: #888;">
+          Loading chart data...
+        </div>
+        <div id="chartError" class="chart-error" style="display: none; text-align: center; padding: 20px; color: #f44336;">
+          Failed to load chart data
+        </div>
+        <canvas id="tradeChart" style="display: none; max-height: 400px;"></canvas>
       </div>
       
       <div class="modal-buttons">

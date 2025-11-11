@@ -193,7 +193,6 @@ function setupEventListeners() {
   // Toolbar buttons
   document.getElementById('connectBtn').addEventListener('click', handleConnectionToggle);
   document.getElementById('tradeBtn').addEventListener('click', showTradeModal);
-  document.getElementById('backtestBtn').addEventListener('click', () => window.historyImport.showBacktestModal());
   document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
   document.getElementById('showLogBtn').addEventListener('click', showLogModal);
   document.getElementById('showAIMemoryBtn').addEventListener('click', showAIMemoryModal);
@@ -778,67 +777,6 @@ function stopPriceAutoRefresh() {
   }
 }
 
-// Function to open TradingView for a specific symbol
-function openTradingViewForSymbol(symbol) {
-  if (!symbol) return;
-  
-  // Check if TradingView opening is enabled in settings
-  const tradingViewEnabled = window.settingsManager ? window.settingsManager.get('openTradingView') !== false : true;
-  if (!tradingViewEnabled) {
-    console.log('TradingView opening is disabled in settings');
-    return;
-  }
-  
-  // Convert MT5 symbol format to TradingView format if needed
-  let tvSymbol = symbol;
-  
-  // Common MT5 to TradingView symbol conversions
-  const symbolMappings = {
-    'EURUSD': 'FX:EURUSD',
-    'GBPUSD': 'FX:GBPUSD',
-    'USDJPY': 'FX:USDJPY',
-    'USDCHF': 'FX:USDCHF',
-    'AUDUSD': 'FX:AUDUSD',
-    'USDCAD': 'FX:USDCAD',
-    'NZDUSD': 'FX:NZDUSD',
-    'EURJPY': 'FX:EURJPY',
-    'GBPJPY': 'FX:GBPJPY',
-    'EURGBP': 'FX:EURGBP',
-    'XAUUSD': 'TVC:GOLD',
-    'XAGUSD': 'TVC:SILVER',
-    'BTCUSD': 'BITSTAMP:BTCUSD',
-    'ETHUSD': 'BITSTAMP:ETHUSD'
-  };
-  
-  // Use mapping if available, otherwise use symbol as-is with FX prefix for forex pairs
-  if (symbolMappings[symbol.toUpperCase()]) {
-    tvSymbol = symbolMappings[symbol.toUpperCase()];
-  } else if (symbol.length === 6 && /^[A-Z]{6}$/.test(symbol)) {
-    // Likely a forex pair, add FX prefix
-    tvSymbol = `FX:${symbol.toUpperCase()}`;
-  } else {
-    tvSymbol = symbol.toUpperCase();
-  }
-  
-  const tradingViewUrl = `https://www.tradingview.com/chart/?symbol=${tvSymbol}`;
-  
-  try {
-    // Use Electron's shell to open the URL in the default browser
-    if (window.electronAPI && window.electronAPI.openExternal) {
-      window.electronAPI.openExternal(tradingViewUrl);
-    } else {
-      // Fallback for development or if electronAPI is not available
-      window.open(tradingViewUrl, '_blank');
-    }
-    
-    console.log(`Opened TradingView for symbol: ${symbol} (${tvSymbol})`);
-    showMessage(`Opened TradingView for ${symbol}`, 'info');
-  } catch (error) {
-    console.error('Error opening TradingView:', error);
-    showMessage('Could not open TradingView', 'error');
-  }
-}
-
 // Position Tabs Management
 function switchPositionsTab(tabName) {
   // Update tab buttons
@@ -969,14 +907,8 @@ async function handleRefreshClosedPositions() {
   }
 }
 
-// Make function globally available
-window.openTradingViewForSymbol = openTradingViewForSymbol;
-
 // Load general settings
 async function loadGeneralSettings() {
-  const openTradingView = window.settingsManager ? window.settingsManager.get('openTradingView') !== false : true;
-  document.getElementById('settingsOpenTradingView').value = openTradingView ? 'true' : 'false';
-  
   // Load simulator mode settings
   await loadSimulatorSettings();
 }
@@ -1191,7 +1123,7 @@ async function handleExecuteTrade() {
     return;
   }
   
-  // Show confirmation dialog and open TradingView
+  // Show confirmation dialog
   showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit);
 }
 
@@ -1206,23 +1138,231 @@ async function handleExecuteTradeWithVolume(symbol, type, volume, stopLoss, take
     return;
   }
   
-  // Show confirmation dialog and open TradingView
+  // Show confirmation dialog
   showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit);
 }
 
 // Store trade data for confirmation
 let pendingTradeData = null;
+let tradeChartInstance = null;
+
+// Function to fetch 3 months of daily data from MT5
+async function fetchThreeMonthDailyData(symbol) {
+  try {
+    if (!window.mt5API || !isConnected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    // Calculate date range: 3 months ago to today
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 3);
+    
+    // Set time to start/end of day for proper date range
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Format dates as ISO strings for MT5 API
+    const startDateStr = startDate.toISOString();
+    const endDateStr = endDate.toISOString();
+
+    console.log(`Fetching 3 months of daily data for ${symbol} from ${startDateStr} to ${endDateStr}`);
+
+    // Fetch historical data with D1 (daily) timeframe
+    const params = {
+      symbol,
+      timeframe: 'D1', // Daily timeframe
+      startDate: startDateStr,
+      endDate: endDateStr,
+      bars: null // No specific bar count, use date range
+    };
+    
+    const result = await window.mt5API.getHistoricalData(params);
+
+    if (result.success && result.data && !result.data.error && result.data.data) {
+      return result.data.data;
+    } else {
+      throw new Error(result.data?.error || 'Failed to fetch historical data');
+    }
+  } catch (error) {
+    console.error('Error fetching 3-month daily data:', error);
+    throw error;
+  }
+}
+
+// Function to plot the 3-month daily chart
+function plotThreeMonthChart(symbol, data) {
+  try {
+    // Destroy existing chart if it exists
+    if (tradeChartInstance) {
+      tradeChartInstance.destroy();
+      tradeChartInstance = null;
+    }
+
+    // Hide loading and error, show chart
+    document.getElementById('chartLoading').style.display = 'none';
+    document.getElementById('chartError').style.display = 'none';
+    const chartCanvas = document.getElementById('tradeChart');
+    chartCanvas.style.display = 'block';
+
+    // Prepare data for Chart.js
+    const labels = data.map(item => {
+      const date = new Date(item.time);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+
+    const closePrices = data.map(item => parseFloat(item.close));
+    const highPrices = data.map(item => parseFloat(item.high));
+    const lowPrices = data.map(item => parseFloat(item.low));
+
+    // Get current price for reference line
+    const currentPrice = closePrices[closePrices.length - 1];
+
+    // Create chart
+    const ctx = chartCanvas.getContext('2d');
+    tradeChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Close Price',
+            data: closePrices,
+            borderColor: '#4CAF50',
+            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.1,
+            pointRadius: 0,
+            pointHoverRadius: 4
+          },
+          {
+            label: 'High',
+            data: highPrices,
+            borderColor: 'rgba(76, 175, 80, 0.3)',
+            borderWidth: 1,
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            borderDash: [5, 5]
+          },
+          {
+            label: 'Low',
+            data: lowPrices,
+            borderColor: 'rgba(244, 67, 54, 0.3)',
+            borderWidth: 1,
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            borderDash: [5, 5]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2.5,
+        plugins: {
+          title: {
+            display: true,
+            text: `${symbol} - 3 Month Daily Chart`,
+            color: '#e0e0e0',
+            font: {
+              size: 16,
+              weight: 'bold'
+            }
+          },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: '#e0e0e0',
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#e0e0e0',
+            bodyColor: '#e0e0e0',
+            borderColor: '#444',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: ${context.parsed.y.toFixed(5)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#888',
+              maxRotation: 45,
+              minRotation: 45,
+              maxTicksLimit: 15
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          },
+          y: {
+            ticks: {
+              color: '#888',
+              callback: function(value) {
+                return value.toFixed(5);
+              }
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          }
+        },
+        interaction: {
+          mode: 'index',
+          intersect: false
+        }
+      }
+    });
+
+    console.log(`Chart plotted successfully with ${data.length} data points`);
+  } catch (error) {
+    console.error('Error plotting chart:', error);
+    document.getElementById('chartLoading').style.display = 'none';
+    document.getElementById('chartError').style.display = 'block';
+    document.getElementById('chartError').textContent = `Failed to plot chart: ${error.message}`;
+    document.getElementById('tradeChart').style.display = 'none';
+  }
+}
+
+// Function to load and display the 3-month chart
+async function loadThreeMonthChart(symbol) {
+  // Show loading state
+  document.getElementById('chartLoading').style.display = 'block';
+  document.getElementById('chartError').style.display = 'none';
+  document.getElementById('tradeChart').style.display = 'none';
+
+  try {
+    const data = await fetchThreeMonthDailyData(symbol);
+    
+    if (data && data.length > 0) {
+      plotThreeMonthChart(symbol, data);
+    } else {
+      throw new Error('No data received');
+    }
+  } catch (error) {
+    console.error('Error loading chart:', error);
+    document.getElementById('chartLoading').style.display = 'none';
+    document.getElementById('chartError').style.display = 'block';
+    document.getElementById('chartError').textContent = `Failed to load chart: ${error.message}`;
+    document.getElementById('tradeChart').style.display = 'none';
+  }
+}
 
 function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) {
   // Store the trade data
   pendingTradeData = { symbol, type, volume, stopLoss, takeProfit };
-  
-  
-  // Open TradingView immediately when showing confirmation
-  openTradingViewForSymbol(symbol);
-  
-  // Show notification about TradingView opening
-  showMessage(`TradingView opened for ${symbol} - Review chart before confirming trade`, 'info');
   
   // Update confirmation modal content
   document.getElementById('confirmTradeSymbol').textContent = symbol;
@@ -1248,11 +1388,25 @@ function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) 
   // Hide trade modal and show confirmation
   hideTradeModal();
   document.getElementById('tradeConfirmationModal').classList.add('show');
+  
+  // Load and display the 3-month daily chart
+  loadThreeMonthChart(symbol);
 }
 
 function hideTradeConfirmationModal() {
   document.getElementById('tradeConfirmationModal').classList.remove('show');
   pendingTradeData = null;
+  
+  // Destroy chart instance when modal is closed
+  if (tradeChartInstance) {
+    tradeChartInstance.destroy();
+    tradeChartInstance = null;
+  }
+  
+  // Reset chart UI elements
+  document.getElementById('chartLoading').style.display = 'block';
+  document.getElementById('chartError').style.display = 'none';
+  document.getElementById('tradeChart').style.display = 'none';
 }
 
 async function confirmTradeExecution() {
@@ -4872,12 +5026,6 @@ async function updateOvertradeStatusInSettings() {
 }
 
 async function saveAllSettings() {
-  // Save general settings
-  const openTradingView = document.getElementById('settingsOpenTradingView').value === 'true';
-  if (window.settingsManager) {
-    await window.settingsManager.set('openTradingView', openTradingView);
-  }
-  
   // Save overtrade settings
   if (window.overtradeControl) {
     window.overtradeControl.settings.enabled = document.getElementById('settingsOvertradeEnabled').value === 'true';
@@ -5142,7 +5290,7 @@ async function loadSettingsFromFile(file) {
     }
     
     // Validate that this is a raw settings format (like app_settings.json)
-    if (!data.volumeControl && !data.overtradeControl && !data.twilio && !data.ai && !data.openTradingView) {
+    if (!data.volumeControl && !data.overtradeControl && !data.twilio && !data.ai) {
       console.error('❌ Invalid settings file format - not recognized as settings file');
       showMessage('Invalid settings file format', 'error');
       

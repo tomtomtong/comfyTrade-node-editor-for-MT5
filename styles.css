@@ -3057,7 +3057,7 @@ ter scrollbar for settings modal */
 }/* Trade
  Confirmation Modal Styles */
 .trade-confirmation-modal {
-  max-width: 450px;
+  max-width: 600px;
   animation: slideDown 0.3s ease-out;
 }
 
@@ -3116,6 +3116,49 @@ ter scrollbar for settings modal */
 .confirmation-notice p:first-child {
   color: #4CAF50;
   font-weight: bold;
+}
+
+/* Chart Container Styles */
+.chart-container-wrapper {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.chart-container-wrapper h3 {
+  color: #64B5F6;
+  font-size: 14px;
+  margin: 0 0 15px 0;
+  padding: 0;
+  border: none;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.chart-loading {
+  color: #888;
+  font-size: 14px;
+  padding: 20px;
+  text-align: center;
+}
+
+.chart-error {
+  color: #f44336;
+  font-size: 14px;
+  padding: 20px;
+  text-align: center;
+  background: rgba(244, 67, 54, 0.1);
+  border-radius: 4px;
+}
+
+#tradeChart {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 400px;
+  background: #1a1a1a;
+  border-radius: 4px;
 }
 
 #tradeConfirmationModal .modal-buttons {

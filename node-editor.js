@@ -1765,12 +1765,6 @@ class NodeEditor {
                 const tradeResult = await window.mt5API.executeOrder(orderData);
 
                 if (tradeResult.success && tradeResult.data.success) {
-
-                  // Open TradingView for the traded symbol
-                  if (window.openTradingViewForSymbol) {
-                    window.openTradingViewForSymbol(node.params.symbol);
-                  }
-
                   if (window.handleRefreshPositions) {
                     window.handleRefreshPositions();
                   }
