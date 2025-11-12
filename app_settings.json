@@ -78,14 +78,14 @@
   },
   "overtradeHistory": [
     {
-      "timestamp": 1762930218864,
+      "timestamp": 1762931482986,
       "type": "manual",
       "data": {
         "symbol": "JP225.cash",
         "type": "BUY",
         "volume": 0.5,
-        "stopLoss": 49551.6449,
-        "takeProfit": 52616.6951,
+        "stopLoss": 0,
+        "takeProfit": 0,
         "action": "executeOrder"
       },
       "action": "executeOrder",

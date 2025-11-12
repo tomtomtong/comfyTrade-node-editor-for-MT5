@@ -3091,6 +3091,29 @@ ter scrollbar for settings modal */
   font-weight: bold;
 }
 
+.confirmation-item .confirmation-input {
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: #fff;
+  font-weight: bold;
+  font-size: 14px;
+  width: 150px;
+  text-align: right;
+}
+
+.confirmation-item .confirmation-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  background: #333;
+}
+
+.confirmation-item .confirmation-input::placeholder {
+  color: #888;
+  font-weight: normal;
+}
+
 .confirmation-item .trade-type {
   padding: 4px 12px;
   border-radius: 4px;

@@ -252,7 +252,7 @@ function setupEventListeners() {
   document.getElementById('tradeVolume').addEventListener('input', calculateVolumeLoss);
   document.getElementById('tradeType').addEventListener('change', () => {
     calculateVolumeLoss();
-    setDefaultStopLossTakeProfit();
+    // Note: TP/SL are now required - no default values are set when trade type changes
   });
   
   // Volume loss reminder modal
@@ -457,22 +457,13 @@ function showTradeModal() {
   
   document.getElementById('tradeModal').classList.add('show');
   
-  // Clear stop loss and take profit fields for new trade
-  const stopLossInput = document.getElementById('tradeStopLoss');
-  const takeProfitInput = document.getElementById('tradeTakeProfit');
-  if (stopLossInput) stopLossInput.value = '';
-  if (takeProfitInput) takeProfitInput.value = '';
-  
-  // Show the SL/TP reminder
-  showSlTpReminder();
-  
   // Update current price if symbol is already selected
   const currentSymbol = symbolInput ? symbolInput.getValue() : '';
   if (currentSymbol && currentSymbol.length >= 6) {
     updateCurrentPrice(currentSymbol);
     // Also set default volume for already selected symbol
     setDefaultVolumeForSymbol(currentSymbol);
-    // setDefaultStopLossTakeProfit will be called automatically when price updates
+    // Note: TP/SL are now required - no default values will be set
   }
   
   // Note: Removed automatic volume loss calculation to prevent immediate popup
@@ -636,7 +627,7 @@ function initializeSymbolInput() {
       
       // Set default volume from volume limit configuration
       setDefaultVolumeForSymbol(symbol);
-      // setDefaultStopLossTakeProfit will be called automatically when price updates
+      // Note: TP/SL are now required - no default values are set when price updates
     },
     onSymbolChange: (symbol) => {
       // Update market data display if needed
@@ -713,10 +704,8 @@ async function updateCurrentPrice(symbol) {
       const now = new Date();
       document.getElementById('priceUpdateTime').textContent = now.toLocaleTimeString();
       
-      // Set default stop loss and take profit values (3% from current price)
-      // Pass prices directly to avoid timing issues with DOM updates
-      // Force update when symbol changes to ensure stop loss/take profit are updated
-      setDefaultStopLossTakeProfit(data.bid, data.ask, true);
+      // Note: TP/SL are now required fields - no default values are set
+      // Users must manually enter both Stop Loss and Take Profit before executing trade
       
       // Start auto-refresh if not already running
       startPriceAutoRefresh(symbol);
@@ -1164,8 +1153,9 @@ async function handleExecuteTrade() {
   const symbol = symbolInput.getValue();
   const type = document.getElementById('tradeType').value;
   const volume = parseFloat(document.getElementById('tradeVolume').value);
-  const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value) || 0;
-  const takeProfit = parseFloat(document.getElementById('tradeTakeProfit').value) || 0;
+  // Stop Loss and Take Profit are now set in the confirmation modal, not here
+  const stopLoss = 0;
+  const takeProfit = 0;
   
   
   if (!symbol) {
@@ -1177,6 +1167,8 @@ async function handleExecuteTrade() {
     showMessage('Please enter a valid volume', 'error');
     return;
   }
+  
+  // Note: TP/SL are set in the confirmation modal, not in the initial trade modal
 
   // Check volume control before proceeding
   if (window.volumeControl && window.volumeControl.settings.enabled) {
@@ -1544,8 +1536,12 @@ function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) 
   }
   
   document.getElementById('confirmTradeVolume').textContent = volume;
-  document.getElementById('confirmTradeStopLoss').textContent = stopLoss || 'None';
-  document.getElementById('confirmTradeTakeProfit').textContent = takeProfit || 'None';
+  // Set input values for Stop Loss and Take Profit (editable in confirmation modal)
+  // Use values from initial modal if provided, otherwise leave empty for user to enter
+  const confirmStopLossInput = document.getElementById('confirmTradeStopLoss');
+  const confirmTakeProfitInput = document.getElementById('confirmTradeTakeProfit');
+  if (confirmStopLossInput) confirmStopLossInput.value = (stopLoss && stopLoss > 0) ? stopLoss : '';
+  if (confirmTakeProfitInput) confirmTakeProfitInput.value = (takeProfit && takeProfit > 0) ? takeProfit : '';
   
   // Hide trade modal and show confirmation
   hideTradeModal();
@@ -1580,8 +1576,28 @@ async function confirmTradeExecution() {
     return;
   }
   
-  // Store the data before hiding modal (in case hideTradeConfirmationModal clears it)
-  const tradeDataToExecute = { ...pendingTradeData };
+  // Read Stop Loss and Take Profit from confirmation modal input fields
+  const confirmStopLossInput = document.getElementById('confirmTradeStopLoss').value.trim();
+  const confirmTakeProfitInput = document.getElementById('confirmTradeTakeProfit').value.trim();
+  const stopLoss = parseFloat(confirmStopLossInput);
+  const takeProfit = parseFloat(confirmTakeProfitInput);
+  
+  // Validate that both Stop Loss and Take Profit are entered
+  if (!confirmStopLossInput || confirmStopLossInput === '' || isNaN(stopLoss) || stopLoss <= 0) {
+    showMessage('Please enter a valid Stop Loss before executing the trade', 'error');
+    document.getElementById('confirmTradeStopLoss').focus();
+    return;
+  }
+  
+  if (!confirmTakeProfitInput || confirmTakeProfitInput === '' || isNaN(takeProfit) || takeProfit <= 0) {
+    showMessage('Please enter a valid Take Profit before executing the trade', 'error');
+    document.getElementById('confirmTradeTakeProfit').focus();
+    return;
+  }
+  
+  // Update pendingTradeData with the values from confirmation modal
+  const { symbol, type, volume } = pendingTradeData;
+  const tradeDataToExecute = { symbol, type, volume, stopLoss, takeProfit };
   
   // Save chart image BEFORE hiding modal (which destroys the chart)
   let savedChartImageData = null;
@@ -1596,7 +1612,6 @@ async function confirmTradeExecution() {
   hideTradeConfirmationModal();
   
   // Check overtrade control again before executing (conditions may have changed)
-  const { symbol, type, volume, stopLoss, takeProfit } = tradeDataToExecute;
   const tradeData = { symbol, type, volume, stopLoss, takeProfit, action: 'executeOrder' };
   const shouldProceed = await window.overtradeControl.checkBeforeTrade('manual', tradeData);
   
