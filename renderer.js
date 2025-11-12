@@ -5479,6 +5479,10 @@ async function showSettingsModal() {
   document.getElementById('settingsSimulatorMode').onchange = async (e) => {
     const enabled = e.target.value === 'true';
     await toggleSimulatorMode(enabled);
+    // Reload overtrade settings to show the correct mode's settings
+    if (window.overtradeControl) {
+      loadOvertradeSettings();
+    }
   };
   document.getElementById('resetSimulatorBtn').onclick = resetSimulator;
   
@@ -5658,6 +5662,11 @@ function switchSettingsTab(tabName) {
     tab.classList.remove('active');
   });
   document.getElementById(`${tabName}Tab`).classList.add('active');
+  
+  // Reload overtrade settings when overtrade control tab is opened
+  if (tabName === 'overtradeControl' && window.overtradeControl) {
+    loadOvertradeSettings();
+  }
 }
 
 // Make switchSettingsTab available globally
@@ -5666,9 +5675,10 @@ window.switchSettingsTab = switchSettingsTab;
 function loadOvertradeSettings() {
   if (!window.overtradeControl) return;
   
-  const settings = window.overtradeControl.settings;
+  const settings = window.overtradeControl.getCurrentSettings();
+  const isSimulator = window.overtradeControl.isSimulatorModeSync();
   
-  // Populate form with current settings
+  // Populate form with current settings (based on current mode)
   document.getElementById('settingsOvertradeEnabled').value = settings.enabled.toString();
   document.getElementById('settingsMaxTrades').value = settings.maxTrades;
   document.getElementById('settingsTimePeriod').value = settings.timePeriod;
@@ -5679,38 +5689,51 @@ function loadOvertradeSettings() {
   document.getElementById('settingsApplyToOpenPositions').checked = settings.applyToOpenPositions;
   document.getElementById('settingsApplyToClosePositions').checked = settings.applyToClosePositions;
   
+  // Update UI to show which mode is active
+  const modeIndicator = document.getElementById('overtradeModeIndicator');
+  if (modeIndicator) {
+    modeIndicator.textContent = `Current Mode: ${isSimulator ? 'Simulator' : 'Real Trading'}`;
+    modeIndicator.style.color = isSimulator ? '#ffa500' : '#4CAF50';
+  }
+  
   updateOvertradeStatusInSettings();
 }
 
 async function updateOvertradeStatusInSettings() {
   if (!window.overtradeControl) return;
   
-  const currentOpenPositions = await window.overtradeControl.getCurrentOpenPositions();
-  const remaining = Math.max(0, window.overtradeControl.settings.maxTrades - currentOpenPositions);
-  const lastWarning = window.overtradeControl.lastWarningTime ? 
-    new Date(window.overtradeControl.lastWarningTime).toLocaleString() : 'Never';
+  const currentPeriodTrades = window.overtradeControl.getCurrentPeriodTrades();
+  const settings = window.overtradeControl.getCurrentSettings();
+  const remaining = Math.max(0, settings.maxTrades - currentPeriodTrades);
+  const lastWarning = window.overtradeControl.getCurrentLastWarningTime();
+  const lastWarningStr = lastWarning ? new Date(lastWarning).toLocaleString() : 'Never';
+  const nextReset = window.overtradeControl.getNextResetTime();
   
-  document.getElementById('settingsCurrentTradeCount').textContent = currentOpenPositions;
+  document.getElementById('settingsCurrentTradeCount').textContent = currentPeriodTrades;
   document.getElementById('settingsRemainingTrades').textContent = remaining;
-  document.getElementById('settingsNextReset').textContent = 'When positions close';
-  document.getElementById('settingsLastWarning').textContent = lastWarning;
+  document.getElementById('settingsNextReset').textContent = nextReset;
+  document.getElementById('settingsLastWarning').textContent = lastWarningStr;
 }
 
 async function saveAllSettings() {
-  // Save overtrade settings
+  // Save overtrade settings (saves to current mode)
   if (window.overtradeControl) {
-    window.overtradeControl.settings.enabled = document.getElementById('settingsOvertradeEnabled').value === 'true';
-    window.overtradeControl.settings.maxTrades = parseInt(document.getElementById('settingsMaxTrades').value);
-    window.overtradeControl.settings.timePeriod = document.getElementById('settingsTimePeriod').value;
-    window.overtradeControl.settings.reminderFrequency = document.getElementById('settingsReminderFrequency').value;
-    window.overtradeControl.settings.applyToManual = document.getElementById('settingsApplyToManual').checked;
-    window.overtradeControl.settings.applyToStrategy = document.getElementById('settingsApplyToStrategy').checked;
-    window.overtradeControl.settings.applyToNodes = document.getElementById('settingsApplyToNodes').checked;
-    window.overtradeControl.settings.applyToOpenPositions = document.getElementById('settingsApplyToOpenPositions').checked;
-    window.overtradeControl.settings.applyToClosePositions = document.getElementById('settingsApplyToClosePositions').checked;
+    const settings = window.overtradeControl.getCurrentSettings();
+    settings.enabled = document.getElementById('settingsOvertradeEnabled').value === 'true';
+    settings.maxTrades = parseInt(document.getElementById('settingsMaxTrades').value);
+    settings.timePeriod = document.getElementById('settingsTimePeriod').value;
+    settings.reminderFrequency = document.getElementById('settingsReminderFrequency').value;
+    settings.applyToManual = document.getElementById('settingsApplyToManual').checked;
+    settings.applyToStrategy = document.getElementById('settingsApplyToStrategy').checked;
+    settings.applyToNodes = document.getElementById('settingsApplyToNodes').checked;
+    settings.applyToOpenPositions = document.getElementById('settingsApplyToOpenPositions').checked;
+    settings.applyToClosePositions = document.getElementById('settingsApplyToClosePositions').checked;
     
     window.overtradeControl.saveSettings();
     await window.overtradeControl.updateStatusDisplay();
+    
+    const mode = window.overtradeControl.isSimulatorModeSync() ? 'simulator' : 'real trading';
+    console.log(`Overtrade settings saved for ${mode} mode`);
   }
   
   // Save volume control settings

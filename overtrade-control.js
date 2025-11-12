@@ -1,7 +1,9 @@
 // Overtrade Control System - Reminder-based (non-blocking)
+// Now supports separate controls for real trading and simulator
 class OvertradeControl {
   constructor() {
-    this.settings = {
+    // Default settings for real trading
+    const defaultRealSettings = {
       enabled: true,
       maxTrades: 5,
       timePeriod: 'hour', // minute, hour, day, week
@@ -13,9 +15,33 @@ class OvertradeControl {
       applyToClosePositions: false
     };
     
-    this.tradeHistory = [];
-    this.lastWarningTime = null;
-    this.warningCount = 0;
+    // Default settings for simulator (can have different limits)
+    const defaultSimulatorSettings = {
+      enabled: true,
+      maxTrades: 10, // Higher limit for simulator
+      timePeriod: 'hour',
+      reminderFrequency: 'first',
+      applyToManual: true,
+      applyToStrategy: true,
+      applyToNodes: true,
+      applyToOpenPositions: true,
+      applyToClosePositions: false
+    };
+    
+    // Separate settings for real and simulator
+    this.settingsReal = { ...defaultRealSettings };
+    this.settingsSimulator = { ...defaultSimulatorSettings };
+    
+    // Separate trade history for real and simulator
+    this.tradeHistoryReal = [];
+    this.tradeHistorySimulator = [];
+    
+    // Separate warning tracking
+    this.lastWarningTimeReal = null;
+    this.lastWarningTimeSimulator = null;
+    this.warningCountReal = 0;
+    this.warningCountSimulator = 0;
+    
     this.cachedOpenPositionsCount = 0;
     
     // Don't load settings here - wait for settings manager to be ready
@@ -23,29 +49,135 @@ class OvertradeControl {
     this.setupEventListeners();
     this.startPeriodicCleanup();
   }
+  
+  // Get current settings based on mode
+  getCurrentSettings() {
+    return this.isSimulatorModeSync() ? this.settingsSimulator : this.settingsReal;
+  }
+  
+  // Get current trade history based on mode
+  getCurrentTradeHistory() {
+    return this.isSimulatorModeSync() ? this.tradeHistorySimulator : this.tradeHistoryReal;
+  }
+  
+  // Set current trade history based on mode
+  setCurrentTradeHistory(history) {
+    if (this.isSimulatorModeSync()) {
+      this.tradeHistorySimulator = history;
+    } else {
+      this.tradeHistoryReal = history;
+    }
+  }
+  
+  // Get current warning time based on mode
+  getCurrentLastWarningTime() {
+    return this.isSimulatorModeSync() ? this.lastWarningTimeSimulator : this.lastWarningTimeReal;
+  }
+  
+  // Set current warning time based on mode
+  setCurrentLastWarningTime(time) {
+    if (this.isSimulatorModeSync()) {
+      this.lastWarningTimeSimulator = time;
+    } else {
+      this.lastWarningTimeReal = time;
+    }
+  }
+  
+  // Get current warning count based on mode
+  getCurrentWarningCount() {
+    return this.isSimulatorModeSync() ? this.warningCountSimulator : this.warningCountReal;
+  }
+  
+  // Set current warning count based on mode
+  setCurrentWarningCount(count) {
+    if (this.isSimulatorModeSync()) {
+      this.warningCountSimulator = count;
+    } else {
+      this.warningCountReal = count;
+    }
+  }
+  
+  // Synchronous check for simulator mode (for internal use)
+  isSimulatorModeSync() {
+    // Try to get from cached settings first
+    if (window.settingsManager && window.settingsManager.settings) {
+      return window.settingsManager.settings.simulatorMode === true;
+    }
+    return false;
+  }
 
   loadSettings() {
     try {
       if (window.settingsManager && window.settingsManager.settings) {
-        const saved = window.settingsManager.get('overtradeControl');
-        if (saved) {
-          this.settings = { ...this.settings, ...saved };
+        // Load real trading settings
+        const savedReal = window.settingsManager.get('overtradeControlReal');
+        if (savedReal) {
+          this.settingsReal = { ...this.settingsReal, ...savedReal };
+        } else {
+          // Migrate old settings to real if they exist
+          const saved = window.settingsManager.get('overtradeControl');
+          if (saved) {
+            this.settingsReal = { ...this.settingsReal, ...saved };
+          }
         }
         
-        const history = window.settingsManager.get('overtradeHistory');
-        if (history) {
-          this.tradeHistory = history;
-          this.cleanupOldTrades();
+        // Load simulator settings
+        const savedSimulator = window.settingsManager.get('overtradeControlSimulator');
+        if (savedSimulator) {
+          this.settingsSimulator = { ...this.settingsSimulator, ...savedSimulator };
         }
         
-        const lastWarning = window.settingsManager.get('overtradeLastWarning');
-        if (lastWarning) {
-          this.lastWarningTime = lastWarning;
+        // Load real trading history
+        const historyReal = window.settingsManager.get('overtradeHistoryReal');
+        if (historyReal) {
+          this.tradeHistoryReal = historyReal;
+        } else {
+          // Migrate old history to real if it exists
+          const history = window.settingsManager.get('overtradeHistory');
+          if (history) {
+            this.tradeHistoryReal = history;
+          }
+        }
+        this.cleanupOldTrades();
+        
+        // Load simulator history
+        const historySimulator = window.settingsManager.get('overtradeHistorySimulator');
+        if (historySimulator) {
+          this.tradeHistorySimulator = historySimulator;
         }
         
-        const warningCount = window.settingsManager.get('overtradeWarningCount');
-        if (warningCount) {
-          this.warningCount = warningCount;
+        // Load real warning data
+        const lastWarningReal = window.settingsManager.get('overtradeLastWarningReal');
+        if (lastWarningReal) {
+          this.lastWarningTimeReal = lastWarningReal;
+        } else {
+          // Migrate old warning time to real if it exists
+          const lastWarning = window.settingsManager.get('overtradeLastWarning');
+          if (lastWarning) {
+            this.lastWarningTimeReal = lastWarning;
+          }
+        }
+        
+        const warningCountReal = window.settingsManager.get('overtradeWarningCountReal');
+        if (warningCountReal !== undefined) {
+          this.warningCountReal = warningCountReal;
+        } else {
+          // Migrate old warning count to real if it exists
+          const warningCount = window.settingsManager.get('overtradeWarningCount');
+          if (warningCount !== undefined) {
+            this.warningCountReal = warningCount;
+          }
+        }
+        
+        // Load simulator warning data
+        const lastWarningSimulator = window.settingsManager.get('overtradeLastWarningSimulator');
+        if (lastWarningSimulator) {
+          this.lastWarningTimeSimulator = lastWarningSimulator;
+        }
+        
+        const warningCountSimulator = window.settingsManager.get('overtradeWarningCountSimulator');
+        if (warningCountSimulator !== undefined) {
+          this.warningCountSimulator = warningCountSimulator;
         }
         
         this.settingsLoaded = true;
@@ -55,10 +187,17 @@ class OvertradeControl {
         return;
       }
       
+      const currentSettings = this.getCurrentSettings();
+      const currentHistory = this.getCurrentTradeHistory();
+      const currentWarning = this.getCurrentLastWarningTime();
+      
       console.log('Overtrade control loaded:', {
-        settings: this.settings,
-        tradeCount: this.tradeHistory.length,
-        lastWarning: this.lastWarningTime ? new Date(this.lastWarningTime).toLocaleString() : 'Never'
+        mode: this.isSimulatorModeSync() ? 'simulator' : 'real',
+        settings: currentSettings,
+        tradeCount: currentHistory.length,
+        lastWarning: currentWarning ? new Date(currentWarning).toLocaleString() : 'Never',
+        realTradeCount: this.tradeHistoryReal.length,
+        simulatorTradeCount: this.tradeHistorySimulator.length
       });
     } catch (error) {
       console.error('Error loading overtrade settings:', error);
@@ -69,15 +208,25 @@ class OvertradeControl {
     try {
       if (window.settingsManager) {
         await window.settingsManager.update({
-          'overtradeControl': this.settings,
-          'overtradeHistory': this.tradeHistory,
-          'overtradeLastWarning': this.lastWarningTime || 0,
-          'overtradeWarningCount': this.warningCount
+          'overtradeControlReal': this.settingsReal,
+          'overtradeControlSimulator': this.settingsSimulator,
+          'overtradeHistoryReal': this.tradeHistoryReal,
+          'overtradeHistorySimulator': this.tradeHistorySimulator,
+          'overtradeLastWarningReal': this.lastWarningTimeReal || 0,
+          'overtradeLastWarningSimulator': this.lastWarningTimeSimulator || 0,
+          'overtradeWarningCountReal': this.warningCountReal,
+          'overtradeWarningCountSimulator': this.warningCountSimulator
         });
         
+        const currentSettings = this.getCurrentSettings();
+        const currentHistory = this.getCurrentTradeHistory();
+        
         console.log('Overtrade data saved:', {
-          tradeCount: this.tradeHistory.length,
-          settings: this.settings
+          mode: this.isSimulatorModeSync() ? 'simulator' : 'real',
+          tradeCount: currentHistory.length,
+          settings: currentSettings,
+          realTradeCount: this.tradeHistoryReal.length,
+          simulatorTradeCount: this.tradeHistorySimulator.length
         });
       }
     } catch (error) {
@@ -99,18 +248,40 @@ class OvertradeControl {
       day: 24 * 60 * 60 * 1000,
       week: 7 * 24 * 60 * 60 * 1000
     };
-    return periods[this.settings.timePeriod] || periods.hour;
+    const settings = this.getCurrentSettings();
+    return periods[settings.timePeriod] || periods.hour;
   }
 
   cleanupOldTrades() {
     const cutoffTime = Date.now() - this.getTimePeriodMs();
-    this.tradeHistory = this.tradeHistory.filter(trade => trade.timestamp > cutoffTime);
+    const history = this.getCurrentTradeHistory();
+    const cleaned = history.filter(trade => trade.timestamp > cutoffTime);
+    this.setCurrentTradeHistory(cleaned);
+    
+    // Also cleanup the other mode's history
+    const otherCutoffTime = Date.now() - this.getTimePeriodMsForMode(!this.isSimulatorModeSync());
+    if (this.isSimulatorModeSync()) {
+      this.tradeHistoryReal = this.tradeHistoryReal.filter(trade => trade.timestamp > otherCutoffTime);
+    } else {
+      this.tradeHistorySimulator = this.tradeHistorySimulator.filter(trade => trade.timestamp > otherCutoffTime);
+    }
+  }
+  
+  getTimePeriodMsForMode(isSimulator) {
+    const periods = {
+      minute: 60 * 1000,
+      hour: 60 * 60 * 1000,
+      day: 24 * 60 * 60 * 1000,
+      week: 7 * 24 * 60 * 60 * 1000
+    };
+    const settings = isSimulator ? this.settingsSimulator : this.settingsReal;
+    return periods[settings.timePeriod] || periods.hour;
   }
 
   getCurrentPeriodTrades() {
     // Count trades within the current time period
     this.cleanupOldTrades();
-    return this.tradeHistory.length;
+    return this.getCurrentTradeHistory().length;
   }
 
   async getCurrentOpenPositions() {
@@ -166,18 +337,14 @@ class OvertradeControl {
   }
 
   async shouldShowReminder(tradeType, tradeData = {}) {
-    if (!this.settings.enabled) return false;
-    
-    // Don't show reminders in simulator mode
-    if (await this.isSimulatorMode()) {
-      return false;
-    }
+    const settings = this.getCurrentSettings();
+    if (!settings.enabled) return false;
     
     // Check if this trade type should trigger reminders
     const typeMap = {
-      manual: this.settings.applyToManual,
-      strategy: this.settings.applyToStrategy,
-      node: this.settings.applyToNodes
+      manual: settings.applyToManual,
+      strategy: settings.applyToStrategy,
+      node: settings.applyToNodes
     };
     
     if (!typeMap[tradeType]) return false;
@@ -186,51 +353,50 @@ class OvertradeControl {
     const isOpenPosition = this.isNewPositionTrade(tradeData);
     const isClosePosition = this.isClosePositionTrade(tradeData);
     
-    if (isOpenPosition && !this.settings.applyToOpenPositions) return false;
-    if (isClosePosition && !this.settings.applyToClosePositions) return false;
+    if (isOpenPosition && !settings.applyToOpenPositions) return false;
+    if (isClosePosition && !settings.applyToClosePositions) return false;
     
     // Get current period trade count
     const currentPeriodTrades = this.getCurrentPeriodTrades();
     
     // Check if we've reached the threshold
-    if (currentPeriodTrades < this.settings.maxTrades) return false;
+    if (currentPeriodTrades < settings.maxTrades) return false;
     
     // Check reminder frequency
-    switch (this.settings.reminderFrequency) {
+    const lastWarning = this.getCurrentLastWarningTime();
+    switch (settings.reminderFrequency) {
       case 'every':
         return true;
       case 'first':
-        return !this.lastWarningTime || (Date.now() - this.lastWarningTime) > this.getTimePeriodMs();
+        return !lastWarning || (Date.now() - lastWarning) > this.getTimePeriodMs();
       case 'periodic':
-        return (currentPeriodTrades - this.settings.maxTrades) % 3 === 0;
+        return (currentPeriodTrades - settings.maxTrades) % 3 === 0;
       default:
         return true;
     }
   }
 
   async recordTrade(tradeType, tradeData = {}) {
-    // Don't record trades in simulator mode
-    if (await this.isSimulatorMode()) {
-      console.log('Trade not recorded - simulator mode is enabled');
-      return;
-    }
+    const settings = this.getCurrentSettings();
+    const history = this.getCurrentTradeHistory();
     
     // Record trades based on settings - can include both open and close positions
     const isOpenPosition = this.isNewPositionTrade(tradeData);
     const isClosePosition = this.isClosePositionTrade(tradeData);
     
     // Check if we should record this type of trade
-    const shouldRecord = (isOpenPosition && this.settings.applyToOpenPositions) || 
-                        (isClosePosition && this.settings.applyToClosePositions);
+    const shouldRecord = (isOpenPosition && settings.applyToOpenPositions) || 
+                        (isClosePosition && settings.applyToClosePositions);
     
     if (!shouldRecord) {
       console.log('Trade not recorded - type not tracked:', {
+        mode: this.isSimulatorModeSync() ? 'simulator' : 'real',
         type: tradeType,
         action: tradeData.action || 'unknown',
         isOpen: isOpenPosition,
         isClose: isClosePosition,
-        trackOpen: this.settings.applyToOpenPositions,
-        trackClose: this.settings.applyToClosePositions
+        trackOpen: settings.applyToOpenPositions,
+        trackClose: settings.applyToClosePositions
       });
       return;
     }
@@ -243,7 +409,8 @@ class OvertradeControl {
       positionType: isOpenPosition ? 'open' : 'close'
     };
     
-    this.tradeHistory.push(trade);
+    history.push(trade);
+    this.setCurrentTradeHistory(history);
     
     // Save immediately after recording trade
     this.saveSettings();
@@ -252,10 +419,11 @@ class OvertradeControl {
     this.updateStatusDisplay();
     
     console.log('Trade recorded:', {
+      mode: this.isSimulatorModeSync() ? 'simulator' : 'real',
       type: tradeType,
       action: trade.action,
       positionType: trade.positionType,
-      totalTrades: this.tradeHistory.length,
+      totalTrades: history.length,
       currentPeriodTrades: this.getCurrentPeriodTrades()
     });
   }
@@ -298,14 +466,15 @@ class OvertradeControl {
 
   async checkAndShowReminder(tradeType, tradeData = {}) {
     return new Promise(async (resolve) => {
-      // Skip overtrade control in simulator mode
-      if (await this.isSimulatorMode()) {
-        console.log('Overtrade control skipped - simulator mode is enabled');
+      const settings = this.getCurrentSettings();
+      
+      // Check if overtrade control is enabled for current mode
+      if (!settings.enabled) {
         resolve(true);
         return;
       }
       
-      const shouldShow = await this.shouldShowReminder(tradeType);
+      const shouldShow = await this.shouldShowReminder(tradeType, tradeData);
       if (shouldShow) {
         this.pendingTradeResolve = resolve;
         this.pendingTradeData = { type: tradeType, data: tradeData };
@@ -338,7 +507,8 @@ class OvertradeControl {
 
   async showWarningModal() {
     const currentPeriodTrades = this.getCurrentPeriodTrades();
-    const periodName = this.settings.timePeriod;
+    const settings = this.getCurrentSettings();
+    const periodName = settings.timePeriod;
     const nextReset = this.getNextResetTime();
     
     // Show immediate popup notification
@@ -358,24 +528,27 @@ class OvertradeControl {
     this.updatePersistentPanel(currentPeriodTrades);
     
     // Show message notification for immediate feedback
-    const periodName = this.settings.timePeriod;
-    const alertMessage = `⚠️ Overtrade Alert: ${currentPeriodTrades} trades this ${periodName}!`;
+    const settings = this.getCurrentSettings();
+    const periodName = settings.timePeriod;
+    const mode = this.isSimulatorModeSync() ? 'Simulator' : 'Real Trading';
+    const alertMessage = `⚠️ Overtrade Alert (${mode}): ${currentPeriodTrades} trades this ${periodName}!`;
     
     if (typeof showMessage === 'function') {
       showMessage(alertMessage, 'error');
       
       // Show additional popup after a short delay for emphasis
       setTimeout(() => {
-        showMessage(`Trades: ${currentPeriodTrades}/${this.settings.maxTrades} limit this ${periodName}`, 'warning');
+        showMessage(`Trades: ${currentPeriodTrades}/${settings.maxTrades} limit this ${periodName}`, 'warning');
       }, 3500);
     }
     
     // Also log to console for debugging
     console.warn('Trade limit exceeded:', {
+      mode: this.isSimulatorModeSync() ? 'simulator' : 'real',
       currentPeriodTrades: currentPeriodTrades,
-      threshold: this.settings.maxTrades,
+      threshold: settings.maxTrades,
       period: periodName,
-      message: `${currentPeriodTrades} trades exceed limit of ${this.settings.maxTrades} for this ${periodName}`
+      message: `${currentPeriodTrades} trades exceed limit of ${settings.maxTrades} for this ${periodName}`
     });
   }
 
@@ -386,8 +559,8 @@ class OvertradeControl {
   }
 
   async proceedWithTrade() {
-    this.lastWarningTime = Date.now();
-    this.warningCount++;
+    this.setCurrentLastWarningTime(Date.now());
+    this.setCurrentWarningCount(this.getCurrentWarningCount() + 1);
     
     // Record the trade
     if (this.pendingTradeData) {
@@ -417,10 +590,12 @@ class OvertradeControl {
   }
 
   async disableReminders() {
-    this.settings.enabled = false;
+    const settings = this.getCurrentSettings();
+    settings.enabled = false;
     this.saveSettings();
     await this.proceedWithTrade();
-    showMessage('Overtrade reminders disabled', 'info');
+    const mode = this.isSimulatorModeSync() ? 'simulator' : 'real trading';
+    showMessage(`Overtrade reminders disabled for ${mode}`, 'info');
   }
 
   saveConfig() {
@@ -429,9 +604,10 @@ class OvertradeControl {
   }
 
   getNextResetTime() {
-    if (this.tradeHistory.length === 0) return 'No trades recorded';
+    const history = this.getCurrentTradeHistory();
+    if (history.length === 0) return 'No trades recorded';
     
-    const oldestTrade = Math.min(...this.tradeHistory.map(t => t.timestamp));
+    const oldestTrade = Math.min(...history.map(t => t.timestamp));
     const resetTime = oldestTrade + this.getTimePeriodMs();
     const now = Date.now();
     
@@ -446,26 +622,30 @@ class OvertradeControl {
   }
 
   getPeriodStartTime() {
-    if (this.tradeHistory.length === 0) return 'No trades';
+    const history = this.getCurrentTradeHistory();
+    if (history.length === 0) return 'No trades';
     
-    const oldestTrade = Math.min(...this.tradeHistory.map(t => t.timestamp));
+    const oldestTrade = Math.min(...history.map(t => t.timestamp));
     return new Date(oldestTrade).toLocaleString();
   }
 
   async resetTradeCount() {
-    this.tradeHistory = [];
-    this.lastWarningTime = null;
-    this.warningCount = 0;
+    this.setCurrentTradeHistory([]);
+    this.setCurrentLastWarningTime(null);
+    this.setCurrentWarningCount(0);
     this.cachedOpenPositionsCount = 0;
     this.saveSettings();
     await this.updateStatusDisplay();
-    showMessage('Trade count reset', 'info');
+    const mode = this.isSimulatorModeSync() ? 'simulator' : 'real trading';
+    showMessage(`Trade count reset for ${mode}`, 'info');
   }
 
   async updateStatusDisplay() {
     const currentPeriodTrades = this.getCurrentPeriodTrades();
-    const remaining = Math.max(0, this.settings.maxTrades - currentPeriodTrades);
-    const lastWarning = this.lastWarningTime ? new Date(this.lastWarningTime).toLocaleString() : 'Never';
+    const settings = this.getCurrentSettings();
+    const remaining = Math.max(0, settings.maxTrades - currentPeriodTrades);
+    const lastWarning = this.getCurrentLastWarningTime();
+    const lastWarningStr = lastWarning ? new Date(lastWarning).toLocaleString() : 'Never';
     const nextReset = this.getNextResetTime();
     
     // Update settings modal display if elements exist
@@ -477,7 +657,7 @@ class OvertradeControl {
     if (settingsCurrentTradeCountEl) settingsCurrentTradeCountEl.textContent = currentPeriodTrades;
     if (settingsRemainingTradesEl) settingsRemainingTradesEl.textContent = remaining;
     if (settingsNextResetEl) settingsNextResetEl.textContent = nextReset;
-    if (settingsLastWarningEl) settingsLastWarningEl.textContent = lastWarning;
+    if (settingsLastWarningEl) settingsLastWarningEl.textContent = lastWarningStr;
     
     // Update persistent panel
     this.updatePersistentPanel(currentPeriodTrades);
@@ -487,7 +667,8 @@ class OvertradeControl {
   }
 
   updatePersistentPanel(currentPeriodTrades) {
-    if (!this.settings.enabled) {
+    const settings = this.getCurrentSettings();
+    if (!settings.enabled) {
       // Hide the panel if overtrade control is disabled
       const panel = document.getElementById('overtradeReminderPanel');
       if (panel) panel.style.display = 'none';
@@ -510,16 +691,17 @@ class OvertradeControl {
     panel.style.display = 'block';
 
     // Update basic info
+    const mode = this.isSimulatorModeSync() ? 'Simulator' : 'Real';
     if (countEl) countEl.textContent = currentPeriodTrades;
-    if (limitEl) limitEl.textContent = this.settings.maxTrades;
-    if (periodEl) periodEl.textContent = `this ${this.settings.timePeriod}`;
+    if (limitEl) limitEl.textContent = settings.maxTrades;
+    if (periodEl) periodEl.textContent = `this ${settings.timePeriod} (${mode})`;
     if (resetEl) {
       resetEl.textContent = this.getNextResetTime();
     }
 
     // Determine status level
-    const isOverLimit = currentPeriodTrades >= this.settings.maxTrades;
-    const isNearLimit = currentPeriodTrades >= this.settings.maxTrades * 0.8;
+    const isOverLimit = currentPeriodTrades >= settings.maxTrades;
+    const isNearLimit = currentPeriodTrades >= settings.maxTrades * 0.8;
 
     // Reset all classes
     panel.classList.remove('warning', 'danger');
@@ -537,7 +719,7 @@ class OvertradeControl {
       if (countEl) countEl.classList.add('danger');
       
       if (icon) icon.textContent = '🚨';
-      if (text) text.textContent = `TRADE LIMIT EXCEEDED THIS ${this.settings.timePeriod.toUpperCase()}!`;
+      if (text) text.textContent = `TRADE LIMIT EXCEEDED THIS ${settings.timePeriod.toUpperCase()}! (${mode})`;
       if (messageEl) messageEl.style.display = 'flex';
     } else if (isNearLimit) {
       // Warning state - near limit
@@ -548,12 +730,12 @@ class OvertradeControl {
       if (countEl) countEl.classList.add('warning');
       
       if (icon) icon.textContent = '⚠️';
-      if (text) text.textContent = `Approaching Trade Limit This ${this.settings.timePeriod}`;
+      if (text) text.textContent = `Approaching Trade Limit This ${settings.timePeriod} (${mode})`;
       if (messageEl) messageEl.style.display = 'none';
     } else {
       // Safe state
       if (icon) icon.textContent = '✅';
-      if (text) text.textContent = `Safe - Trades This ${this.settings.timePeriod}`;
+      if (text) text.textContent = `Safe - Trades This ${settings.timePeriod} (${mode})`;
       if (messageEl) messageEl.style.display = 'none';
     }
   }
@@ -564,20 +746,22 @@ class OvertradeControl {
     
     if (!statusEl || !displayEl) return;
     
-    if (!this.settings.enabled) {
+    const settings = this.getCurrentSettings();
+    if (!settings.enabled) {
       statusEl.style.display = 'none';
       return;
     }
     
     statusEl.style.display = 'block';
-    displayEl.textContent = `${currentPeriodTrades}/${this.settings.maxTrades} ${this.settings.timePeriod}`;
+    const mode = this.isSimulatorModeSync() ? 'S' : 'R';
+    displayEl.textContent = `${currentPeriodTrades}/${settings.maxTrades} ${settings.timePeriod} (${mode})`;
     
     // Update status color based on trade count
     statusEl.classList.remove('warning', 'danger');
     
-    if (currentPeriodTrades >= this.settings.maxTrades) {
+    if (currentPeriodTrades >= settings.maxTrades) {
       statusEl.classList.add('danger');
-    } else if (currentPeriodTrades >= this.settings.maxTrades * 0.8) {
+    } else if (currentPeriodTrades >= settings.maxTrades * 0.8) {
       statusEl.classList.add('warning');
     }
   }
@@ -591,12 +775,17 @@ class OvertradeControl {
     
     // Clean up old trades every minute (still needed for historical data)
     setInterval(() => {
-      const beforeCount = this.tradeHistory.length;
+      const historyReal = this.tradeHistoryReal.length;
+      const historySimulator = this.tradeHistorySimulator.length;
       this.cleanupOldTrades();
-      const afterCount = this.tradeHistory.length;
+      const afterReal = this.tradeHistoryReal.length;
+      const afterSimulator = this.tradeHistorySimulator.length;
       
-      if (beforeCount !== afterCount) {
-        console.log(`Cleaned up ${beforeCount - afterCount} old trades`);
+      const cleanedReal = historyReal - afterReal;
+      const cleanedSimulator = historySimulator - afterSimulator;
+      
+      if (cleanedReal > 0 || cleanedSimulator > 0) {
+        console.log(`Cleaned up ${cleanedReal} real trades and ${cleanedSimulator} simulator trades`);
         this.saveSettings();
       }
     }, 60000);
@@ -639,15 +828,17 @@ class OvertradeControl {
   // Get current status for display
   async getStatus() {
     const currentPeriodTrades = this.getCurrentPeriodTrades();
+    const settings = this.getCurrentSettings();
     return {
-      enabled: this.settings.enabled,
+      enabled: settings.enabled,
       currentPeriodTrades,
-      threshold: this.settings.maxTrades,
+      threshold: settings.maxTrades,
       mode: 'time_period',
-      timePeriod: this.settings.timePeriod,
-      isOverThreshold: currentPeriodTrades >= this.settings.maxTrades,
-      trackingOpen: this.settings.applyToOpenPositions,
-      trackingClose: this.settings.applyToClosePositions
+      tradingMode: this.isSimulatorModeSync() ? 'simulator' : 'real',
+      timePeriod: settings.timePeriod,
+      isOverThreshold: currentPeriodTrades >= settings.maxTrades,
+      trackingOpen: settings.applyToOpenPositions,
+      trackingClose: settings.applyToClosePositions
     };
   }
 
@@ -666,10 +857,14 @@ class OvertradeControl {
   // Export data for backup
   exportData() {
     const data = {
-      settings: this.settings,
-      tradeHistory: this.tradeHistory,
-      lastWarningTime: this.lastWarningTime,
-      warningCount: this.warningCount,
+      settingsReal: this.settingsReal,
+      settingsSimulator: this.settingsSimulator,
+      tradeHistoryReal: this.tradeHistoryReal,
+      tradeHistorySimulator: this.tradeHistorySimulator,
+      lastWarningTimeReal: this.lastWarningTimeReal,
+      lastWarningTimeSimulator: this.lastWarningTimeSimulator,
+      warningCountReal: this.warningCountReal,
+      warningCountSimulator: this.warningCountSimulator,
       exportDate: new Date().toISOString()
     };
     
@@ -682,7 +877,7 @@ class OvertradeControl {
     a.click();
     URL.revokeObjectURL(url);
     
-    showMessage('Overtrade data exported', 'success');
+    showMessage('Overtrade data exported (both real and simulator)', 'success');
   }
 
   // Import data from backup
@@ -690,10 +885,50 @@ class OvertradeControl {
     try {
       const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
       
-      if (data.settings) this.settings = data.settings;
-      if (data.tradeHistory) this.tradeHistory = data.tradeHistory;
-      if (data.lastWarningTime) this.lastWarningTime = data.lastWarningTime;
-      if (data.warningCount) this.warningCount = data.warningCount;
+      // Support both old format (single settings) and new format (separate real/simulator)
+      if (data.settingsReal) {
+        this.settingsReal = data.settingsReal;
+      } else if (data.settings) {
+        // Migrate old format to real
+        this.settingsReal = data.settings;
+      }
+      
+      if (data.settingsSimulator) {
+        this.settingsSimulator = data.settingsSimulator;
+      }
+      
+      if (data.tradeHistoryReal) {
+        this.tradeHistoryReal = data.tradeHistoryReal;
+      } else if (data.tradeHistory) {
+        // Migrate old format to real
+        this.tradeHistoryReal = data.tradeHistory;
+      }
+      
+      if (data.tradeHistorySimulator) {
+        this.tradeHistorySimulator = data.tradeHistorySimulator;
+      }
+      
+      if (data.lastWarningTimeReal) {
+        this.lastWarningTimeReal = data.lastWarningTimeReal;
+      } else if (data.lastWarningTime) {
+        // Migrate old format to real
+        this.lastWarningTimeReal = data.lastWarningTime;
+      }
+      
+      if (data.lastWarningTimeSimulator) {
+        this.lastWarningTimeSimulator = data.lastWarningTimeSimulator;
+      }
+      
+      if (data.warningCountReal !== undefined) {
+        this.warningCountReal = data.warningCountReal;
+      } else if (data.warningCount !== undefined) {
+        // Migrate old format to real
+        this.warningCountReal = data.warningCount;
+      }
+      
+      if (data.warningCountSimulator !== undefined) {
+        this.warningCountSimulator = data.warningCountSimulator;
+      }
       
       this.saveSettings();
       this.updateStatusDisplay();
@@ -725,42 +960,62 @@ class OvertradeControl {
   }
   
   executeClearAllData() {
-    localStorage.removeItem('overtradeSettings');
-    localStorage.removeItem('overtradeHistory');
-    localStorage.removeItem('overtradeLastWarning');
-    localStorage.removeItem('overtradeWarningCount');
+    // Clear from settings manager
+    if (window.settingsManager) {
+      window.settingsManager.update({
+        'overtradeControlReal': null,
+        'overtradeControlSimulator': null,
+        'overtradeHistoryReal': [],
+        'overtradeHistorySimulator': [],
+        'overtradeLastWarningReal': 0,
+        'overtradeLastWarningSimulator': 0,
+        'overtradeWarningCountReal': 0,
+        'overtradeWarningCountSimulator': 0
+      });
+    }
     
-    this.tradeHistory = [];
-    this.lastWarningTime = null;
-    this.warningCount = 0;
+    this.tradeHistoryReal = [];
+    this.tradeHistorySimulator = [];
+    this.lastWarningTimeReal = null;
+    this.lastWarningTimeSimulator = null;
+    this.warningCountReal = 0;
+    this.warningCountSimulator = 0;
     
     this.updateStatusDisplay();
-    showMessage('All overtrade data cleared', 'info');
+    showMessage('All overtrade data cleared (both real and simulator)', 'info');
   }
 
   // Get detailed status for debugging
   async getDetailedStatus() {
     const currentPeriodTrades = this.getCurrentPeriodTrades();
     const currentOpenPositions = await this.getCurrentOpenPositions();
+    const settings = this.getCurrentSettings();
+    const history = this.getCurrentTradeHistory();
+    const lastWarning = this.getCurrentLastWarningTime();
+    const warningCount = this.getCurrentWarningCount();
+    
     return {
-      enabled: this.settings.enabled,
-      settings: this.settings,
+      enabled: settings.enabled,
+      settings: settings,
+      tradingMode: this.isSimulatorModeSync() ? 'simulator' : 'real',
       mode: 'time_period_based',
       currentPeriodTrades: currentPeriodTrades,
       currentOpenPositions: currentOpenPositions,
-      threshold: this.settings.maxTrades,
-      timePeriod: this.settings.timePeriod,
-      totalTradesRecorded: this.tradeHistory.length,
-      oldestTrade: this.tradeHistory.length > 0 ? new Date(this.tradeHistory[0].timestamp).toLocaleString() : 'None',
-      newestTrade: this.tradeHistory.length > 0 ? new Date(this.tradeHistory[this.tradeHistory.length - 1].timestamp).toLocaleString() : 'None',
+      threshold: settings.maxTrades,
+      timePeriod: settings.timePeriod,
+      totalTradesRecorded: history.length,
+      oldestTrade: history.length > 0 ? new Date(history[0].timestamp).toLocaleString() : 'None',
+      newestTrade: history.length > 0 ? new Date(history[history.length - 1].timestamp).toLocaleString() : 'None',
       nextReset: this.getNextResetTime(),
       periodStart: this.getPeriodStartTime(),
-      lastWarning: this.lastWarningTime ? new Date(this.lastWarningTime).toLocaleString() : 'Never',
-      warningCount: this.warningCount,
-      trackingOpen: this.settings.applyToOpenPositions,
-      trackingClose: this.settings.applyToClosePositions,
+      lastWarning: lastWarning ? new Date(lastWarning).toLocaleString() : 'Never',
+      warningCount: warningCount,
+      trackingOpen: settings.applyToOpenPositions,
+      trackingClose: settings.applyToClosePositions,
       mt5Connected: window.mt5Bridge ? window.mt5Bridge.isConnected() : false,
-      note: 'Now counting trades within time periods. Tracks both open and close positions based on settings.'
+      realTradeCount: this.tradeHistoryReal.length,
+      simulatorTradeCount: this.tradeHistorySimulator.length,
+      note: 'Now counting trades within time periods. Separate tracking for real trading and simulator. Tracks both open and close positions based on settings.'
     };
   }
 }

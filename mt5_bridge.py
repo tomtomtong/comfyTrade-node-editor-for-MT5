@@ -183,11 +183,29 @@ class MT5Bridge:
                     if tick:
                         current_price = tick.bid if pos['type'] == 'BUY' else tick.ask
                         symbol_info = mt5.symbol_info(pos['symbol'])
-                        contract_size = symbol_info.trade_contract_size if symbol_info else 100000
-                        self.simulator.update_position_prices(pos['symbol'], current_price, contract_size)
+                        if symbol_info:
+                            contract_size = symbol_info.trade_contract_size or 100000
+                            tick_value = symbol_info.trade_tick_value or 1.0
+                            tick_size = symbol_info.trade_tick_size or symbol_info.point or 0.00001
+                        else:
+                            contract_size = 100000
+                            tick_value = 1.0
+                            tick_size = 0.00001
+                        self.simulator.update_position_prices(pos['symbol'], current_price, 
+                                                             contract_size, tick_value, tick_size)
                 
-                # Check for TP/SL hits
-                self.simulator.check_tp_sl_hits()
+                # Check for TP/SL hits with symbol info for accurate P&L calculation
+                # Build symbol info map for all positions
+                symbol_info_map = {}
+                for pos in sim_positions:
+                    symbol_info = mt5.symbol_info(pos['symbol'])
+                    if symbol_info:
+                        symbol_info_map[pos['symbol']] = {
+                            'tick_size': symbol_info.trade_tick_size or symbol_info.point or None,
+                            'tick_value': symbol_info.trade_tick_value or None,
+                            'contract_size': symbol_info.trade_contract_size or None
+                        }
+                self.simulator.check_tp_sl_hits(symbol_info_map)
             
             # Normalize simulator positions to match real position format
             result = []
@@ -342,7 +360,19 @@ class MT5Bridge:
                 return {"success": False, "error": "Failed to get current price"}
             
             close_price = tick.bid if position['type'] == 'BUY' else tick.ask
-            return self.simulator.close_position(ticket, close_price)
+            
+            # Get symbol info for accurate P&L calculation
+            symbol_info = mt5.symbol_info(position['symbol'])
+            if symbol_info:
+                tick_size = symbol_info.trade_tick_size or symbol_info.point or None
+                tick_value = symbol_info.trade_tick_value or None
+                contract_size = symbol_info.trade_contract_size or None
+            else:
+                tick_size = None
+                tick_value = None
+                contract_size = None
+            
+            return self.simulator.close_position(ticket, close_price, tick_size, tick_value, contract_size)
         
         # REAL MODE: Close actual position
         positions = mt5.positions_get(ticket=ticket)

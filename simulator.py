@@ -110,7 +110,7 @@ class TradingSimulator:
         }
     
     def update_position_prices(self, symbol: str, current_price: float, 
-                              contract_size: float = 100000, tick_value: float = 1.0):
+                              contract_size: float = 100000, tick_value: float = 1.0, tick_size: float = 0.00001):
         """Update current prices and calculate P&L for positions of a symbol"""
         for position in self.positions:
             if position['symbol'] == symbol:
@@ -123,8 +123,13 @@ class TradingSimulator:
                 else:  # SELL
                     price_diff = position['open_price'] - current_price
                 
-                # P&L = price_diff * volume * contract_size * tick_value
-                position['profit'] = price_diff * position['volume'] * contract_size
+                # P&L = (price_diff / tick_size) * volume * tick_value
+                # This correctly handles different symbol types (forex, indices, etc.)
+                if tick_size > 0:
+                    position['profit'] = (price_diff / tick_size) * position['volume'] * tick_value
+                else:
+                    # Fallback to old calculation if tick_size is invalid
+                    position['profit'] = price_diff * position['volume'] * contract_size
         
         self.save_positions()
     
@@ -132,8 +137,18 @@ class TradingSimulator:
         """Get all open simulated positions"""
         return self.positions
     
-    def close_position(self, ticket: int, close_price: float) -> Dict:
-        """Close a simulated position"""
+    def close_position(self, ticket: int, close_price: float, 
+                      tick_size: float = None, tick_value: float = None, 
+                      contract_size: float = None) -> Dict:
+        """Close a simulated position
+        
+        Args:
+            ticket: Position ticket number
+            close_price: Price at which to close the position
+            tick_size: Minimum price movement (e.g., 0.00001 for forex, 1.0 for indices)
+            tick_value: Value of one tick per lot
+            contract_size: Contract size (fallback if tick_size/tick_value not provided)
+        """
         position = None
         for i, pos in enumerate(self.positions):
             if pos['ticket'] == ticket:
@@ -155,7 +170,17 @@ class TradingSimulator:
         else:  # SELL
             price_diff = position['open_price'] - close_price
         
-        position['profit'] = price_diff * position['volume'] * 100000  # Assuming standard lot
+        # Use proper calculation with tick_size and tick_value if available
+        if tick_size is not None and tick_value is not None and tick_size > 0:
+            # Correct formula: (price_diff / tick_size) * volume * tick_value
+            position['profit'] = (price_diff / tick_size) * position['volume'] * tick_value
+        elif contract_size is not None:
+            # Fallback to contract_size calculation
+            position['profit'] = price_diff * position['volume'] * contract_size
+        else:
+            # Last resort: assume forex standard lot (100000)
+            # This is a fallback and may be incorrect for indices
+            position['profit'] = price_diff * position['volume'] * 100000
         
         # Add to closed positions
         self.closed_positions.append(position)
@@ -247,8 +272,12 @@ class TradingSimulator:
             'message': f'Simulator reset with balance: {initial_balance}'
         }
     
-    def check_tp_sl_hits(self):
-        """Check if any positions hit TP or SL and auto-close them"""
+    def check_tp_sl_hits(self, symbol_info_map: Optional[Dict[str, Dict]] = None):
+        """Check if any positions hit TP or SL and auto-close them
+        
+        Args:
+            symbol_info_map: Optional dict mapping symbol to {tick_size, tick_value, contract_size}
+        """
         positions_to_close = []
         
         for position in self.positions:
@@ -275,12 +304,21 @@ class TradingSimulator:
                     close_reason = 'Stop Loss'
             
             if should_close:
-                positions_to_close.append((position['ticket'], current_price, close_reason))
+                # Get symbol info if available
+                symbol_info = symbol_info_map.get(position['symbol'], {}) if symbol_info_map else {}
+                positions_to_close.append((
+                    position['ticket'], 
+                    current_price, 
+                    close_reason,
+                    symbol_info.get('tick_size'),
+                    symbol_info.get('tick_value'),
+                    symbol_info.get('contract_size')
+                ))
         
         # Close positions that hit TP/SL
         closed_tickets = []
-        for ticket, close_price, reason in positions_to_close:
-            result = self.close_position(ticket, close_price)
+        for ticket, close_price, reason, tick_size, tick_value, contract_size in positions_to_close:
+            result = self.close_position(ticket, close_price, tick_size, tick_value, contract_size)
             if result['success']:
                 closed_tickets.append({'ticket': ticket, 'reason': reason})
         
