@@ -1002,6 +1002,10 @@
           <span id="confirmTradeVolume" class="value">-</span>
         </div>
         <div class="confirmation-item">
+          <span class="label">Current Price:</span>
+          <span id="confirmTradeCurrentPrice" class="value">Loading...</span>
+        </div>
+        <div class="confirmation-item">
           <span class="label">Stop Loss <span style="color: #f44336;">*</span>:</span>
           <input type="number" id="confirmTradeStopLoss" class="value confirmation-input" step="0.00001" placeholder="Enter stop loss" required>
         </div>
@@ -1015,9 +1019,9 @@
         <p>⚠️ Please review the trade details before confirming</p>
       </div>
       
-      <!-- 3 Month Daily Chart -->
+      <!-- 6 Month Daily Chart -->
       <div class="chart-container-wrapper">
-        <h3 style="margin-top: 20px; margin-bottom: 10px;">📊 3-Month Daily Chart</h3>
+        <h3 style="margin-top: 20px; margin-bottom: 10px;">📊 6-Month Daily Chart</h3>
         <div id="chartLoading" class="chart-loading" style="text-align: center; padding: 20px; color: #888;">
           Loading chart data...
         </div>
@@ -1028,7 +1032,7 @@
       </div>
       
       <div class="modal-buttons">
-        <button onclick="hideTradeConfirmationModal()" class="btn btn-secondary">Cancel</button>
+        <button onclick="hideTradeConfirmationModal(true)" class="btn btn-secondary">Cancel</button>
         <button onclick="confirmTradeExecution()" class="btn btn-success">✓ Execute Trade</button>
       </div>
     </div>

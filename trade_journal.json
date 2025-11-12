@@ -1,15 +1,15 @@
 {
   "1000000": {
-    "imagePath": "C:\\Users\\kwun_\\Downloads\\MetaTraderAssistant\\charts\\chart_HK50.cash_1000000_2025-11-12T07-56-39-250Z.png",
+    "imagePath": "C:\\Users\\kwun_\\Downloads\\MetaTraderAssistant\\charts\\chart_USDJPY_1000000_2025-11-12T23-25-31-692Z.png",
     "ticket": 1000000,
-    "symbol": "HK50.cash",
-    "type": "BUY",
+    "symbol": "USDJPY",
+    "type": "SELL",
     "volume": 0.5,
-    "stopLoss": 10,
-    "takeProfit": 300000,
-    "timestamp": "2025-11-12T07:56:39.251Z",
-    "openPrice": 26925.77,
-    "currentPrice": 26921.23,
-    "profit": -2.2700000000004366
+    "stopLoss": 155,
+    "takeProfit": 154,
+    "timestamp": "2025-11-12T23:25:31.693Z",
+    "openPrice": 154.726,
+    "currentPrice": 154.727,
+    "profit": -0.3231498057885097
   }
 }

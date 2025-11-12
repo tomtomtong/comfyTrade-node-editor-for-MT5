@@ -1,7 +1,21 @@
 {
-  "positions": [],
+  "positions": [
+    {
+      "ticket": 1000000,
+      "symbol": "USDJPY",
+      "type": "SELL",
+      "volume": 0.5,
+      "open_price": 154.726,
+      "current_price": 154.727,
+      "sl": 155,
+      "tp": 154,
+      "profit": -0.3231498057885097,
+      "open_time": "2025-11-13T07:25:31.680715",
+      "comment": "SIMULATOR"
+    }
+  ],
   "closed_positions": [],
-  "next_ticket": 1000000,
+  "next_ticket": 1000001,
   "initial_balance": 10000,
-  "last_updated": "2025-11-12T16:17:38.116805"
+  "last_updated": "2025-11-13T07:29:25.088495"
 }

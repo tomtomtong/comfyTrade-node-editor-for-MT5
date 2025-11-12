@@ -312,14 +312,14 @@ function setupEventListeners() {
     // Modal close on overlay click
     document.getElementById('tradeConfirmationModal').onclick = (e) => {
       if (e.target === document.getElementById('tradeConfirmationModal')) {
-        hideTradeConfirmationModal();
+        hideTradeConfirmationModal(true);
       }
     };
     
     // ESC key to close modal
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && document.getElementById('tradeConfirmationModal').classList.contains('show')) {
-        hideTradeConfirmationModal();
+        hideTradeConfirmationModal(true);
       }
     });
   }
@@ -1300,17 +1300,17 @@ async function openChartImage(ticket) {
 // Make openChartImage globally accessible
 window.openChartImage = openChartImage;
 
-// Function to fetch 3 months of daily data from MT5
+// Function to fetch 6 months of daily data from MT5
 async function fetchThreeMonthDailyData(symbol) {
   try {
     if (!window.mt5API || !isConnected) {
       throw new Error('Not connected to MT5');
     }
 
-    // Calculate date range: 3 months ago to today
+    // Calculate date range: 6 months ago to today
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 3);
+    startDate.setMonth(startDate.getMonth() - 6);
     
     // Set time to start/end of day for proper date range
     startDate.setHours(0, 0, 0, 0);
@@ -1320,7 +1320,7 @@ async function fetchThreeMonthDailyData(symbol) {
     const startDateStr = startDate.toISOString();
     const endDateStr = endDate.toISOString();
 
-    console.log(`Fetching 3 months of daily data for ${symbol} from ${startDateStr} to ${endDateStr}`);
+    console.log(`Fetching 6 months of daily data for ${symbol} from ${startDateStr} to ${endDateStr}`);
 
     // Fetch historical data with D1 (daily) timeframe
     const params = {
@@ -1339,12 +1339,12 @@ async function fetchThreeMonthDailyData(symbol) {
       throw new Error(result.data?.error || 'Failed to fetch historical data');
     }
   } catch (error) {
-    console.error('Error fetching 3-month daily data:', error);
+    console.error('Error fetching 6-month daily data:', error);
     throw error;
   }
 }
 
-// Function to plot the 3-month daily chart
+// Function to plot the 6-month daily chart
 function plotThreeMonthChart(symbol, data) {
   try {
     // Destroy existing chart if it exists
@@ -1419,7 +1419,7 @@ function plotThreeMonthChart(symbol, data) {
         plugins: {
           title: {
             display: true,
-            text: `${symbol} - 3 Month Daily Chart`,
+            text: `${symbol} - 6 Month Daily Chart`,
             color: '#e0e0e0',
             font: {
               size: 16,
@@ -1490,7 +1490,7 @@ function plotThreeMonthChart(symbol, data) {
   }
 }
 
-// Function to load and display the 3-month chart
+// Function to load and display the 6-month chart
 async function loadThreeMonthChart(symbol) {
   // Show loading state
   document.getElementById('chartLoading').style.display = 'block';
@@ -1511,6 +1511,48 @@ async function loadThreeMonthChart(symbol) {
     document.getElementById('chartError').style.display = 'block';
     document.getElementById('chartError').textContent = `Failed to load chart: ${error.message}`;
     document.getElementById('tradeChart').style.display = 'none';
+  }
+}
+
+async function updateConfirmationModalPrice(symbol, type) {
+  const priceElement = document.getElementById('confirmTradeCurrentPrice');
+  if (!priceElement) return;
+  
+  // Show loading state
+  priceElement.textContent = 'Loading...';
+  
+  try {
+    if (!window.mt5API || !window.mt5API.getMarketData) {
+      priceElement.textContent = 'N/A';
+      return;
+    }
+    
+    const result = await window.mt5API.getMarketData(symbol);
+    
+    if (result.success && result.data) {
+      const data = result.data;
+      const isBuy = type.toUpperCase() === 'BUY';
+      
+      // For BUY orders, show ASK price (what you pay to buy)
+      // For SELL orders, show BID price (what you get when selling)
+      const relevantPrice = isBuy ? data.ask : data.bid;
+      const priceLabel = isBuy ? 'ASK' : 'BID';
+      
+      // Format price with appropriate decimal places
+      const formattedPrice = relevantPrice.toFixed(5);
+      
+      // Display: "ASK: 2,345.67" or "BID: 2,345.67"
+      priceElement.textContent = `${priceLabel}: ${formattedPrice}`;
+      priceElement.style.color = isBuy ? '#4CAF50' : '#f44336';
+    } else {
+      const errorMsg = result.data?.error || result.error || 'Failed to get price';
+      priceElement.textContent = `Error: ${errorMsg}`;
+      priceElement.style.color = '#f44336';
+    }
+  } catch (error) {
+    console.error('Error fetching current price for confirmation modal:', error);
+    priceElement.textContent = 'Error loading price';
+    priceElement.style.color = '#f44336';
   }
 }
 
@@ -1547,11 +1589,14 @@ function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) 
   hideTradeModal();
   document.getElementById('tradeConfirmationModal').classList.add('show');
   
-  // Load and display the 3-month daily chart
+  // Fetch and display current price
+  updateConfirmationModalPrice(symbol, type);
+  
+  // Load and display the 6-month daily chart
   loadThreeMonthChart(symbol);
 }
 
-function hideTradeConfirmationModal() {
+function hideTradeConfirmationModal(showTradeModalOnCancel = false) {
   document.getElementById('tradeConfirmationModal').classList.remove('show');
   pendingTradeData = null;
   
@@ -1565,6 +1610,11 @@ function hideTradeConfirmationModal() {
   document.getElementById('chartLoading').style.display = 'block';
   document.getElementById('chartError').style.display = 'none';
   document.getElementById('tradeChart').style.display = 'none';
+  
+  // Show the trade modal (first page) when canceling
+  if (showTradeModalOnCancel) {
+    showTradeModal();
+  }
 }
 
 async function confirmTradeExecution() {
@@ -1880,7 +1930,7 @@ function showModifyModal(ticket, currentSL, currentTP) {
   
   document.getElementById('modifyModal').classList.add('show');
   
-  // Load and display the 3-month daily chart for the position's symbol
+  // Load and display the 6-month daily chart for the position's symbol
   // Use setTimeout to ensure modal is fully rendered before loading chart
   if (position && position.symbol) {
     setTimeout(() => {
@@ -1908,7 +1958,7 @@ function hideModifyModal() {
   if (chartCanvas) chartCanvas.style.display = 'none';
 }
 
-// Function to load and display the 3-month chart for modify modal
+// Function to load and display the 6-month chart for modify modal
 async function loadModifyChart(symbol) {
   // Show loading state
   const chartLoading = document.getElementById('modifyChartLoading');
@@ -1943,7 +1993,7 @@ async function loadModifyChart(symbol) {
   }
 }
 
-// Function to plot the 3-month daily chart for modify modal
+// Function to plot the 6-month daily chart for modify modal
 function plotModifyChart(symbol, data) {
   try {
     // Destroy existing chart if it exists
@@ -2037,7 +2087,7 @@ function plotModifyChart(symbol, data) {
         plugins: {
           title: {
             display: true,
-            text: `${symbol} - 3 Month Daily Chart`,
+            text: `${symbol} - 6 Month Daily Chart`,
             color: '#e0e0e0',
             font: {
               size: 16,
@@ -2172,9 +2222,9 @@ function createModifyModal() {
           </div>
         </div>
         
-        <!-- 3 Month Daily Chart -->
+        <!-- 6 Month Daily Chart -->
         <div class="chart-container-wrapper">
-          <h3 style="margin-top: 20px; margin-bottom: 10px;">📊 3-Month Daily Chart</h3>
+          <h3 style="margin-top: 20px; margin-bottom: 10px;">📊 6-Month Daily Chart</h3>
           <div id="modifyChartLoading" class="chart-loading" style="text-align: center; padding: 20px; color: #888;">
             Loading chart data...
           </div>

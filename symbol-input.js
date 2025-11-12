@@ -20,6 +20,13 @@ class SymbolInput {
         this.selectedIndex = -1;
         this.isDropdownOpen = false;
         
+        // Performance optimization: pre-built lowercase indexes
+        this.symbolIndexes = [];
+        
+        // Debouncing for search
+        this.searchDebounceTimer = null;
+        this.debounceDelay = 150; // milliseconds
+        
         this.init();
     }
     
@@ -60,12 +67,13 @@ class SymbolInput {
     }
     
     attachEventListeners() {
-        // Main input events
+        // Main input events with debouncing
         this.input.addEventListener('input', (e) => {
             const value = e.target.value;
-            this.filterSymbols(value);
+            this.debouncedFilter(value);
             this.showDropdown();
             
+            // Call onSymbolChange immediately (no debounce) for real-time updates
             if (this.options.onSymbolChange) {
                 this.options.onSymbolChange(value);
             }
@@ -87,9 +95,17 @@ class SymbolInput {
             this.toggleDropdown();
         });
         
-        // Search input
+        // Search input with debouncing
         this.searchInput.addEventListener('input', (e) => {
-            this.filterSymbols(e.target.value);
+            this.debouncedFilter(e.target.value);
+        });
+        
+        // Use event delegation for symbol items (more efficient)
+        this.symbolList.addEventListener('click', (e) => {
+            const item = e.target.closest('.symbol-item[data-symbol]');
+            if (item) {
+                this.selectSymbol(item.dataset.symbol);
+            }
         });
         
         // Close dropdown when clicking outside
@@ -106,12 +122,20 @@ class SymbolInput {
             return;
         }
         
+        // Clear any pending debounce timers
+        if (this.searchDebounceTimer) {
+            clearTimeout(this.searchDebounceTimer);
+            this.searchDebounceTimer = null;
+        }
+        
         try {
             this.showLoading(true);
             const result = await window.mt5API.getSymbols();
             
             if (result.success) {
                 this.symbols = result.data;
+                // Pre-build lowercase indexes for faster searching
+                this.buildSymbolIndexes();
                 this.filteredSymbols = [...this.symbols];
                 this.renderSymbolList();
             } else {
@@ -124,15 +148,67 @@ class SymbolInput {
         }
     }
     
+    buildSymbolIndexes() {
+        // Pre-compute lowercase versions to avoid repeated toLowerCase() calls
+        this.symbolIndexes = this.symbols.map(symbol => ({
+            nameLower: symbol.name.toLowerCase(),
+            descLower: (symbol.description || symbol.name).toLowerCase(),
+            symbol: symbol
+        }));
+    }
+    
+    debouncedFilter(query) {
+        // Clear existing timer
+        if (this.searchDebounceTimer) {
+            clearTimeout(this.searchDebounceTimer);
+        }
+        
+        // Set new timer
+        this.searchDebounceTimer = setTimeout(() => {
+            this.filterSymbols(query);
+        }, this.debounceDelay);
+    }
+    
     filterSymbols(query) {
-        if (!query) {
+        if (!query || query.trim() === '') {
             this.filteredSymbols = [...this.symbols];
         } else {
-            const queryLower = query.toLowerCase();
-            this.filteredSymbols = this.symbols.filter(symbol => 
-                symbol.name.toLowerCase().includes(queryLower) ||
-                symbol.description.toLowerCase().includes(queryLower)
-            );
+            const queryLower = query.toLowerCase().trim();
+            const maxResults = 50; // Limit results early for better performance
+            const results = [];
+            
+            // Use pre-built indexes for faster matching
+            for (const index of this.symbolIndexes) {
+                if (index.nameLower.includes(queryLower) || index.descLower.includes(queryLower)) {
+                    results.push(index.symbol);
+                    
+                    // Early exit if we have enough results
+                    if (results.length >= maxResults) {
+                        break;
+                    }
+                }
+            }
+            
+            // Sort by relevance: exact matches first, then starts-with, then contains
+            results.sort((a, b) => {
+                const aNameLower = a.name.toLowerCase();
+                const bNameLower = b.name.toLowerCase();
+                
+                // Exact match
+                if (aNameLower === queryLower && bNameLower !== queryLower) return -1;
+                if (bNameLower === queryLower && aNameLower !== queryLower) return 1;
+                
+                // Starts with
+                const aStarts = aNameLower.startsWith(queryLower);
+                const bStarts = bNameLower.startsWith(queryLower);
+                if (aStarts && !bStarts) return -1;
+                if (bStarts && !aStarts) return 1;
+                
+                // Alphabetical
+                return aNameLower.localeCompare(bNameLower);
+            });
+            
+            this.filteredSymbols = results;
         }
         
         this.selectedIndex = -1;
@@ -148,24 +224,38 @@ class SymbolInput {
         const maxItems = 10;
         const itemsToShow = this.filteredSymbols.slice(0, maxItems);
         
-        this.symbolList.innerHTML = itemsToShow.map((symbol, index) => `
-            <div class="symbol-item ${index === this.selectedIndex ? 'selected' : ''}" 
-                 data-symbol="${symbol.name}" 
-                 data-index="${index}">
-                <div class="symbol-name">${symbol.name}</div>
-                <div class="symbol-desc">${symbol.description}</div>
-                <div class="symbol-details">
-                    ${symbol.currency_base}/${symbol.currency_profit} • ${symbol.digits} digits
-                </div>
-            </div>
-        `).join('');
+        // Use DocumentFragment for better performance when building DOM
+        const fragment = document.createDocumentFragment();
         
-        // Add click handlers to symbol items
-        this.symbolList.querySelectorAll('.symbol-item[data-symbol]').forEach(item => {
-            item.addEventListener('click', () => {
-                this.selectSymbol(item.dataset.symbol);
-            });
+        itemsToShow.forEach((symbol, index) => {
+            const item = document.createElement('div');
+            item.className = `symbol-item ${index === this.selectedIndex ? 'selected' : ''}`;
+            item.setAttribute('data-symbol', symbol.name);
+            item.setAttribute('data-index', index);
+            
+            // Use textContent (automatically escapes HTML, preventing XSS)
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'symbol-name';
+            nameDiv.textContent = symbol.name;
+            
+            const descDiv = document.createElement('div');
+            descDiv.className = 'symbol-desc';
+            descDiv.textContent = symbol.description || symbol.name;
+            
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'symbol-details';
+            detailsDiv.textContent = `${symbol.currency_base || ''}/${symbol.currency_profit || ''} • ${symbol.digits || 0} digits`;
+            
+            item.appendChild(nameDiv);
+            item.appendChild(descDiv);
+            item.appendChild(detailsDiv);
+            
+            fragment.appendChild(item);
         });
+        
+        // Single DOM update instead of innerHTML
+        this.symbolList.innerHTML = '';
+        this.symbolList.appendChild(fragment);
     }
     
     handleKeyNavigation(e) {

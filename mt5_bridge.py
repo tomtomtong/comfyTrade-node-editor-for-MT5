@@ -179,28 +179,66 @@ class MT5Bridge:
             sim_positions = self.simulator.get_positions()
             if self.connected_to_mt5:
                 for pos in sim_positions:
-                    tick = mt5.symbol_info_tick(pos['symbol'])
+                    symbol = pos['symbol']
+                    tick = mt5.symbol_info_tick(symbol)
                     if tick:
                         current_price = tick.bid if pos['type'] == 'BUY' else tick.ask
-                        symbol_info = mt5.symbol_info(pos['symbol'])
+                        # Try multiple approaches to get symbol info for .cash symbols
+                        symbol_info = mt5.symbol_info(symbol)
+                        
+                        # If symbol_info is None, try with uppercase or alternative formats
+                        if symbol_info is None:
+                            # Try uppercase version (e.g., "US30.CASH")
+                            symbol_upper = symbol.upper()
+                            symbol_info = mt5.symbol_info(symbol_upper)
+                        
+                        if symbol_info is None:
+                            # Try without .cash suffix (e.g., "US30")
+                            if '.cash' in symbol.lower():
+                                base_symbol = symbol.split('.')[0]
+                                symbol_info = mt5.symbol_info(base_symbol)
+                        
                         if symbol_info:
                             contract_size = symbol_info.trade_contract_size or 100000
                             tick_value = symbol_info.trade_tick_value or 1.0
                             tick_size = symbol_info.trade_tick_size or symbol_info.point or 0.00001
                         else:
-                            contract_size = 100000
-                            tick_value = 1.0
-                            tick_size = 0.00001
-                        self.simulator.update_position_prices(pos['symbol'], current_price, 
+                            # Fallback: Use appropriate defaults based on symbol type
+                            if '.cash' in symbol.lower():
+                                # Defaults for cash/index symbols
+                                contract_size = 1.0
+                                tick_value = 1.0
+                                tick_size = 1.0
+                            else:
+                                # Defaults for forex symbols
+                                contract_size = 100000
+                                tick_value = 1.0
+                                tick_size = 0.00001
+                        self.simulator.update_position_prices(symbol, current_price, 
                                                              contract_size, tick_value, tick_size)
                 
                 # Check for TP/SL hits with symbol info for accurate P&L calculation
                 # Build symbol info map for all positions
                 symbol_info_map = {}
                 for pos in sim_positions:
-                    symbol_info = mt5.symbol_info(pos['symbol'])
+                    symbol = pos['symbol']
+                    # Try multiple approaches to get symbol info for .cash symbols
+                    symbol_info = mt5.symbol_info(symbol)
+                    
+                    # If symbol_info is None, try with uppercase or alternative formats
+                    if symbol_info is None:
+                        # Try uppercase version (e.g., "US30.CASH")
+                        symbol_upper = symbol.upper()
+                        symbol_info = mt5.symbol_info(symbol_upper)
+                    
+                    if symbol_info is None:
+                        # Try without .cash suffix (e.g., "US30")
+                        if '.cash' in symbol.lower():
+                            base_symbol = symbol.split('.')[0]
+                            symbol_info = mt5.symbol_info(base_symbol)
+                    
                     if symbol_info:
-                        symbol_info_map[pos['symbol']] = {
+                        symbol_info_map[symbol] = {
                             'tick_size': symbol_info.trade_tick_size or symbol_info.point or None,
                             'tick_value': symbol_info.trade_tick_value or None,
                             'contract_size': symbol_info.trade_contract_size or None
@@ -354,23 +392,48 @@ class MT5Bridge:
             if not position:
                 return {"success": False, "error": "Position not found"}
             
+            symbol = position['symbol']
+            
             # Get current market price
-            tick = mt5.symbol_info_tick(position['symbol'])
+            tick = mt5.symbol_info_tick(symbol)
             if tick is None:
                 return {"success": False, "error": "Failed to get current price"}
             
             close_price = tick.bid if position['type'] == 'BUY' else tick.ask
             
             # Get symbol info for accurate P&L calculation
-            symbol_info = mt5.symbol_info(position['symbol'])
+            # Try multiple approaches to get symbol info for .cash symbols
+            symbol_info = mt5.symbol_info(symbol)
+            
+            # If symbol_info is None, try with uppercase or alternative formats
+            if symbol_info is None:
+                # Try uppercase version (e.g., "US30.CASH")
+                symbol_upper = symbol.upper()
+                symbol_info = mt5.symbol_info(symbol_upper)
+            
+            if symbol_info is None:
+                # Try without .cash suffix (e.g., "US30")
+                if '.cash' in symbol.lower():
+                    base_symbol = symbol.split('.')[0]
+                    symbol_info = mt5.symbol_info(base_symbol)
+            
             if symbol_info:
                 tick_size = symbol_info.trade_tick_size or symbol_info.point or None
                 tick_value = symbol_info.trade_tick_value or None
                 contract_size = symbol_info.trade_contract_size or None
             else:
-                tick_size = None
-                tick_value = None
-                contract_size = None
+                # Fallback: Use appropriate defaults based on symbol type
+                # For .cash symbols (indices), use index defaults
+                if '.cash' in symbol.lower():
+                    # Defaults for cash/index symbols
+                    tick_size = 1.0  # Indices typically move in whole numbers
+                    tick_value = 1.0  # 1 point = 1 currency unit per lot
+                    contract_size = 1.0  # Contract size is typically 1 for indices
+                else:
+                    # Defaults for forex symbols
+                    tick_size = 0.00001
+                    tick_value = 1.0
+                    contract_size = 100000
             
             return self.simulator.close_position(ticket, close_price, tick_size, tick_value, contract_size)
         

@@ -161,12 +161,7 @@
     "applyToStrategy": true,
     "applyToNodes": true,
     "applyToOpenPositions": true,
-    "applyToClosePositions": false,
-    "maxTradesPerHour": 10,
-    "maxTradesPerDay": 50,
-    "cooldownMinutes": 5,
-    "warningEnabled": true,
-    "blockTrading": false
+    "applyToClosePositions": false
   },
   "overtradeControlSimulator": {
     "enabled": true,
@@ -179,14 +174,15 @@
     "applyToOpenPositions": true,
     "applyToClosePositions": false
   },
-  "overtradeHistoryReal": [
+  "overtradeHistoryReal": [],
+  "overtradeHistorySimulator": [
     {
-      "timestamp": 1762934193154,
+      "timestamp": 1762990155549,
       "type": "manual",
       "data": {
-        "symbol": "HK50.cash",
+        "symbol": "BTCUSD",
         "type": "BUY",
-        "volume": 0.5,
+        "volume": 0.01,
         "stopLoss": 0,
         "takeProfit": 0,
         "action": "executeOrder"
@@ -195,21 +191,20 @@
       "positionType": "open"
     },
     {
-      "timestamp": 1762934199231,
+      "timestamp": 1762990157905,
       "type": "manual",
       "data": {
-        "symbol": "HK50.cash",
+        "symbol": "BTCUSD",
         "type": "BUY",
-        "volume": 0.5,
-        "stopLoss": 10,
-        "takeProfit": 300000,
+        "volume": 0.01,
+        "stopLoss": 0,
+        "takeProfit": 0,
         "action": "executeOrder"
       },
       "action": "executeOrder",
       "positionType": "open"
     }
   ],
-  "overtradeHistorySimulator": [],
   "overtradeLastWarningReal": 0,
   "overtradeLastWarningSimulator": 0,
   "overtradeWarningCountReal": 0,

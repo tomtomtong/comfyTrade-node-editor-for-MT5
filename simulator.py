@@ -178,9 +178,15 @@ class TradingSimulator:
             # Fallback to contract_size calculation
             position['profit'] = price_diff * position['volume'] * contract_size
         else:
-            # Last resort: assume forex standard lot (100000)
-            # This is a fallback and may be incorrect for indices
-            position['profit'] = price_diff * position['volume'] * 100000
+            # Last resort: Detect symbol type and use appropriate defaults
+            symbol = position.get('symbol', '').lower()
+            if '.cash' in symbol:
+                # For .cash symbols (indices), use index defaults
+                # tick_size = 1.0, tick_value = 1.0, contract_size = 1.0
+                position['profit'] = price_diff * position['volume'] * 1.0
+            else:
+                # For forex symbols, assume standard lot (100000)
+                position['profit'] = price_diff * position['volume'] * 100000
         
         # Add to closed positions
         self.closed_positions.append(position)
