@@ -1,4 +1,5 @@
-// Overtrade Control System - Reminder-based (non-blocking)
+// Overtrade Control System - Restricts opening positions when limit is exceeded
+// Only affects open positions, not close positions or other operations
 // Now supports separate controls for real trading and simulator
 class OvertradeControl {
   constructor() {
@@ -474,16 +475,58 @@ class OvertradeControl {
         return;
       }
       
-      const shouldShow = await this.shouldShowReminder(tradeType, tradeData);
-      if (shouldShow) {
-        this.pendingTradeResolve = resolve;
-        this.pendingTradeData = { type: tradeType, data: tradeData };
-        this.showWarningModal();
-      } else {
-        // Record the trade and proceed
-        await this.recordTrade(tradeType, tradeData);
+      // Check if this is an open position trade
+      const isOpenPosition = this.isNewPositionTrade(tradeData);
+      const isClosePosition = this.isClosePositionTrade(tradeData);
+      
+      // Overtrade control only affects open positions, not close positions
+      if (isClosePosition) {
+        // Always allow closing positions
         resolve(true);
+        return;
       }
+      
+      // Only check and restrict open positions
+      if (!isOpenPosition) {
+        // If it's not clearly an open position, allow it (for backward compatibility)
+        resolve(true);
+        return;
+      }
+      
+      // Check if this trade type should be restricted
+      const typeMap = {
+        manual: settings.applyToManual,
+        strategy: settings.applyToStrategy,
+        node: settings.applyToNodes
+      };
+      
+      if (!typeMap[tradeType]) {
+        // This trade type is not restricted
+        resolve(true);
+        return;
+      }
+      
+      // Check if open positions are being tracked
+      if (!settings.applyToOpenPositions) {
+        // Open positions are not being tracked, allow the trade
+        resolve(true);
+        return;
+      }
+      
+      // Get current period trade count
+      const currentPeriodTrades = this.getCurrentPeriodTrades();
+      
+      // If limit is exceeded, BLOCK the trade (don't allow proceeding)
+      if (currentPeriodTrades >= settings.maxTrades) {
+        // Show warning message but block the trade
+        this.showOvertradeBlockedMessage(currentPeriodTrades, settings);
+        resolve(false); // Block the trade
+        return;
+      }
+      
+      // Limit not exceeded, record and allow the trade
+      await this.recordTrade(tradeType, tradeData);
+      resolve(true);
     });
   }
 
@@ -549,6 +592,29 @@ class OvertradeControl {
       threshold: settings.maxTrades,
       period: periodName,
       message: `${currentPeriodTrades} trades exceed limit of ${settings.maxTrades} for this ${periodName}`
+    });
+  }
+
+  showOvertradeBlockedMessage(currentPeriodTrades, settings) {
+    // Update the persistent panel
+    this.updatePersistentPanel(currentPeriodTrades);
+    
+    // Show blocking message
+    const periodName = settings.timePeriod;
+    const mode = this.isSimulatorModeSync() ? 'Simulator' : 'Real Trading';
+    const blockedMessage = `🚫 Trade BLOCKED (${mode}): Limit of ${settings.maxTrades} trades per ${periodName} reached (${currentPeriodTrades} trades). Opening new positions is restricted.`;
+    
+    if (typeof showMessage === 'function') {
+      showMessage(blockedMessage, 'error');
+    }
+    
+    // Also log to console for debugging
+    console.warn('Trade blocked by overtrade control:', {
+      mode: this.isSimulatorModeSync() ? 'simulator' : 'real',
+      currentPeriodTrades: currentPeriodTrades,
+      threshold: settings.maxTrades,
+      period: periodName,
+      message: `Opening position blocked: ${currentPeriodTrades} trades exceed limit of ${settings.maxTrades} for this ${periodName}`
     });
   }
 
