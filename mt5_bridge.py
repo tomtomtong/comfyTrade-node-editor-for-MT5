@@ -286,22 +286,99 @@ class MT5Bridge:
         
         return result
     
-    def execute_order(self, symbol, order_type, volume, sl=0, tp=0):
+    def get_pending_orders(self):
+        """Get pending orders (limit orders that haven't been executed)"""
+        if not self.connected_to_mt5:
+            return {"error": "Not connected to MT5"}
+        
+        # Get pending orders from MT5
+        orders = mt5.orders_get()
+        if orders is None:
+            return []
+        
+        result = []
+        for order in orders:
+            # Determine order type string
+            if order.type == mt5.ORDER_TYPE_BUY_LIMIT:
+                order_type_str = "BUY LIMIT"
+            elif order.type == mt5.ORDER_TYPE_SELL_LIMIT:
+                order_type_str = "SELL LIMIT"
+            elif order.type == mt5.ORDER_TYPE_BUY_STOP:
+                order_type_str = "BUY STOP"
+            elif order.type == mt5.ORDER_TYPE_SELL_STOP:
+                order_type_str = "SELL STOP"
+            else:
+                order_type_str = "UNKNOWN"
+            
+            result.append({
+                "ticket": order.ticket,
+                "symbol": order.symbol,
+                "type": order_type_str,
+                "volume": order.volume_initial,
+                "volume_current": order.volume_current,
+                "price": order.price_open,
+                "stop_loss": order.sl,
+                "take_profit": order.tp,
+                "time_setup": order.time_setup,
+                "time_expiration": order.time_expiration,
+                "comment": order.comment
+            })
+        
+        return result
+    
+    def cancel_pending_order(self, ticket):
+        """Cancel a pending order"""
+        if not self.connected_to_mt5:
+            return {"success": False, "error": "Not connected to MT5"}
+        
+        # Prepare order deletion request
+        request = {
+            "action": mt5.TRADE_ACTION_REMOVE,
+            "order": ticket,
+            "magic": 234000,
+        }
+        
+        logger.info(f"Cancelling pending order: ticket={ticket}")
+        result = mt5.order_send(request)
+        
+        if result is None:
+            logger.error("Order cancellation returned None")
+            return {"success": False, "error": "Order cancellation failed - MT5 returned None"}
+        
+        logger.info(f"Order cancellation result: retcode={result.retcode}, comment={result.comment}")
+        
+        if result.retcode != mt5.TRADE_RETCODE_DONE:
+            error_msg = f"Order cancellation failed: {result.comment} (retcode: {result.retcode})"
+            logger.error(error_msg)
+            return {"success": False, "error": error_msg}
+        
+        logger.info(f"Pending order cancelled successfully: ticket={ticket}")
+        return {
+            "success": True,
+            "ticket": ticket,
+            "message": "Pending order cancelled successfully"
+        }
+    
+    def execute_order(self, symbol, order_type, volume, sl=0, tp=0, execution_type='MARKET', limit_price=None):
         """Execute a trading order (real or simulated)"""
         if not self.connected_to_mt5:
             return {"success": False, "error": "Not connected to MT5"}
         
         # SIMULATOR MODE: Execute simulated trade
         if self.simulator_mode:
-            logger.info(f"[SIMULATOR] Executing order: {symbol} {order_type} {volume} SL:{sl} TP:{tp}")
+            logger.info(f"[SIMULATOR] Executing order: {symbol} {order_type} {volume} SL:{sl} TP:{tp} ExecutionType:{execution_type}")
             
             # Get current market price
             tick = mt5.symbol_info_tick(symbol)
             if tick is None:
                 return {"success": False, "error": f"Failed to get current price for {symbol}"}
             
-            # Use appropriate price based on order type
-            open_price = tick.ask if order_type == "BUY" else tick.bid
+            # For limit orders in simulator, use limit price if provided, otherwise use market price
+            if execution_type == 'LIMIT' and limit_price:
+                open_price = limit_price
+            else:
+                # Use appropriate price based on order type
+                open_price = tick.ask if order_type == "BUY" else tick.bid
             
             # Open simulated position
             result = self.simulator.open_position(symbol, order_type, volume, open_price, sl, tp)
@@ -309,7 +386,7 @@ class MT5Bridge:
             return result
         
         # REAL MODE: Execute actual trade
-        logger.info(f"Executing order: {symbol} {order_type} {volume} SL:{sl} TP:{tp}")
+        logger.info(f"Executing order: {symbol} {order_type} {volume} SL:{sl} TP:{tp} ExecutionType:{execution_type}")
         
         # Get symbol info - this validates the symbol exists
         symbol_info = mt5.symbol_info(symbol)
@@ -326,13 +403,70 @@ class MT5Bridge:
                 logger.error(f"Failed to select {symbol}")
                 return {"success": False, "error": f"Failed to select {symbol}"}
         
-        # Get current tick data (price)
+        # Get current tick data (price) - needed for validation and market orders
         tick = mt5.symbol_info_tick(symbol)
         if tick is None:
             logger.error(f"Failed to get tick for {symbol}")
             return {"success": False, "error": f"Failed to get current price for {symbol}"}
         
-        # Determine price based on order type (same as price_UI.py)
+        # Handle LIMIT orders
+        if execution_type == 'LIMIT':
+            if not limit_price or limit_price <= 0:
+                return {"success": False, "error": "Limit price is required for limit orders"}
+            
+            # Validate limit price
+            if order_type == "BUY" and limit_price >= tick.ask:
+                return {"success": False, "error": f"BUY limit price ({limit_price}) must be below current ask ({tick.ask})"}
+            if order_type == "SELL" and limit_price <= tick.bid:
+                return {"success": False, "error": f"SELL limit price ({limit_price}) must be above current bid ({tick.bid})"}
+            
+            # Normalize limit price to symbol's tick size
+            tick_size = symbol_info.trade_tick_size
+            if tick_size > 0:
+                limit_price = round(limit_price / tick_size) * tick_size
+            
+            # Prepare limit order request
+            request = {
+                "action": mt5.TRADE_ACTION_PENDING,
+                "symbol": symbol,
+                "volume": volume,
+                "type": mt5.ORDER_TYPE_BUY_LIMIT if order_type == "BUY" else mt5.ORDER_TYPE_SELL_LIMIT,
+                "price": limit_price,
+                "magic": 234000,
+                "type_time": mt5.ORDER_TIME_GTC,
+            }
+            
+            # Add SL/TP only if specified
+            if sl and sl > 0:
+                request["sl"] = sl
+            if tp and tp > 0:
+                request["tp"] = tp
+            
+            logger.info(f"Sending limit order request: {request}")
+            result = mt5.order_send(request)
+            
+            if result is None:
+                logger.error("Limit order send returned None - Check MT5 connection and trading permissions")
+                return {"success": False, "error": "Limit order send failed - MT5 returned None. Check connection and parameters."}
+            
+            logger.info(f"Limit order result: retcode={result.retcode}, comment={result.comment}")
+            
+            # Check if order was successful
+            if result.retcode != mt5.TRADE_RETCODE_DONE:
+                error_msg = f"Limit order failed: {result.comment} (retcode: {result.retcode})"
+                logger.error(error_msg)
+                return {"success": False, "error": error_msg}
+            
+            logger.info(f"Limit order placed successfully: ticket={result.order}, price={limit_price}")
+            return {
+                "success": True,
+                "ticket": result.order,
+                "price": limit_price,
+                "message": "Limit order placed successfully"
+            }
+        
+        # Handle MARKET orders (existing logic)
+        # Determine price based on order type
         price = tick.ask if order_type == "BUY" else tick.bid
         logger.info(f"Current price for {symbol}: ask={tick.ask}, bid={tick.bid}, using price={price}")
         
@@ -1535,13 +1669,22 @@ class MT5Bridge:
             elif action == 'getPositions':
                 response['data'] = self.get_positions()
                 
+            elif action == 'getPendingOrders':
+                response['data'] = self.get_pending_orders()
+                
+            elif action == 'cancelPendingOrder':
+                result = self.cancel_pending_order(data.get('ticket'))
+                response['data'] = result
+                
             elif action == 'executeOrder':
                 result = self.execute_order(
                     data.get('symbol'),
                     data.get('type'),
                     data.get('volume'),
                     data.get('stopLoss', 0),
-                    data.get('takeProfit', 0)
+                    data.get('takeProfit', 0),
+                    data.get('executionType', 'MARKET'),
+                    data.get('limitPrice')
                 )
                 response['data'] = result
                 

@@ -211,6 +211,26 @@ class MT5Bridge {
     return response.data;
   }
 
+  async getPendingOrders() {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    const response = await this.sendMessage('getPendingOrders');
+    // Return the data directly (array of orders or error object)
+    return response.data;
+  }
+
+  async cancelPendingOrder(ticket) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log('Cancelling pending order:', ticket);
+    const response = await this.sendMessage('cancelPendingOrder', { ticket });
+    return response.data;
+  }
+
   async closePosition(ticket) {
     if (!this.connected) {
       throw new Error('Not connected to MT5');
@@ -329,6 +349,8 @@ class MT5Bridge {
     const response = await this.sendMessage('executeOrder', {
       symbol: orderData.symbol,
       type: orderData.type,
+      executionType: orderData.executionType || 'MARKET',
+      limitPrice: orderData.limitPrice || null,
       volume: orderData.volume,
       stopLoss: orderData.stopLoss || 0,
       takeProfit: orderData.takeProfit || 0

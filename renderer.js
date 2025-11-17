@@ -230,6 +230,18 @@ function setupEventListeners() {
   document.getElementById('cancelConnectBtn').addEventListener('click', hideConnectionModal);
   document.getElementById('confirmTradeBtn').addEventListener('click', handleExecuteTrade);
   document.getElementById('cancelTradeBtn').addEventListener('click', hideTradeModal);
+  
+  // Execution type change handler - show/hide limit price field
+  document.getElementById('executionType').addEventListener('change', (e) => {
+    const limitPriceGroup = document.getElementById('limitPriceGroup');
+    if (e.target.value === 'LIMIT') {
+      limitPriceGroup.style.display = 'block';
+    } else {
+      limitPriceGroup.style.display = 'none';
+      document.getElementById('limitPrice').value = '';
+    }
+  });
+  
   document.getElementById('confirmImportBtn').addEventListener('click', () => window.historyImport.handleImportHistory());
   document.getElementById('cancelImportBtn').addEventListener('click', () => window.historyImport.hideBacktestModal());
   
@@ -247,6 +259,9 @@ function setupEventListeners() {
   // Closed positions controls
   document.getElementById('refreshClosedPositionsBtn').addEventListener('click', handleRefreshClosedPositions);
   document.getElementById('closedPositionsDays').addEventListener('change', handleRefreshClosedPositions);
+  
+  // Pending orders controls
+  document.getElementById('refreshPendingOrdersBtn').addEventListener('click', handleRefreshPendingOrders);
   
   // Volume loss calculation
   document.getElementById('tradeVolume').addEventListener('input', calculateVolumeLoss);
@@ -806,7 +821,21 @@ function switchPositionsTab(tabName) {
   document.querySelectorAll('.positions-tab').forEach(tab => {
     tab.classList.remove('active');
   });
-  document.getElementById(`${tabName}PositionsTab`).classList.add('active');
+  
+  // Map tab names to element IDs
+  const tabIdMap = {
+    'open': 'openPositionsTab',
+    'pending': 'pendingOrdersTab',
+    'closed': 'closedPositionsTab'
+  };
+  
+  const tabId = tabIdMap[tabName] || `${tabName}PositionsTab`;
+  document.getElementById(tabId).classList.add('active');
+  
+  // Refresh pending orders when switching to pending tab
+  if (tabName === 'pending') {
+    handleRefreshPendingOrders();
+  }
   
   // Load closed positions if switching to closed tab
   if (tabName === 'closed') {
@@ -1162,7 +1191,9 @@ async function resetSimulator() {
 async function handleExecuteTrade() {
   const symbol = symbolInput.getValue();
   const type = document.getElementById('tradeType').value;
+  const executionType = document.getElementById('executionType').value;
   const volume = parseFloat(document.getElementById('tradeVolume').value);
+  const limitPrice = executionType === 'LIMIT' ? parseFloat(document.getElementById('limitPrice').value) : null;
   // Stop Loss and Take Profit are now set in the confirmation modal, not here
   const stopLoss = 0;
   const takeProfit = 0;
@@ -1176,6 +1207,32 @@ async function handleExecuteTrade() {
   if (!volume || volume <= 0) {
     showMessage('Please enter a valid volume', 'error');
     return;
+  }
+  
+  // Validate limit price if limit order
+  if (executionType === 'LIMIT') {
+    if (!limitPrice || limitPrice <= 0) {
+      showMessage('Please enter a valid limit price', 'error');
+      return;
+    }
+    
+    // Get current prices for validation
+    try {
+      const marketData = await window.mt5API.getMarketData(symbol);
+      if (marketData && marketData.bid && marketData.ask) {
+        if (type === 'BUY' && limitPrice >= marketData.ask) {
+          showMessage('For BUY limit orders, the limit price must be below the current ask price', 'error');
+          return;
+        }
+        if (type === 'SELL' && limitPrice <= marketData.bid) {
+          showMessage('For SELL limit orders, the limit price must be above the current bid price', 'error');
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error validating limit price:', error);
+      // Continue anyway - backend will validate
+    }
   }
   
   // Note: TP/SL are set in the confirmation modal, not in the initial trade modal
@@ -1196,7 +1253,7 @@ async function handleExecuteTrade() {
       // Update the volume variable for the trade
       const adjustedVolume = volumeResult.adjustedVolume;
       // Continue with adjusted volume
-      return handleExecuteTradeWithVolume(symbol, type, adjustedVolume, stopLoss, takeProfit);
+      return handleExecuteTradeWithVolume(symbol, type, executionType, limitPrice, adjustedVolume, stopLoss, takeProfit);
     }
   }
 
@@ -1210,11 +1267,11 @@ async function handleExecuteTrade() {
   }
   
   // Show confirmation dialog
-  showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit);
+  showTradeConfirmationModal(symbol, type, executionType, limitPrice, volume, stopLoss, takeProfit);
 }
 
 // Helper function to execute trade with specific volume (used for volume adjustments)
-async function handleExecuteTradeWithVolume(symbol, type, volume, stopLoss, takeProfit) {
+async function handleExecuteTradeWithVolume(symbol, type, executionType, limitPrice, volume, stopLoss, takeProfit) {
   // Check overtrade control before proceeding
   const tradeData = { symbol, type, volume, stopLoss, takeProfit, action: 'executeOrder' };
   const shouldProceed = await window.overtradeControl.checkBeforeTrade('manual', tradeData);
@@ -1225,7 +1282,7 @@ async function handleExecuteTradeWithVolume(symbol, type, volume, stopLoss, take
   }
   
   // Show confirmation dialog
-  showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit);
+  showTradeConfirmationModal(symbol, type, executionType, limitPrice, volume, stopLoss, takeProfit);
 }
 
 // Store trade data for confirmation
@@ -1812,15 +1869,18 @@ async function updateConfirmationModalPrice(symbol, type) {
   }
 }
 
-function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) {
+function showTradeConfirmationModal(symbol, type, executionType, limitPrice, volume, stopLoss, takeProfit) {
   // Store the trade data
-  pendingTradeData = { symbol, type, volume, stopLoss, takeProfit };
+  pendingTradeData = { symbol, type, executionType, limitPrice, volume, stopLoss, takeProfit };
   
   // Update confirmation modal content
   document.getElementById('confirmTradeSymbol').textContent = symbol;
   
   const tradeTypeElement = document.getElementById('confirmTradeType');
-  const tradeTypeText = type.toUpperCase(); // Use the type as-is since it's already uppercase from the select
+  let tradeTypeText = type.toUpperCase();
+  if (executionType === 'LIMIT') {
+    tradeTypeText += ' LIMIT';
+  }
   tradeTypeElement.textContent = tradeTypeText;
   
   // Add dynamic styling for BUY/SELL
@@ -1834,6 +1894,24 @@ function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) 
   }
   
   document.getElementById('confirmTradeVolume').textContent = volume;
+  
+  // Show limit price if it's a limit order
+  const confirmTradeCurrentPrice = document.getElementById('confirmTradeCurrentPrice');
+  const priceItem = confirmTradeCurrentPrice ? confirmTradeCurrentPrice.closest('.confirmation-item') : null;
+  const priceLabel = priceItem ? priceItem.querySelector('.label') : null;
+  
+  if (executionType === 'LIMIT' && limitPrice && confirmTradeCurrentPrice && priceLabel) {
+    priceLabel.textContent = 'Limit Price:';
+    confirmTradeCurrentPrice.textContent = limitPrice.toFixed(5);
+    confirmTradeCurrentPrice.style.color = '#FFA500';
+  } else if (confirmTradeCurrentPrice && priceLabel) {
+    priceLabel.textContent = 'Current Price:';
+    if (executionType === 'MARKET') {
+      confirmTradeCurrentPrice.textContent = 'Loading...';
+    }
+    confirmTradeCurrentPrice.style.color = '';
+  }
+  
   // Set input values for Stop Loss and Take Profit (editable in confirmation modal)
   // Use values from initial modal if provided, otherwise leave empty for user to enter
   const confirmStopLossInput = document.getElementById('confirmTradeStopLoss');
@@ -1845,8 +1923,10 @@ function showTradeConfirmationModal(symbol, type, volume, stopLoss, takeProfit) 
   hideTradeModal();
   document.getElementById('tradeConfirmationModal').classList.add('show');
   
-  // Fetch and display current price
-  updateConfirmationModalPrice(symbol, type);
+  // Fetch and display current price (only for market orders)
+  if (executionType === 'MARKET') {
+    updateConfirmationModalPrice(symbol, type);
+  }
   
   // Load and display the 6-month daily chart
   loadThreeMonthChart(symbol);
@@ -1890,8 +1970,8 @@ async function confirmTradeExecution() {
   const takeProfit = confirmTakeProfitInput === '' ? 0 : (parseFloat(confirmTakeProfitInput) || 0);
   
   // Update pendingTradeData with the values from confirmation modal
-  const { symbol, type, volume } = pendingTradeData;
-  const tradeDataToExecute = { symbol, type, volume, stopLoss, takeProfit };
+  const { symbol, type, executionType, limitPrice, volume } = pendingTradeData;
+  const tradeDataToExecute = { symbol, type, executionType, limitPrice, volume, stopLoss, takeProfit };
   
   hideTradeConfirmationModal();
   
@@ -1910,6 +1990,8 @@ async function confirmTradeExecution() {
     const orderData = {
       symbol,
       type,
+      executionType: executionType || 'MARKET',
+      limitPrice: limitPrice || null,
       volume,
       stopLoss,
       takeProfit
@@ -2045,6 +2127,101 @@ async function handleRefreshPositions() {
     updateTradeJournalWithPositions(positions);
   }
 }
+
+async function handleRefreshPendingOrders() {
+  if (!isConnected) return;
+
+  try {
+    const result = await window.mt5API.getPendingOrders();
+    const container = document.getElementById('pendingOrdersList');
+
+    // Handle the response structure from IPC (wrapped in {success, data})
+    let orders = [];
+    if (result && result.success && Array.isArray(result.data)) {
+      orders = result.data;
+    } else if (Array.isArray(result)) {
+      // Fallback: if result is directly an array
+      orders = result;
+    } else if (result && result.data && Array.isArray(result.data)) {
+      orders = result.data;
+    }
+
+    if (orders.length === 0) {
+      container.innerHTML = '<p class="no-data">No pending orders</p>';
+    } else {
+      container.innerHTML = orders.map(order => {
+        const setupTime = new Date(order.time_setup * 1000).toLocaleString();
+        const expirationTime = order.time_expiration > 0 
+          ? new Date(order.time_expiration * 1000).toLocaleString() 
+          : 'GTC (Good Till Cancel)';
+        
+        // Determine border color based on order type
+        let borderColor = '#FFA500'; // Orange for limit orders
+        if (order.type.includes('STOP')) {
+          borderColor = '#FF6B6B';
+        }
+        
+        return `
+          <div class="position-item" style="border-left-color: ${borderColor};">
+            <div class="position-header">
+              <span>${order.symbol} ${order.type}</span>
+              <span style="color: #FFA500; font-weight: bold;">PENDING</span>
+            </div>
+            <div class="position-details">
+              Volume: ${order.volume} | Limit Price: ${order.price.toFixed(5)}
+            </div>
+            <div class="position-details">
+              SL: ${(order.stop_loss && order.stop_loss > 0) ? order.stop_loss.toFixed(5) : 'None'} | TP: ${(order.take_profit && order.take_profit > 0) ? order.take_profit.toFixed(5) : 'None'}
+            </div>
+            <div class="position-details" style="font-size: 10px; color: #666;">
+              Placed: ${setupTime}<br>
+              Expires: ${expirationTime}
+            </div>
+            <div class="position-actions">
+              <button class="btn btn-small btn-danger" onclick="cancelPendingOrder(${order.ticket})">Cancel</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  } catch (error) {
+    console.error('Error refreshing pending orders:', error);
+    const container = document.getElementById('pendingOrdersList');
+    container.innerHTML = '<p class="no-data">Error loading pending orders</p>';
+  }
+}
+
+async function cancelPendingOrder(ticket) {
+  if (!isConnected) {
+    showMessage('Not connected to MT5', 'error');
+    return;
+  }
+
+  if (!confirm(`Are you sure you want to cancel pending order #${ticket}?`)) {
+    return;
+  }
+
+  showMessage('Cancelling pending order...', 'info');
+
+  try {
+    const result = await window.mt5API.cancelPendingOrder(ticket);
+    
+    if (result.success) {
+      showMessage(`Pending order #${ticket} cancelled successfully`, 'success');
+      // Refresh pending orders list
+      await handleRefreshPendingOrders();
+      // Also refresh positions in case the order was executed
+      handleRefreshPositions();
+    } else {
+      showMessage('Failed to cancel order: ' + (result.error || 'Unknown error'), 'error');
+    }
+  } catch (error) {
+    showMessage('Error cancelling order: ' + error.message, 'error');
+  }
+}
+
+// Make cancelPendingOrder globally accessible
+window.cancelPendingOrder = cancelPendingOrder;
 
 // Update trade journal with position data
 function updateTradeJournalWithPositions(positions = []) {

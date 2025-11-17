@@ -204,12 +204,23 @@
         <div class="positions-panel">
           <div class="positions-tabs">
             <button class="positions-tab-btn active" data-tab="open">Open Positions</button>
+            <button class="positions-tab-btn" data-tab="pending">Pending Orders</button>
             <button class="positions-tab-btn" data-tab="closed">Closed Positions</button>
           </div>
           
           <div id="openPositionsTab" class="positions-tab active">
             <div id="positionsList" class="positions-list">
               <p class="no-data">No open positions</p>
+            </div>
+          </div>
+          
+          <div id="pendingOrdersTab" class="positions-tab">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h3 style="margin: 0;">Pending Orders</h3>
+              <button id="refreshPendingOrdersBtn" class="btn btn-secondary btn-small">Refresh</button>
+            </div>
+            <div id="pendingOrdersList" class="positions-list">
+              <p class="no-data">No pending orders</p>
             </div>
           </div>
           
@@ -272,6 +283,18 @@
             <option value="BUY" selected>Buy</option>
             <option value="SELL">Sell</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Execution Type:</label>
+          <select id="executionType">
+            <option value="MARKET" selected>Market</option>
+            <option value="LIMIT">Limit</option>
+          </select>
+        </div>
+        <div class="form-group" id="limitPriceGroup" style="display: none;">
+          <label>Limit Price:</label>
+          <input type="number" id="limitPrice" step="0.00001" placeholder="Enter limit price">
+          <small style="color: #888; display: block; margin-top: 5px;">For BUY: price must be below current ask. For SELL: price must be above current bid.</small>
         </div>
         <div class="form-group">
           <label>Volume:</label>

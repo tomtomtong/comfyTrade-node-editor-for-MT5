@@ -81,6 +81,24 @@ ipcMain.handle('mt5:getPositions', async () => {
     }
 });
 
+ipcMain.handle('mt5:getPendingOrders', async () => {
+    try {
+        const orders = await mt5Bridge.getPendingOrders();
+        return { success: true, data: orders };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('mt5:cancelPendingOrder', async (event, ticket) => {
+    try {
+        const result = await mt5Bridge.cancelPendingOrder(ticket);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 ipcMain.handle('mt5:closePosition', async (event, ticket) => {
     try {
         const result = await mt5Bridge.closePosition(ticket);
