@@ -2857,6 +2857,26 @@ function showModifyModal(ticket, currentSL, currentTP) {
   document.getElementById('modifyStopLossPercent').value = '';
   document.getElementById('modifyTakeProfitPercent').value = '';
   
+  // Reset schedule options
+  const scheduleEnabled = document.getElementById('modifyScheduleEnabled');
+  if (scheduleEnabled) {
+    scheduleEnabled.checked = false;
+    toggleScheduleOptions();
+  }
+  const scheduleDelay = document.getElementById('modifyScheduleDelay');
+  if (scheduleDelay) scheduleDelay.value = '';
+  const scheduleDateTime = document.getElementById('modifyScheduleDateTime');
+  if (scheduleDateTime) {
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    scheduleDateTime.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+  
   // Store position data for percentage calculations
   if (position) {
     document.getElementById('modifyModal').dataset.currentPrice = position.current_price;
@@ -3243,19 +3263,65 @@ async function handleModifyPosition() {
     return;
   }
 
-  hideModifyModal();
-  // Record position management action (doesn't count for overtrade)
-  window.overtradeControl.recordPositionManagement('modifyPosition', { ticket, stopLoss, takeProfit });
-
-  showMessage('Modifying position...', 'info');
-
-  const result = await window.mt5API.modifyPosition(ticket, stopLoss, takeProfit);
-
-  if (result.success && result.data.success) {
-    showMessage('Position modified successfully!', 'success');
-    handleRefreshPositions();
+  // Check if scheduling is enabled
+  const scheduleEnabled = document.getElementById('modifyScheduleEnabled')?.checked || false;
+  
+  if (scheduleEnabled) {
+    // Schedule for later
+    const scheduleDateTime = document.getElementById('modifyScheduleDateTime')?.value;
+    const scheduleDelay = document.getElementById('modifyScheduleDelay')?.value;
+    
+    let scheduledTime;
+    
+    if (scheduleDelay && scheduleDelay > 0) {
+      // Use delay in minutes
+      scheduledTime = new Date(Date.now() + parseInt(scheduleDelay) * 60 * 1000);
+    } else if (scheduleDateTime) {
+      // Use specific date/time
+      scheduledTime = new Date(scheduleDateTime);
+    } else {
+      showMessage('Please specify either a date/time or delay for scheduling', 'error');
+      return;
+    }
+    
+    // Validate scheduled time is in the future
+    if (scheduledTime <= new Date()) {
+      showMessage('Scheduled time must be in the future', 'error');
+      return;
+    }
+    
+    // Save scheduled modification
+    const scheduledId = saveScheduledModification({
+      ticket,
+      stopLoss,
+      takeProfit,
+      scheduledTime: scheduledTime.toISOString(),
+      createdAt: new Date().toISOString()
+    });
+    
+    hideModifyModal();
+    showMessage(`Position modification scheduled for ${scheduledTime.toLocaleString()}`, 'success');
+    
+    // Update scheduled modifications display if it exists
+    if (window.updateScheduledModificationsDisplay) {
+      window.updateScheduledModificationsDisplay();
+    }
   } else {
-    showMessage('Failed to modify position: ' + (result.data?.error || result.error), 'error');
+    // Execute immediately
+    hideModifyModal();
+    // Record position management action (doesn't count for overtrade)
+    window.overtradeControl.recordPositionManagement('modifyPosition', { ticket, stopLoss, takeProfit });
+
+    showMessage('Modifying position...', 'info');
+
+    const result = await window.mt5API.modifyPosition(ticket, stopLoss, takeProfit);
+
+    if (result.success && result.data.success) {
+      showMessage('Position modified successfully!', 'success');
+      handleRefreshPositions();
+    } else {
+      showMessage('Failed to modify position: ' + (result.data?.error || result.error), 'error');
+    }
   }
 }
 
@@ -3266,43 +3332,68 @@ function createModifyModal() {
         <h2>Modify Position</h2>
         <input type="hidden" id="modifyTicket">
         
-        <div id="modifyCurrentPrice" style="margin-bottom: 15px; padding: 10px; background-color: rgba(76, 175, 80, 0.1); border-left: 3px solid #4CAF50; border-radius: 4px;">
-          <strong style="color: #4CAF50;">Current Price:</strong> <span id="modifyCurrentPriceValue" style="color: #e0e0e0; font-size: 16px; font-weight: bold;">-</span>
-        </div>
-        
-        <div class="form-group">
-          <label>Stop Loss:</label>
-          <div class="input-group">
-            <input type="number" id="modifyStopLoss" step="0.00001" placeholder="Absolute price (0 for none)" oninput="updatePercentFromPrice('sl')">
-            <span class="input-separator">OR</span>
-            <input type="number" id="modifyStopLossPercent" step="0.1" placeholder="% from current" oninput="updatePriceFromPercent('sl')">
-            <span class="percent-symbol">%</span>
+        <div class="trade-confirmation-modal-content">
+          <div id="modifyCurrentPrice" style="margin-bottom: 15px; padding: 10px; background-color: rgba(76, 175, 80, 0.1); border-left: 3px solid #4CAF50; border-radius: 4px;">
+            <strong style="color: #4CAF50;">Current Price:</strong> <span id="modifyCurrentPriceValue" style="color: #e0e0e0; font-size: 16px; font-weight: bold;">-</span>
+          </div>
+          
+          <div class="form-group">
+            <label>Stop Loss:</label>
+            <div class="input-group">
+              <input type="number" id="modifyStopLoss" step="0.00001" placeholder="Absolute price (0 for none)" oninput="updatePercentFromPrice('sl')">
+              <span class="input-separator">OR</span>
+              <input type="number" id="modifyStopLossPercent" step="0.1" placeholder="% from current" oninput="updatePriceFromPercent('sl')">
+              <span class="percent-symbol">%</span>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Take Profit:</label>
+            <div class="input-group">
+              <input type="number" id="modifyTakeProfit" step="0.00001" placeholder="Absolute price (0 for none)" oninput="updatePercentFromPrice('tp')">
+              <span class="input-separator">OR</span>
+              <input type="number" id="modifyTakeProfitPercent" step="0.1" placeholder="% from current" oninput="updatePriceFromPercent('tp')">
+              <span class="percent-symbol">%</span>
+            </div>
+          </div>
+          
+          <!-- Timer/Schedule Option -->
+          <div class="form-group" style="margin-top: 20px; padding: 15px; background-color: rgba(33, 150, 243, 0.1); border-left: 3px solid #2196F3; border-radius: 4px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+              <input type="checkbox" id="modifyScheduleEnabled" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" onchange="toggleScheduleOptions()">
+              <strong style="color: #2196F3;">⏰ Schedule for Later</strong>
+            </label>
+            <div id="scheduleOptions" style="display: none; margin-top: 15px;">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <div style="flex: 1; min-width: 200px;">
+                  <label style="display: block; margin-bottom: 5px; color: #b0b0b0; font-size: 12px;">Date & Time:</label>
+                  <input type="datetime-local" id="modifyScheduleDateTime" style="width: 100%; padding: 8px; background-color: #2a2a2a; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; font-size: 14px;">
+                </div>
+                <div style="flex: 1; min-width: 150px;">
+                  <label style="display: block; margin-bottom: 5px; color: #b0b0b0; font-size: 12px;">OR Delay (minutes):</label>
+                  <input type="number" id="modifyScheduleDelay" min="1" step="1" placeholder="Minutes" style="width: 100%; padding: 8px; background-color: #2a2a2a; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; font-size: 14px;" oninput="updateScheduleFromDelay()">
+                </div>
+              </div>
+              <div id="schedulePreview" style="margin-top: 10px; padding: 8px; background-color: rgba(33, 150, 243, 0.15); border-radius: 4px; color: #90CAF9; font-size: 12px; display: none;">
+                <strong>Scheduled for:</strong> <span id="schedulePreviewText"></span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 6 Month Daily Chart -->
+          <div class="chart-container-wrapper">
+            <h3 style="margin-top: 20px; margin-bottom: 10px;">📊 6-Month Daily Chart</h3>
+            <div id="modifyChartLoading" class="chart-loading" style="text-align: center; padding: 20px; color: #888;">
+              Loading chart data...
+            </div>
+            <div id="modifyChartError" class="chart-error" style="display: none; text-align: center; padding: 20px; color: #f44336;">
+              Failed to load chart data
+            </div>
+            <canvas id="modifyChart" style="display: none; max-height: 400px; width: 100%; height: 400px;"></canvas>
           </div>
         </div>
         
-        <div class="form-group">
-          <label>Take Profit:</label>
-          <div class="input-group">
-            <input type="number" id="modifyTakeProfit" step="0.00001" placeholder="Absolute price (0 for none)" oninput="updatePercentFromPrice('tp')">
-            <span class="input-separator">OR</span>
-            <input type="number" id="modifyTakeProfitPercent" step="0.1" placeholder="% from current" oninput="updatePriceFromPercent('tp')">
-            <span class="percent-symbol">%</span>
-          </div>
-        </div>
-        
-        <!-- 6 Month Daily Chart -->
-        <div class="chart-container-wrapper">
-          <h3 style="margin-top: 20px; margin-bottom: 10px;">📊 6-Month Daily Chart</h3>
-          <div id="modifyChartLoading" class="chart-loading" style="text-align: center; padding: 20px; color: #888;">
-            Loading chart data...
-          </div>
-          <div id="modifyChartError" class="chart-error" style="display: none; text-align: center; padding: 20px; color: #f44336;">
-            Failed to load chart data
-          </div>
-          <canvas id="modifyChart" style="display: none; max-height: 400px; width: 100%; height: 400px;"></canvas>
-        </div>
-        
-        <div class="modal-actions">
+        <div class="modal-actions" style="flex-shrink: 0; margin-top: auto; padding-top: 15px; border-top: 1px solid #444;">
           <button id="confirmModifyBtn" class="btn btn-primary">Modify</button>
           <button id="cancelModifyBtn" class="btn btn-secondary">Cancel</button>
         </div>
@@ -3314,7 +3405,208 @@ function createModifyModal() {
   
   document.getElementById('confirmModifyBtn').addEventListener('click', handleModifyPosition);
   document.getElementById('cancelModifyBtn').addEventListener('click', hideModifyModal);
+  
+  // Initialize schedule datetime to current time + 1 hour
+  const scheduleDateTime = document.getElementById('modifyScheduleDateTime');
+  if (scheduleDateTime) {
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    scheduleDateTime.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    scheduleDateTime.addEventListener('change', updateSchedulePreview);
+  }
+  
+  const scheduleDelay = document.getElementById('modifyScheduleDelay');
+  if (scheduleDelay) {
+    scheduleDelay.addEventListener('input', updateScheduleFromDelay);
+  }
 }
+
+// Schedule modification helper functions
+function toggleScheduleOptions() {
+  const scheduleEnabled = document.getElementById('modifyScheduleEnabled')?.checked || false;
+  const scheduleOptions = document.getElementById('scheduleOptions');
+  if (scheduleOptions) {
+    scheduleOptions.style.display = scheduleEnabled ? 'block' : 'none';
+    if (scheduleEnabled) {
+      updateSchedulePreview();
+    } else {
+      const preview = document.getElementById('schedulePreview');
+      if (preview) preview.style.display = 'none';
+    }
+  }
+}
+
+function updateScheduleFromDelay() {
+  const delayInput = document.getElementById('modifyScheduleDelay');
+  const dateTimeInput = document.getElementById('modifyScheduleDateTime');
+  
+  if (!delayInput || !dateTimeInput) return;
+  
+  const delayMinutes = parseInt(delayInput.value);
+  if (delayMinutes && delayMinutes > 0) {
+    const scheduledTime = new Date(Date.now() + delayMinutes * 60 * 1000);
+    const year = scheduledTime.getFullYear();
+    const month = String(scheduledTime.getMonth() + 1).padStart(2, '0');
+    const day = String(scheduledTime.getDate()).padStart(2, '0');
+    const hours = String(scheduledTime.getHours()).padStart(2, '0');
+    const minutes = String(scheduledTime.getMinutes()).padStart(2, '0');
+    dateTimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    updateSchedulePreview();
+  }
+}
+
+function updateSchedulePreview() {
+  const scheduleEnabled = document.getElementById('modifyScheduleEnabled')?.checked || false;
+  if (!scheduleEnabled) return;
+  
+  const scheduleDateTime = document.getElementById('modifyScheduleDateTime')?.value;
+  const scheduleDelay = document.getElementById('modifyScheduleDelay')?.value;
+  const preview = document.getElementById('schedulePreview');
+  const previewText = document.getElementById('schedulePreviewText');
+  
+  if (!preview || !previewText) return;
+  
+  let scheduledTime;
+  
+  if (scheduleDelay && scheduleDelay > 0) {
+    scheduledTime = new Date(Date.now() + parseInt(scheduleDelay) * 60 * 1000);
+  } else if (scheduleDateTime) {
+    scheduledTime = new Date(scheduleDateTime);
+  } else {
+    preview.style.display = 'none';
+    return;
+  }
+  
+  if (scheduledTime <= new Date()) {
+    previewText.textContent = '⚠️ Scheduled time must be in the future';
+    preview.style.display = 'block';
+    preview.style.backgroundColor = 'rgba(244, 67, 54, 0.15)';
+    preview.style.color = '#EF5350';
+  } else {
+    previewText.textContent = scheduledTime.toLocaleString();
+    preview.style.display = 'block';
+    preview.style.backgroundColor = 'rgba(33, 150, 243, 0.15)';
+    preview.style.color = '#90CAF9';
+  }
+}
+
+// Scheduled modifications storage and management
+const SCHEDULED_MODIFICATIONS_KEY = 'scheduledPositionModifications';
+
+function saveScheduledModification(modification) {
+  const scheduled = loadScheduledModifications();
+  const id = `mod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  scheduled[id] = {
+    ...modification,
+    id
+  };
+  localStorage.setItem(SCHEDULED_MODIFICATIONS_KEY, JSON.stringify(scheduled));
+  return id;
+}
+
+function loadScheduledModifications() {
+  try {
+    const stored = localStorage.getItem(SCHEDULED_MODIFICATIONS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch (error) {
+    console.error('Error loading scheduled modifications:', error);
+    return {};
+  }
+}
+
+function removeScheduledModification(id) {
+  const scheduled = loadScheduledModifications();
+  delete scheduled[id];
+  localStorage.setItem(SCHEDULED_MODIFICATIONS_KEY, JSON.stringify(scheduled));
+}
+
+function clearScheduledModifications() {
+  localStorage.removeItem(SCHEDULED_MODIFICATIONS_KEY);
+}
+
+async function executeScheduledModifications() {
+  const scheduled = loadScheduledModifications();
+  const now = new Date();
+  const toExecute = [];
+  
+  // Find modifications that are due
+  for (const [id, modification] of Object.entries(scheduled)) {
+    const scheduledTime = new Date(modification.scheduledTime);
+    if (scheduledTime <= now) {
+      toExecute.push({ id, ...modification });
+    }
+  }
+  
+  // Execute due modifications
+  for (const modification of toExecute) {
+    try {
+      console.log(`Executing scheduled modification for ticket ${modification.ticket}`);
+      showMessage(`Executing scheduled modification for ticket ${modification.ticket}...`, 'info');
+      
+      const result = await window.mt5API.modifyPosition(
+        modification.ticket,
+        modification.stopLoss,
+        modification.takeProfit
+      );
+      
+      if (result.success && result.data.success) {
+        showMessage(`Scheduled modification executed successfully for ticket ${modification.ticket}`, 'success');
+        removeScheduledModification(modification.id);
+      } else {
+        showMessage(`Failed to execute scheduled modification for ticket ${modification.ticket}: ${result.data?.error || result.error}`, 'error');
+        // Remove failed modifications to prevent retry loops
+        removeScheduledModification(modification.id);
+      }
+      
+      // Refresh positions after modification
+      if (window.handleRefreshPositions) {
+        setTimeout(() => handleRefreshPositions(), 1000);
+      }
+    } catch (error) {
+      console.error(`Error executing scheduled modification ${modification.id}:`, error);
+      showMessage(`Error executing scheduled modification: ${error.message}`, 'error');
+      // Remove failed modifications
+      removeScheduledModification(modification.id);
+    }
+  }
+}
+
+// Initialize scheduled modifications checker
+let scheduledModificationsInterval = null;
+
+function startScheduledModificationsChecker() {
+  // Check every 30 seconds for scheduled modifications
+  if (scheduledModificationsInterval) {
+    clearInterval(scheduledModificationsInterval);
+  }
+  
+  scheduledModificationsInterval = setInterval(() => {
+    executeScheduledModifications();
+  }, 30000); // Check every 30 seconds
+  
+  // Also check immediately on startup
+  executeScheduledModifications();
+}
+
+// Start the checker when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startScheduledModificationsChecker);
+} else {
+  startScheduledModificationsChecker();
+}
+
+// Make functions available globally for debugging
+window.scheduledModifications = {
+  load: loadScheduledModifications,
+  remove: removeScheduledModification,
+  clear: clearScheduledModifications,
+  execute: executeScheduledModifications
+};
 
 // Percentage calculation functions for modify position
 function updatePriceFromPercent(type) {

@@ -941,7 +941,9 @@ body.resizing * {
 
 /* Modify Position Modal */
 #modifyModal .modal-content {
-  max-width: 400px;
+  max-width: 900px;
+  width: 90%;
+  min-width: 600px;
 }
 
 #modifyModal .form-group {
@@ -1032,7 +1034,18 @@ body.resizing * {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+#modifyModal .chart-container-wrapper {
+  width: 100%;
   margin-top: 20px;
+}
+
+#modifyModal #modifyChart {
+  width: 100% !important;
+  max-width: 100%;
 }
 
 /* Symbol Input Component */
