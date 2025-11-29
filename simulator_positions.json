@@ -6,16 +6,29 @@
       "type": "BUY",
       "volume": 0.01,
       "open_price": 26104.77,
-      "current_price": 26111.53,
+      "current_price": 26035.73,
       "sl": 0,
       "tp": 0,
-      "profit": 0.008692230740149104,
+      "profit": -0.08865489566613276,
       "open_time": "2025-11-26T09:48:30.091642",
+      "comment": "SIMULATOR"
+    },
+    {
+      "ticket": 1000001,
+      "symbol": "BTCUSD",
+      "type": "BUY",
+      "volume": 0.01,
+      "open_price": 90560.52,
+      "current_price": 90606.31,
+      "sl": 0,
+      "tp": 0,
+      "profit": 0.45789999999993597,
+      "open_time": "2025-11-29T16:32:46.216445",
       "comment": "SIMULATOR"
     }
   ],
   "closed_positions": [],
-  "next_ticket": 1000001,
+  "next_ticket": 1000002,
   "initial_balance": 10000,
-  "last_updated": "2025-11-26T09:54:05.053714"
+  "last_updated": "2025-11-29T16:39:21.121935"
 }

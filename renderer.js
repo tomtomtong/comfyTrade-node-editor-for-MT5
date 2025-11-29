@@ -155,8 +155,6 @@ async function loadAllSettingsOnStartup() {
       checkAndShowSimulatorModeFromSettings();
       
       // Load chart image paths
-      await loadChartImagePaths();
-      
     } else {
       setTimeout(loadAllSettingsOnStartup, 500);
     }
@@ -276,7 +274,6 @@ function setupEventListeners() {
   document.getElementById('settingsBtn').addEventListener('click', showSettingsModal);
   document.getElementById('showLogBtn').addEventListener('click', showLogModal);
   document.getElementById('showAIMemoryBtn').addEventListener('click', showAIMemoryModal);
-  document.getElementById('showTradeJournalBtn').addEventListener('click', showTradeJournalModal);
   document.getElementById('toggleBottomPanelBtn').addEventListener('click', toggleBottomPanel);
   document.getElementById('runStrategyBtn').addEventListener('click', showRunStrategyModal);
   document.getElementById('stopStrategyBtn').addEventListener('click', stopNodeStrategy);
@@ -363,9 +360,6 @@ function setupEventListeners() {
   document.getElementById('clearAllAIMemoryBtn').addEventListener('click', clearAllAIMemory);
   
   // Trade Journal Modal buttons
-  document.getElementById('closeTradeJournalBtn').addEventListener('click', hideTradeJournalModal);
-  document.getElementById('refreshTradeJournalBtn').addEventListener('click', updateTradeJournalDisplay);
-  
   // Stop strategy modal
   document.getElementById('confirmStopBtn').addEventListener('click', handleStopStrategy);
   document.getElementById('cancelStopBtn').addEventListener('click', hideStopStrategyModal);
@@ -1049,7 +1043,6 @@ async function handleRefreshClosedPositions() {
       if (accountResult.success && accountResult.data) {
         // Record balance for each closed position (will skip duplicates)
         for (const pos of closedPositions) {
-          await recordBalanceSnapshot(accountResult.data.balance, pos.ticket, pos.profit);
         }
       }
       
@@ -1389,135 +1382,10 @@ async function handleExecuteTradeWithVolume(symbol, type, executionType, limitPr
 let pendingTradeData = null;
 let tradeChartInstance = null;
 let modifyChartInstance = null;
-// Store chart image paths and trade details mapped by ticket
-let chartImagePaths = {};
-let tradeJournal = {}; // Stores full trade details: { ticket: { imagePath, symbol, type, volume, stopLoss, takeProfit, timestamp, ticket } }
-let balanceHistory = []; // Stores balance over time: [{ timestamp, balance, ticket?, profit? }]
 
-// Load chart image paths and trade journal from storage
-async function loadChartImagePaths() {
-  try {
-    if (window.electronAPI && window.electronAPI.loadSettings) {
-      // Load legacy chart_images.json for backward compatibility
-      const legacyData = await window.electronAPI.loadSettings('chart_images.json');
-      if (legacyData) {
-        chartImagePaths = legacyData;
-        // Migrate legacy data to new format
-        for (const [ticket, imagePath] of Object.entries(legacyData)) {
-          if (!tradeJournal[ticket]) {
-            tradeJournal[ticket] = { imagePath, ticket: parseInt(ticket) };
-          }
-        }
-      }
-      
-      // Load trade journal
-      const journalData = await window.electronAPI.loadSettings('trade_journal.json');
-      if (journalData) {
-        tradeJournal = journalData;
-        // Update chartImagePaths from journal
-        for (const [ticket, trade] of Object.entries(tradeJournal)) {
-          if (trade.imagePath) {
-            chartImagePaths[ticket] = trade.imagePath;
-          }
-        }
-      }
-      
-      // Load balance history
-      const balanceData = await window.electronAPI.loadSettings('balance_history.json');
-      if (balanceData && Array.isArray(balanceData)) {
-        balanceHistory = balanceData;
-      }
-    }
-  } catch (error) {
-    console.error('Error loading chart image paths:', error);
-    chartImagePaths = {};
-    tradeJournal = {};
-    balanceHistory = [];
-  }
-}
-
-// Save trade journal to storage
-async function saveTradeJournal() {
-  try {
-    if (window.electronAPI && window.electronAPI.saveSettings) {
-      await window.electronAPI.saveSettings('trade_journal.json', tradeJournal);
-      // Also save legacy format for backward compatibility
-      await window.electronAPI.saveSettings('chart_images.json', chartImagePaths);
-    }
-  } catch (error) {
-    console.error('Error saving trade journal:', error);
-  }
-}
-
-// Save balance history to storage
-async function saveBalanceHistory() {
-  try {
-    if (window.electronAPI && window.electronAPI.saveSettings) {
-      await window.electronAPI.saveSettings('balance_history.json', balanceHistory);
-    }
-  } catch (error) {
-    console.error('Error saving balance history:', error);
-  }
-}
 
 // Record balance snapshot
-async function recordBalanceSnapshot(balance, ticket = null, profit = null) {
-  // Prevent duplicates: if we have a recent entry with the same ticket and similar timestamp, skip
-  if (ticket !== null) {
-    const recentEntry = balanceHistory.find(h => 
-      h.ticket === ticket && 
-      Math.abs(new Date(h.timestamp).getTime() - Date.now()) < 60000 // Within 1 minute
-    );
-    if (recentEntry) {
-      // Update existing entry with profit if we have it
-      if (profit !== null && recentEntry.profit === null) {
-        recentEntry.profit = profit;
-        recentEntry.balance = balance; // Update balance too
-        await saveBalanceHistory();
-      }
-      return; // Skip duplicate
-    }
-  }
-  
-  const snapshot = {
-    timestamp: new Date().toISOString(),
-    balance: balance,
-    ticket: ticket,
-    profit: profit
-  };
-  balanceHistory.push(snapshot);
-  // Keep only last 1000 entries to prevent excessive storage
-  if (balanceHistory.length > 1000) {
-    balanceHistory = balanceHistory.slice(-1000);
-  }
-  await saveBalanceHistory();
-}
 
-// Open chart image for a position
-async function openChartImage(ticket) {
-  const imagePath = chartImagePaths[ticket];
-  if (!imagePath) {
-    showMessage('No chart image found for this position', 'warning');
-    return;
-  }
-  
-  try {
-    if (window.electronAPI && window.electronAPI.openPath) {
-      const result = await window.electronAPI.openPath(imagePath);
-      if (!result.success) {
-        showMessage('Failed to open chart image: ' + result.error, 'error');
-      }
-    } else {
-      showMessage('Unable to open chart image - API not available', 'error');
-    }
-  } catch (error) {
-    console.error('Error opening chart image:', error);
-    showMessage('Error opening chart image: ' + error.message, 'error');
-  }
-}
-
-// Make openChartImage globally accessible
-window.openChartImage = openChartImage;
 
 // Function to fetch 6 months of daily data from MT5
 async function fetchThreeMonthDailyData(symbol) {
@@ -2346,8 +2214,10 @@ function showTradeConfirmationModal(symbol, type, executionType, limitPrice, vol
   // Use values from initial modal if provided, otherwise leave empty for user to enter
   const confirmStopLossInput = document.getElementById('confirmTradeStopLoss');
   const confirmTakeProfitInput = document.getElementById('confirmTradeTakeProfit');
+  const confirmTradingReasonInput = document.getElementById('confirmTradeTradingReason');
   if (confirmStopLossInput) confirmStopLossInput.value = (stopLoss && stopLoss > 0) ? stopLoss : '';
   if (confirmTakeProfitInput) confirmTakeProfitInput.value = (takeProfit && takeProfit > 0) ? takeProfit : '';
+  if (confirmTradingReasonInput) confirmTradingReasonInput.value = '';
   
   // Hide trade modal and show confirmation
   hideTradeModal();
@@ -2365,6 +2235,12 @@ function showTradeConfirmationModal(symbol, type, executionType, limitPrice, vol
 function hideTradeConfirmationModal(showTradeModalOnCancel = false) {
   document.getElementById('tradeConfirmationModal').classList.remove('show');
   pendingTradeData = null;
+  
+  // Clear trading reason field
+  const confirmTradingReasonInput = document.getElementById('confirmTradeTradingReason');
+  if (confirmTradingReasonInput) {
+    confirmTradingReasonInput.value = '';
+  }
   
   // Destroy chart instance when modal is closed
   if (tradeChartInstance) {
@@ -2392,16 +2268,21 @@ async function confirmTradeExecution() {
     return;
   }
   
-  // Read Stop Loss and Take Profit from confirmation modal input fields
+  // Read Stop Loss, Take Profit, and Trading Reason from confirmation modal input fields
   // Allow empty values - they will be treated as 0 (no SL/TP)
   const confirmStopLossInput = document.getElementById('confirmTradeStopLoss').value.trim();
   const confirmTakeProfitInput = document.getElementById('confirmTradeTakeProfit').value.trim();
+  const confirmTradingReasonInput = document.getElementById('confirmTradeTradingReason').value.trim();
   const stopLoss = confirmStopLossInput === '' ? 0 : (parseFloat(confirmStopLossInput) || 0);
   const takeProfit = confirmTakeProfitInput === '' ? 0 : (parseFloat(confirmTakeProfitInput) || 0);
+  const tradingReason = confirmTradingReasonInput || '';
   
   // Update pendingTradeData with the values from confirmation modal
   const { symbol, type, executionType, limitPrice, volume } = pendingTradeData;
   const tradeDataToExecute = { symbol, type, executionType, limitPrice, volume, stopLoss, takeProfit };
+  
+  // Store trading reason in pendingTradeData for later use
+  pendingTradeData.tradingReason = tradingReason;
   
   // Check if scheduling is enabled
   const scheduleEnabled = document.getElementById('confirmTradeScheduleEnabled')?.checked || false;
@@ -2439,6 +2320,7 @@ async function confirmTradeExecution() {
       volume,
       stopLoss,
       takeProfit,
+      tradingReason: tradingReason || null,
       scheduledTime: scheduledTime.toISOString(),
       createdAt: new Date().toISOString(),
       orderType: 'executeOrder'
@@ -2490,11 +2372,6 @@ async function confirmTradeExecution() {
       const tradeDataToRecord = { symbol, type, volume, stopLoss, takeProfit, action: 'executeOrder' };
       await window.overtradeControl.recordTrade('manual', tradeDataToRecord);
       
-      // Record balance after trade execution
-      const accountResult = await window.mt5API.getAccountInfo();
-      if (accountResult.success && accountResult.data) {
-        await recordBalanceSnapshot(accountResult.data.balance, result.data.ticket, null);
-      }
       
       handleRefreshAccount();
       handleRefreshPositions();
@@ -2529,7 +2406,6 @@ async function handleConnect() {
     // Record initial balance snapshot
     const accountResult = await window.mt5API.getAccountInfo();
     if (accountResult.success && accountResult.data) {
-      await recordBalanceSnapshot(accountResult.data.balance);
     }
     
     handleRefreshAccount();
@@ -2609,7 +2485,6 @@ async function handleRefreshPositions() {
     }
     
     // Update trade journal with current position data
-    updateTradeJournalWithPositions(positions);
   }
 }
 
@@ -2938,43 +2813,6 @@ window.modifyPendingOrder = modifyPendingOrder;
 window.hideModifyPendingOrderModal = hideModifyPendingOrderModal;
 window.confirmModifyPendingOrder = confirmModifyPendingOrder;
 
-// Update trade journal with position data
-function updateTradeJournalWithPositions(positions = []) {
-  let updated = false;
-  
-  // Create a map of positions by ticket for quick lookup
-  const positionMap = {};
-  positions.forEach(pos => {
-    positionMap[pos.ticket] = pos;
-  });
-  
-  // Update journal entries with position data
-  for (const ticket in tradeJournal) {
-    const trade = tradeJournal[ticket];
-    const position = positionMap[ticket];
-    
-    if (position) {
-      // Update with current position data
-      if (trade.openPrice !== position.open_price) {
-        trade.openPrice = position.open_price;
-        updated = true;
-      }
-      if (trade.currentPrice !== position.current_price) {
-        trade.currentPrice = position.current_price;
-        updated = true;
-      }
-      if (trade.profit !== position.profit) {
-        trade.profit = position.profit;
-        updated = true;
-      }
-    }
-  }
-  
-  // Save if any updates were made
-  if (updated) {
-    saveTradeJournal();
-  }
-}
 
 async function closePosition(ticket) {
   showConfirmation(
@@ -3002,24 +2840,6 @@ async function executeClosePosition(ticket) {
     const accountResult = await window.mt5API.getAccountInfo();
     if (accountResult.success && accountResult.data) {
       // Record balance immediately (profit will be updated later if available)
-      await recordBalanceSnapshot(accountResult.data.balance, ticket, null);
-      
-      // Try to get profit from the closed position after a short delay
-      // (closed positions might not be immediately available)
-      setTimeout(async () => {
-        try {
-          const positionsResult = await window.mt5API.getClosedPositions(1);
-          if (positionsResult.success && positionsResult.data) {
-            const closedPos = positionsResult.data.find(p => p.ticket === ticket);
-            if (closedPos && closedPos.profit !== undefined) {
-              // Update the balance snapshot with profit information
-              await recordBalanceSnapshot(accountResult.data.balance, ticket, closedPos.profit);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching closed position profit:', error);
-        }
-      }, 1000); // Wait 1 second for closed position to appear
     }
     
     handleRefreshAccount();
@@ -3972,6 +3792,7 @@ async function executeScheduledOrders() {
         
         if (result.success && result.data.success) {
           showMessage(`Scheduled order executed successfully! Ticket: ${result.data.ticket}`, 'success');
+          
           removeScheduledOrder(order.id);
           
           // Record the trade
@@ -6733,324 +6554,6 @@ function hideAIMemoryModal() {
   document.getElementById('aiMemoryModal').classList.remove('show');
 }
 
-// Trade Journal Functions
-function showTradeJournalModal() {
-  document.getElementById('tradeJournalModal').classList.add('show');
-  updateTradeJournalDisplay();
-}
-
-function hideTradeJournalModal() {
-  document.getElementById('tradeJournalModal').classList.remove('show');
-}
-
-function filterTradeJournal() {
-  updateTradeJournalDisplay();
-}
-
-// Draw balance graph
-function drawBalanceGraph(canvasId) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  
-  // Make canvas responsive
-  const container = canvas.parentElement;
-  const containerWidth = container ? container.clientWidth - 40 : 800;
-  canvas.width = Math.max(containerWidth, 400);
-  canvas.height = 300;
-  
-  const ctx = canvas.getContext('2d');
-  const width = canvas.width;
-  const height = canvas.height;
-  const padding = 40;
-  const graphWidth = width - padding * 2;
-  const graphHeight = height - padding * 2;
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, width, height);
-  
-  if (balanceHistory.length === 0) {
-    ctx.fillStyle = '#888';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('No balance history available', width / 2, height / 2);
-    return;
-  }
-  
-  // Sort by timestamp
-  const sortedHistory = [...balanceHistory].sort((a, b) => 
-    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
-  
-  // Find min and max balance
-  const balances = sortedHistory.map(h => h.balance);
-  const minBalance = Math.min(...balances);
-  const maxBalance = Math.max(...balances);
-  const balanceRange = maxBalance - minBalance || 1; // Avoid division by zero
-  
-  // Find significant losses (more than 2% of current balance or $100)
-  const currentBalance = balances[balances.length - 1] || 10000;
-  const lossThreshold = Math.max(currentBalance * 0.02, 100);
-  const losingTrades = sortedHistory.filter(h => 
-    h.profit !== null && h.profit !== undefined && h.profit < -lossThreshold
-  );
-  
-  // Draw grid lines
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 5; i++) {
-    const y = padding + (graphHeight / 5) * i;
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(width - padding, y);
-    ctx.stroke();
-  }
-  
-  // Draw balance line
-  ctx.strokeStyle = '#4CAF50';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  
-  sortedHistory.forEach((point, index) => {
-    const divisor = sortedHistory.length > 1 ? sortedHistory.length - 1 : 1;
-    const x = padding + (graphWidth / divisor) * index;
-    const normalizedBalance = (point.balance - minBalance) / balanceRange;
-    const y = padding + graphHeight - (normalizedBalance * graphHeight);
-    
-    if (index === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  });
-  
-  ctx.stroke();
-  
-  // Draw losing trade markers
-  losingTrades.forEach(loss => {
-    const index = sortedHistory.findIndex(h => 
-      h.timestamp === loss.timestamp && h.ticket === loss.ticket
-    );
-    if (index >= 0) {
-      const divisor = sortedHistory.length > 1 ? sortedHistory.length - 1 : 1;
-      const x = padding + (graphWidth / divisor) * index;
-      const normalizedBalance = (loss.balance - minBalance) / balanceRange;
-      const y = padding + graphHeight - (normalizedBalance * graphHeight);
-      
-      // Draw red marker
-      ctx.fillStyle = '#f44336';
-      ctx.beginPath();
-      ctx.arc(x, y, 6, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Draw marker outline
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Draw loss amount label
-      ctx.fillStyle = '#f44336';
-      ctx.font = '11px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`-$${Math.abs(loss.profit).toFixed(0)}`, x, y - 10);
-    }
-  });
-  
-  // Draw Y-axis labels (balance values)
-  ctx.fillStyle = '#888';
-  ctx.font = '11px Arial';
-  ctx.textAlign = 'right';
-  for (let i = 0; i <= 5; i++) {
-    const value = minBalance + (balanceRange / 5) * (5 - i);
-    const y = padding + (graphHeight / 5) * i;
-    ctx.fillText('$' + value.toFixed(0), padding - 10, y + 4);
-  }
-  
-  // Draw X-axis labels (time)
-  ctx.textAlign = 'center';
-  const timeLabels = [];
-  const labelCount = Math.min(5, sortedHistory.length);
-  for (let i = 0; i < labelCount; i++) {
-    const index = Math.floor((sortedHistory.length - 1) * (i / (labelCount - 1 || 1)));
-    const point = sortedHistory[index];
-    if (point) {
-      const date = new Date(point.timestamp);
-      const label = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      timeLabels.push({ index, label });
-    }
-  }
-  
-  timeLabels.forEach(({ index, label }) => {
-    const divisor = sortedHistory.length > 1 ? sortedHistory.length - 1 : 1;
-    const x = padding + (graphWidth / divisor) * index;
-    ctx.fillText(label, x, height - padding + 20);
-  });
-  
-  // Draw title
-  ctx.fillStyle = '#e0e0e0';
-  ctx.font = 'bold 14px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('Balance Over Time', width / 2, 20);
-  
-  // Draw legend
-  ctx.fillStyle = '#888';
-  ctx.font = '11px Arial';
-  ctx.textAlign = 'left';
-  ctx.fillText('Red markers indicate significant losses', padding, height - 5);
-}
-
-async function updateTradeJournalDisplay() {
-  const journalContent = document.getElementById('tradeJournalContent');
-  const filterInput = document.getElementById('tradeJournalFilter');
-  const filterValue = filterInput ? filterInput.value.toLowerCase().trim() : '';
-  
-  if (!journalContent) {
-    console.error('Trade journal content element not found');
-    return;
-  }
-  
-  // Create balance graph HTML
-  const graphHtml = `
-    <div style="margin-bottom: 30px; padding: 20px; background: #1e1e1e; border: 1px solid #444; border-radius: 8px;">
-      <canvas id="balanceGraph" width="800" height="300" style="width: 100%; max-width: 100%; height: auto; background: #0f0f0f; border-radius: 4px;"></canvas>
-    </div>
-  `;
-  
-  // Get all trades from journal
-  const trades = Object.values(tradeJournal).filter(trade => trade && trade.imagePath);
-  
-  // Build content with graph
-  let contentHtml = graphHtml;
-  
-  if (trades.length === 0) {
-    contentHtml += '<p class="no-log">No trades with charts found yet. Charts will appear here after executing trades.</p>';
-    journalContent.innerHTML = contentHtml;
-    // Draw graph even if no trades
-    setTimeout(() => drawBalanceGraph('balanceGraph'), 100);
-    return;
-  }
-  
-  // Filter trades if filter is provided
-  let filteredTrades = trades;
-  if (filterValue) {
-    filteredTrades = trades.filter(trade => {
-      const symbol = (trade.symbol || '').toLowerCase();
-      const type = (trade.type || '').toLowerCase();
-      const ticket = String(trade.ticket || '').toLowerCase();
-      return symbol.includes(filterValue) || type.includes(filterValue) || ticket.includes(filterValue);
-    });
-  }
-  
-  if (filteredTrades.length === 0) {
-    journalContent.innerHTML = '<p class="no-log">No trades match the filter criteria.</p>';
-    return;
-  }
-  
-  // Sort by timestamp (newest first)
-  filteredTrades.sort((a, b) => {
-    const timeA = new Date(a.timestamp || 0).getTime();
-    const timeB = new Date(b.timestamp || 0).getTime();
-    return timeB - timeA;
-  });
-  
-  // Build HTML for each trade (async image loading)
-  const tradeEntries = await Promise.all(filteredTrades.map(async (trade) => {
-    const date = trade.timestamp ? new Date(trade.timestamp).toLocaleString() : 'Unknown date';
-    const typeClass = trade.type && trade.type.toLowerCase() === 'buy' ? 'buy' : 'sell';
-    const typeColor = trade.type && trade.type.toLowerCase() === 'buy' ? '#4CAF50' : '#f44336';
-    
-    // Load image as base64
-    let imageSrc = '';
-    if (trade.imagePath && window.electronAPI && window.electronAPI.readChartImage) {
-      try {
-        const imageResult = await window.electronAPI.readChartImage(trade.imagePath);
-        if (imageResult.success) {
-          imageSrc = imageResult.data;
-        }
-      } catch (error) {
-        console.error('Error loading chart image:', error);
-      }
-    }
-    
-    const escapedImagePath = (trade.imagePath || '').replace(/'/g, "\\'");
-    
-    return `
-      <div class="trade-journal-entry" style="margin-bottom: 20px; padding: 15px; border: 1px solid #444; border-radius: 8px; background: #1e1e1e;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <div>
-            <h3 style="margin: 0; color: #e0e0e0;">
-              ${trade.symbol || 'Unknown'} 
-              <span style="background-color: ${typeColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">
-                ${(trade.type || 'N/A').toUpperCase()}
-              </span>
-            </h3>
-            <p style="margin: 5px 0; color: #888; font-size: 12px;">Ticket: ${trade.ticket || 'N/A'} | ${date}</p>
-          </div>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-          <div>
-            <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Trade Details</div>
-            <div style="color: #e0e0e0; font-size: 13px;">
-              <div>Volume: <strong>${trade.volume || 'N/A'}</strong></div>
-              <div>Stop Loss: <strong>${trade.stopLoss ? trade.stopLoss.toFixed(5) : 'None'}</strong></div>
-              <div>Take Profit: <strong>${trade.takeProfit ? trade.takeProfit.toFixed(5) : 'None'}</strong></div>
-              ${trade.openPrice ? `<div>Open Price: <strong>${trade.openPrice.toFixed(5)}</strong></div>` : ''}
-              ${trade.currentPrice ? `<div>Current Price: <strong>${trade.currentPrice.toFixed(5)}</strong></div>` : ''}
-              ${trade.profit !== null && trade.profit !== undefined ? `<div>Profit: <strong style="color: ${trade.profit >= 0 ? '#4CAF50' : '#f44336'}">$${trade.profit.toFixed(2)}</strong></div>` : ''}
-            </div>
-          </div>
-          <div>
-            <div style="color: #888; font-size: 12px; margin-bottom: 5px;">Chart</div>
-            ${imageSrc ? `
-              <img 
-                src="${imageSrc}" 
-                alt="Trade Chart" 
-                style="max-width: 100%; max-height: 300px; border: 1px solid #444; border-radius: 4px; cursor: pointer;"
-                onclick="openChartImageFromJournal('${escapedImagePath}')"
-                title="Click to open full size"
-              />
-            ` : `
-              <div style="padding: 20px; text-align: center; color: #888; border: 1px solid #444; border-radius: 4px;">
-                Chart image not available
-              </div>
-            `}
-          </div>
-        </div>
-        <div style="margin-top: 10px;">
-          <button class="btn btn-small btn-info" onclick="openChartImageFromJournal('${escapedImagePath}')" style="margin-right: 8px;">
-            📊 Open Chart
-          </button>
-        </div>
-      </div>
-    `;
-  }));
-  
-  contentHtml += tradeEntries.join('');
-  journalContent.innerHTML = contentHtml;
-  
-  // Draw balance graph after content is rendered
-  setTimeout(() => drawBalanceGraph('balanceGraph'), 100);
-}
-
-// Open chart image from journal
-async function openChartImageFromJournal(imagePath) {
-  try {
-    if (window.electronAPI && window.electronAPI.openPath) {
-      const result = await window.electronAPI.openPath(imagePath);
-      if (!result.success) {
-        showMessage('Failed to open chart image: ' + result.error, 'error');
-      }
-    } else {
-      showMessage('Unable to open chart image - API not available', 'error');
-    }
-  } catch (error) {
-    console.error('Error opening chart image:', error);
-    showMessage('Error opening chart image: ' + error.message, 'error');
-  }
-}
-
-// Make functions globally accessible
-window.openChartImageFromJournal = openChartImageFromJournal;
-window.filterTradeJournal = filterTradeJournal;
 
 // Bottom Panel Toggle functionality
 function toggleBottomPanel() {

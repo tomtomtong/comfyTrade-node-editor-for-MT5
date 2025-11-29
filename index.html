@@ -19,7 +19,6 @@
         <button id="connectBtn" class="btn btn-primary">Connect MT5</button>
         <button id="showLogBtn" class="btn btn-secondary">Show Log</button>
         <button id="showAIMemoryBtn" class="btn btn-secondary">🧠 AI Memory</button>
-        <button id="showTradeJournalBtn" class="btn btn-secondary">📖 Trade Journal</button>
         <button id="toggleBottomPanelBtn" class="btn btn-secondary">📊 Positions</button>
       </div>
       <div class="toolbar-right">
@@ -376,29 +375,6 @@
         </div>
         <div class="modal-buttons">
           <button id="closeAIMemoryBtn" class="btn btn-primary">Close</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Trade Journal Modal -->
-    <div id="tradeJournalModal" class="modal">
-      <div class="modal-content log-modal" style="max-width: 90%; max-height: 90vh;">
-        <h2>📖 Trade Journal</h2>
-        <div class="log-controls">
-          <input 
-            type="text" 
-            id="tradeJournalFilter" 
-            placeholder="Filter by symbol, ticket, or type..." 
-            style="flex: 1; padding: 6px; margin-right: 8px; background: #1e1e1e; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; font-size: 12px;"
-            oninput="filterTradeJournal()"
-          />
-          <button id="refreshTradeJournalBtn" class="btn btn-secondary btn-small">🔄 Refresh</button>
-        </div>
-        <div id="tradeJournalContent" class="log-content" style="overflow-y: auto; max-height: calc(90vh - 150px);">
-          <p class="no-log">No trades with charts found yet. Charts will appear here after executing trades.</p>
-        </div>
-        <div class="modal-buttons">
-          <button id="closeTradeJournalBtn" class="btn btn-primary">Close</button>
         </div>
       </div>
     </div>
@@ -1065,6 +1041,11 @@
           <div class="confirmation-item">
             <span class="label">Take Profit (optional):</span>
             <input type="number" id="confirmTradeTakeProfit" class="value confirmation-input" step="0.00001" placeholder="Enter take profit (optional)">
+          </div>
+          <div class="confirmation-item" style="grid-column: 1 / -1;">
+            <span class="label">Trading Reason (optional):</span>
+            <textarea id="confirmTradeTradingReason" rows="3" placeholder="Enter your reason for this trade (e.g., technical analysis, news event, strategy signal, etc.)" style="width: 100%; padding: 8px; background-color: #2a2a2a; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; font-size: 14px; font-family: inherit; resize: vertical; margin-top: 5px;"></textarea>
+            <small style="color: #888; display: block; margin-top: 5px;">Document why you're taking this trade</small>
           </div>
         </div>
         

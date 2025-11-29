@@ -1,15 +1,15 @@
 {
-  "51256594": {
-    "imagePath": "C:\\Users\\kwun_\\Downloads\\MetaTraderAssistant\\charts\\chart_BTCUSD_51256594_2025-11-14T01-36-56-498Z.png",
-    "ticket": 51256594,
+  "1000001": {
+    "ticket": 1000001,
     "symbol": "BTCUSD",
     "type": "BUY",
     "volume": 0.01,
-    "stopLoss": 0,
-    "takeProfit": 0,
-    "timestamp": "2025-11-14T01:36:56.500Z",
-    "openPrice": 99435.88,
-    "currentPrice": 99280.83,
-    "profit": -1.55
+    "stopLoss": null,
+    "takeProfit": null,
+    "timestamp": "2025-11-29T08:32:46.226Z",
+    "tradingReason": null,
+    "openPrice": 90560.52,
+    "currentPrice": 90572.88,
+    "profit": 0.12360000000000583
   }
 }
