@@ -155,31 +155,18 @@
         "type": "BUY",
         "volume": 0.01,
         "open_price": 26104.77,
-        "current_price": 26035.73,
+        "current_price": 26102.73,
         "sl": 0,
         "tp": 0,
-        "profit": -0.08865489566613276,
+        "profit": -0.002623156557442465,
         "open_time": "2025-11-26T09:48:30.091642",
-        "comment": "SIMULATOR"
-      },
-      {
-        "ticket": 1000001,
-        "symbol": "BTCUSD",
-        "type": "BUY",
-        "volume": 0.01,
-        "open_price": 90560.52,
-        "current_price": 90606.31,
-        "sl": 0,
-        "tp": 0,
-        "profit": 0.45789999999993597,
-        "open_time": "2025-11-29T16:32:46.216445",
         "comment": "SIMULATOR"
       }
     ],
     "closed_positions": [],
-    "next_ticket": 1000002,
+    "next_ticket": 1000001,
     "initial_balance": 10000,
-    "last_updated": "2025-11-29T16:39:21.121265"
+    "last_updated": "2025-11-26T09:49:33.809528"
   },
   "simulatorMode": false,
   "overtradeControlReal": {
@@ -204,22 +191,7 @@
     "applyToOpenPositions": true,
     "applyToClosePositions": false
   },
-  "overtradeHistoryReal": [
-    {
-      "timestamp": 1764405166225,
-      "type": "manual",
-      "data": {
-        "symbol": "BTCUSD",
-        "type": "BUY",
-        "volume": 0.01,
-        "stopLoss": 0,
-        "takeProfit": 0,
-        "action": "executeOrder"
-      },
-      "action": "executeOrder",
-      "positionType": "open"
-    }
-  ],
+  "overtradeHistoryReal": [],
   "overtradeHistorySimulator": [],
   "overtradeLastWarningReal": 0,
   "overtradeLastWarningSimulator": 0,
