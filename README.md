@@ -31,6 +31,24 @@ npm install
 pip install -r requirements.txt
 ```
 
+## Configuration
+
+Before using the application, you need to configure your API keys and settings:
+
+1. **Copy the example settings file:**
+   ```bash
+   cp app_settings.json.example app_settings.json
+   ```
+
+2. **Edit `app_settings.json`** and add your API keys:
+   - **Firecrawl API Key**: For web scraping and content extraction
+   - **OpenRouter API Key**: For AI/LLM model access (Claude, GPT, etc.)
+   - **Alpha Vantage API Key**: For market data and financial information
+   - **Twilio Credentials**: For SMS/WhatsApp alerts (optional)
+   - **Telegram Bot Token**: For Telegram notifications (optional)
+
+3. **Important**: The `app_settings.json` file is gitignored and will not be committed to the repository. Never commit your API keys!
+
 ## Usage
 
 ```bash

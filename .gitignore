@@ -9,6 +9,13 @@ build/
 .env
 .env.local
 
+# API Keys and Sensitive Configuration
+app_settings.json
+*.key
+*.pem
+*.p12
+*.pfx
+
 # IDE
 .vscode/
 .idea/
