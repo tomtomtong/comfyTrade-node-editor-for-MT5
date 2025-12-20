@@ -1,6 +1,6 @@
 # MT5 Trading Strategy Executor
 
-An Electron desktop application that provides a comprehensive trading platform for MetaTrader 5 with visual strategy building, backtesting, and automated execution.
+An Electron desktop application that provides a comprehensive trading platform for MetaTrader 5, featuring visual strategy building, backtesting, and AI trading agent creation.
 
 ## Screenshots
 
