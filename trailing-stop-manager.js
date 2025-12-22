@@ -29,6 +29,7 @@ class TrailingStopManager {
               slDistancePercent: pos.slDistancePercent || 0, // Distance as percentage
               tpDistance: pos.tpDistance || 0, // Distance in price units
               tpDistancePercent: pos.tpDistancePercent || 0, // Distance as percentage
+              triggerPrice: pos.triggerPrice || 0, // Price at which trailing activates (0 = immediate)
               lastPrice: pos.lastPrice || 0,
               lastAdjustment: pos.lastAdjustment || new Date().toISOString(),
               enabled: true
@@ -54,6 +55,7 @@ class TrailingStopManager {
             slDistancePercent: pos.slDistancePercent,
             tpDistance: pos.tpDistance,
             tpDistancePercent: pos.tpDistancePercent,
+            triggerPrice: pos.triggerPrice || 0,
             lastPrice: pos.lastPrice,
             lastAdjustment: pos.lastAdjustment
           })),
@@ -75,6 +77,7 @@ class TrailingStopManager {
       slDistancePercent: settings.slDistancePercent || 0,
       tpDistance: settings.tpDistance || 0,
       tpDistancePercent: settings.tpDistancePercent || 0,
+      triggerPrice: settings.triggerPrice || 0, // 0 means activate immediately
       lastPrice: settings.initialPrice || 0,
       lastAdjustment: new Date().toISOString(),
       enabled: true
@@ -132,6 +135,21 @@ class TrailingStopManager {
     }
 
     const isBuy = position.type === 'BUY';
+    
+    // Check if trigger price has been reached
+    const triggerPrice = trailing.triggerPrice || 0;
+    if (triggerPrice > 0) {
+      const triggerReached = isBuy 
+        ? currentPrice >= triggerPrice  // For BUY: activate when price reaches or exceeds trigger
+        : currentPrice <= triggerPrice; // For SELL: activate when price reaches or falls below trigger
+      
+      if (!triggerReached) {
+        console.log(`Trailing: Trigger price not reached for ticket ${position.ticket}. Current: ${currentPrice}, Trigger: ${triggerPrice}`);
+        return null; // Don't activate trailing yet
+      } else {
+        console.log(`Trailing: Trigger price reached for ticket ${position.ticket}. Current: ${currentPrice}, Trigger: ${triggerPrice}`);
+      }
+    }
     // Handle both property name formats (stop_loss/stopLoss)
     const currentSL = position.stop_loss || position.stopLoss || 0;
     const currentTP = position.take_profit || position.takeProfit || 0;

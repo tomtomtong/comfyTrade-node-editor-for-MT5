@@ -3421,7 +3421,7 @@ function createModifyModal() {
               <strong style="color: #2196F3;">⏰ Schedule for Later</strong>
             </label>
             <div id="scheduleOptions" style="display: none; margin-top: 15px;">
-              <div style="margin-bottom: 10px;">
+              <div style="margin-bottom: 10px; display: none;">
                 <label style="display: flex; align-items: center; cursor: pointer;">
                   <input type="checkbox" id="modifyScheduleMarketOpen" style="margin-right: 8px; width: 16px; height: 16px; cursor: pointer;" onchange="toggleMarketOpenSchedule()">
                   <span style="color: #b0b0b0; font-size: 13px;">🔄 Retry every hour until success</span>

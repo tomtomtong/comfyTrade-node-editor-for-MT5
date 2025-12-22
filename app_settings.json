@@ -204,7 +204,38 @@
   "overtradeWarningCountReal": 0,
   "overtradeWarningCountSimulator": 0,
   "trailing_stops": {
-    "positions": [],
-    "lastUpdated": "2025-12-20T08:39:40.035Z"
+    "positions": [
+      {
+        "ticket": 52868484,
+        "slDistance": 0.01,
+        "slDistancePercent": 0,
+        "tpDistance": 0.01,
+        "tpDistancePercent": 0,
+        "triggerPrice": 1.38,
+        "lastPrice": 1.38002,
+        "lastAdjustment": "2025-12-22T01:54:57.562Z"
+      },
+      {
+        "ticket": 52938850,
+        "slDistance": 50,
+        "slDistancePercent": 0,
+        "tpDistance": 80,
+        "tpDistancePercent": 0,
+        "triggerPrice": 0,
+        "lastPrice": 4381.28,
+        "lastAdjustment": "2025-12-22T02:22:22.528Z"
+      },
+      {
+        "ticket": 52923690,
+        "slDistance": 200,
+        "slDistancePercent": 0,
+        "tpDistance": 500,
+        "tpDistancePercent": 0,
+        "triggerPrice": 50000,
+        "lastPrice": 50447.17,
+        "lastAdjustment": "2025-12-22T02:20:20.550Z"
+      }
+    ],
+    "lastUpdated": "2025-12-22T02:27:42.512Z"
   }
 }
