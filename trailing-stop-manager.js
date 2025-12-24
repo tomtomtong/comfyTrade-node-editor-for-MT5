@@ -275,6 +275,12 @@ class TrailingStopManager {
       return null;
     }
 
+    // Skip update if SL hasn't changed (already at maxSL or no movement needed)
+    if (newSL === currentSL && newTP === currentTP) {
+      console.log('Trailing: No changes needed for ticket', position.ticket, 'SL:', currentSL, 'TP:', currentTP);
+      return null;
+    }
+
     console.log('Trailing: Will update ticket', position.ticket, 'to SL:', newSL, 'TP:', newTP);
     return {
       ticket: position.ticket,
