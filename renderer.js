@@ -7736,6 +7736,11 @@ function switchSettingsTab(tabName) {
   if (tabName === 'overtradeControl' && window.overtradeControl) {
     loadOvertradeSettings();
   }
+  
+  // Reload reminders when Twilio alerts tab is opened
+  if (tabName === 'twilioAlerts') {
+    loadReminders();
+  }
 }
 
 // Make switchSettingsTab available globally
@@ -8337,6 +8342,22 @@ async function loadTwilioSettings() {
 }
 
 function getCurrentTwilioSettings() {
+  // Get scheduledReminders directly from the scheduler (single source of truth)
+  // This ensures we always have the latest reminders, even after edits
+  let existingReminders = [];
+  
+  // Try to get reminders from scheduler via IPC (async not possible here, so use cached value)
+  // The reminders variable is kept in sync by loadReminders()
+  if (typeof reminders !== 'undefined' && Array.isArray(reminders)) {
+    existingReminders = reminders;
+    console.log(`📋 Using ${existingReminders.length} reminder(s) from local cache`);
+  } else {
+    // Fallback to settings manager
+    const existingTwilioSettings = window.settingsManager ? window.settingsManager.get('twilio') : {};
+    existingReminders = existingTwilioSettings.scheduledReminders || [];
+    console.log(`📋 Using ${existingReminders.length} reminder(s) from settings manager`);
+  }
+  
   return {
     enabled: true, // Notifications are always enabled
     accountSid: document.getElementById('settingsTwilioAccountSid').value,
@@ -8350,7 +8371,8 @@ function getCurrentTwilioSettings() {
       position_opened: document.getElementById('settingsAlertPositionOpened').checked,
       position_closed: document.getElementById('settingsAlertPositionClosed').checked,
       pending_order_execution: document.getElementById('settingsAlertPendingOrderExecution').checked
-    }
+    },
+    scheduledReminders: existingReminders // Preserve existing reminders
   };
 }
 
@@ -8449,7 +8471,8 @@ async function saveTwilioSettings() {
     console.log('Saving Twilio and Telegram settings:', {
       twilio: {
         accountSid: twilioSettings.accountSid ? '***' + twilioSettings.accountSid.slice(-4) : 'empty',
-        enabled: twilioSettings.enabled
+        enabled: twilioSettings.enabled,
+        scheduledReminders: twilioSettings.scheduledReminders ? twilioSettings.scheduledReminders.length : 0
       },
       telegram: {
         botToken: telegramSettings.botToken ? '***' : 'empty',
@@ -8457,6 +8480,8 @@ async function saveTwilioSettings() {
         enabled: telegramSettings.enabled
       }
     });
+    
+    console.log(`💾 Preserving ${twilioSettings.scheduledReminders?.length || 0} scheduled reminder(s)`);
     
     // Save to settings manager
     await window.settingsManager.update({
@@ -8526,11 +8551,26 @@ let reminders = [];
 
 async function loadReminders() {
   try {
+    console.log('📋 Loading reminders from scheduler...');
     if (window.electronAPI && window.electronAPI.invoke) {
       const response = await window.electronAPI.invoke('sms:getReminders');
+      console.log('📋 Reminders response:', response);
       if (response && response.success) {
         reminders = response.data || [];
+        console.log(`📋 Loaded ${reminders.length} reminder(s)`);
+        
+        // Also update the settings manager cache to keep it in sync
+        if (window.settingsManager) {
+          const currentTwilio = window.settingsManager.get('twilio') || {};
+          currentTwilio.scheduledReminders = reminders;
+          // Don't save to file here - just update in-memory cache
+          window.settingsManager.settings.twilio = currentTwilio;
+          console.log('📋 Updated settings manager cache with latest reminders');
+        }
+        
         renderReminders();
+      } else {
+        console.error('❌ Failed to load reminders:', response?.error);
       }
     }
   } catch (error) {
@@ -8540,7 +8580,12 @@ async function loadReminders() {
 
 function renderReminders() {
   const container = document.getElementById('remindersList');
-  if (!container) return;
+  if (!container) {
+    console.warn('⚠️ Reminders container not found');
+    return;
+  }
+  
+  console.log(`🎨 Rendering ${reminders.length} reminder(s)`);
   
   // Ensure container maintains flex layout
   container.style.display = 'flex';
@@ -8979,9 +9024,11 @@ async function testSendSMS() {
 // Initialize reminder UI when settings tab is opened
 let reminderUISetup = false;
 function setupReminderUI() {
-  // Only setup once to avoid duplicate event listeners
+  // Always reload reminders when called
+  loadReminders();
+  
+  // Only setup event listeners once to avoid duplicates
   if (reminderUISetup) {
-    loadReminders(); // Just reload reminders if already setup
     return;
   }
   
@@ -9018,9 +9065,6 @@ function setupReminderUI() {
   }
   
   reminderUISetup = true;
-  
-  // Load reminders when settings are loaded
-  loadReminders();
 }
 
 // Add Twilio settings to the change tracking

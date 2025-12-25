@@ -47,15 +47,19 @@ class SMSScheduler {
    */
   loadReminders() {
     try {
+      console.log(`📂 Loading reminders from ${this.settingsPath}...`);
       if (fs.existsSync(this.settingsPath)) {
         const settings = JSON.parse(fs.readFileSync(this.settingsPath, 'utf8'));
         const reminders = settings.twilio?.scheduledReminders || [];
+        console.log(`📂 Found ${reminders.length} reminder(s) in settings file`);
         this.reminders = reminders.filter(r => r.enabled !== false);
-        console.log(`Loaded ${this.reminders.length} scheduled reminders`);
+        console.log(`✅ Loaded ${this.reminders.length} enabled reminder(s)`);
         return this.reminders;
+      } else {
+        console.warn(`⚠️ Settings file not found: ${this.settingsPath}`);
       }
     } catch (error) {
-      console.error('Error loading scheduled reminders:', error);
+      console.error('❌ Error loading scheduled reminders:', error);
     }
     return [];
   }
@@ -472,14 +476,16 @@ class SMSScheduler {
    */
   saveReminders() {
     try {
+      console.log(`💾 Saving ${this.reminders.length} reminder(s) to settings file...`);
       const settings = JSON.parse(fs.readFileSync(this.settingsPath, 'utf8'));
       if (!settings.twilio) {
         settings.twilio = {};
       }
       settings.twilio.scheduledReminders = this.reminders;
       fs.writeFileSync(this.settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+      console.log(`✅ Reminders saved successfully to ${this.settingsPath}`);
     } catch (error) {
-      console.error('Error saving reminders:', error);
+      console.error('❌ Error saving reminders:', error);
     }
   }
 
@@ -493,6 +499,7 @@ class SMSScheduler {
       reminder.id = `reminder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
     
+    console.log(`➕ Adding reminder: ${reminder.name} (ID: ${reminder.id})`);
     reminder.enabled = reminder.enabled !== false;
     this.reminders.push(reminder);
     this.saveReminders();
@@ -501,6 +508,7 @@ class SMSScheduler {
       this.scheduleReminder(reminder);
     }
     
+    console.log(`✅ Reminder added successfully. Total reminders: ${this.reminders.length}`);
     return reminder.id;
   }
 
@@ -510,11 +518,14 @@ class SMSScheduler {
    * @param {Object} updates - Updates to apply
    */
   updateReminder(reminderId, updates) {
+    console.log(`✏️ Updating reminder: ${reminderId}`);
     const index = this.reminders.findIndex(r => r.id === reminderId);
     if (index === -1) {
+      console.error(`❌ Reminder ${reminderId} not found in list of ${this.reminders.length} reminders`);
       throw new Error(`Reminder ${reminderId} not found`);
     }
     
+    console.log(`✏️ Found reminder at index ${index}, applying updates...`);
     this.reminders[index] = { ...this.reminders[index], ...updates };
     this.saveReminders();
     
@@ -525,6 +536,7 @@ class SMSScheduler {
         this.scheduleReminder(this.reminders[index]);
       }
     }
+    console.log(`✅ Reminder ${reminderId} updated successfully`);
   }
 
   /**
