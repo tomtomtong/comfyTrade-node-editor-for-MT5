@@ -924,7 +924,10 @@
               <div id="reminderOnceFields" class="reminder-type-fields">
                 <div class="form-group">
                   <label>Date & Time:</label>
-                  <input type="datetime-local" id="reminderDateTime">
+                  <div id="reminderDateTimesContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Date/time inputs will be dynamically added here -->
+                  </div>
+                  <button type="button" id="addReminderDateTimeBtn" class="btn btn-secondary" style="margin-top: 10px; width: 100%;">+ Add Another Date & Time</button>
                 </div>
               </div>
               

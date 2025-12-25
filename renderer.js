@@ -8542,10 +8542,17 @@ function renderReminders() {
   const container = document.getElementById('remindersList');
   if (!container) return;
   
+  // Ensure container maintains flex layout
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '10px';
+  
   if (reminders.length === 0) {
     container.innerHTML = '<p style="color: #888; font-style: italic;">No scheduled reminders. Click "Add Reminder" to create one.</p>';
     return;
   }
+  
+  console.log(`Rendering ${reminders.length} reminder(s)`);
   
   container.innerHTML = reminders.map(reminder => {
     const nextTime = getNextExecutionTime(reminder);
@@ -8561,6 +8568,9 @@ function renderReminders() {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        width: 100%;
+        margin-bottom: 0;
+        box-sizing: border-box;
       ">
         <div style="flex: 1;">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
@@ -8652,10 +8662,19 @@ function openReminderModal(reminder = null) {
     document.getElementById('reminderType').value = reminder.type || 'once';
     
     // Set type-specific fields
-    if (reminder.type === 'once' && reminder.dateTime) {
-      const dt = new Date(reminder.dateTime);
-      const localDateTime = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      document.getElementById('reminderDateTime').value = localDateTime;
+    if (reminder.type === 'once') {
+      clearReminderDateTimes();
+      // Support both old format (single dateTime) and new format (dateTimes array)
+      const dateTimes = reminder.dateTimes || (reminder.dateTime ? [reminder.dateTime] : []);
+      if (dateTimes.length > 0) {
+        dateTimes.forEach(dateTime => {
+          const dt = new Date(dateTime);
+          const localDateTime = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+          addReminderDateTimeInput(localDateTime);
+        });
+      } else {
+        addReminderDateTimeInput();
+      }
     } else if (reminder.type === 'daily' && reminder.time) {
       document.getElementById('reminderDailyTime').value = reminder.time;
     } else if (reminder.type === 'weekly') {
@@ -8683,7 +8702,8 @@ function openReminderModal(reminder = null) {
     const lastRecipientNumber = localStorage.getItem('smsReminderLastRecipient') || '';
     document.getElementById('reminderRecipientNumber').value = lastRecipientNumber;
     document.getElementById('reminderType').value = 'once';
-    document.getElementById('reminderDateTime').value = '';
+    clearReminderDateTimes();
+    addReminderDateTimeInput();
     document.getElementById('reminderDailyTime').value = '';
     document.getElementById('reminderWeeklyTime').value = '';
     document.querySelectorAll('.reminder-day').forEach(cb => cb.checked = false);
@@ -8700,6 +8720,55 @@ function closeReminderModal() {
   modal.style.display = 'none';
 }
 
+function addReminderDateTimeInput(value = '') {
+  const container = document.getElementById('reminderDateTimesContainer');
+  const dateTimeId = `reminderDateTime_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  const dateTimeWrapper = document.createElement('div');
+  dateTimeWrapper.style.display = 'flex';
+  dateTimeWrapper.style.gap = '10px';
+  dateTimeWrapper.style.alignItems = 'center';
+  dateTimeWrapper.id = `wrapper_${dateTimeId}`;
+  
+  const dateTimeInput = document.createElement('input');
+  dateTimeInput.type = 'datetime-local';
+  dateTimeInput.id = dateTimeId;
+  dateTimeInput.className = 'reminder-datetime-input';
+  dateTimeInput.value = value;
+  dateTimeInput.style.flex = '1';
+  dateTimeInput.style.padding = '8px';
+  dateTimeInput.style.backgroundColor = '#2a2a2a';
+  dateTimeInput.style.border = '1px solid #444';
+  dateTimeInput.style.borderRadius = '4px';
+  dateTimeInput.style.color = '#e0e0e0';
+  dateTimeInput.style.fontSize = '14px';
+  
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.textContent = 'Remove';
+  removeBtn.className = 'btn btn-secondary';
+  removeBtn.style.padding = '8px 12px';
+  removeBtn.style.flexShrink = '0';
+  removeBtn.onclick = () => {
+    dateTimeWrapper.remove();
+    // If no date/time inputs left, add one back
+    if (container.querySelectorAll('.reminder-datetime-input').length === 0) {
+      addReminderDateTimeInput();
+    }
+  };
+  
+  dateTimeWrapper.appendChild(dateTimeInput);
+  dateTimeWrapper.appendChild(removeBtn);
+  container.appendChild(dateTimeWrapper);
+  
+  return dateTimeId;
+}
+
+function clearReminderDateTimes() {
+  const container = document.getElementById('reminderDateTimesContainer');
+  container.innerHTML = '';
+}
+
 function updateReminderTypeFields() {
   const type = document.getElementById('reminderType').value;
   
@@ -8712,6 +8781,11 @@ function updateReminderTypeFields() {
   // Show relevant fields
   if (type === 'once') {
     document.getElementById('reminderOnceFields').style.display = 'block';
+    // Ensure at least one date/time input exists
+    const container = document.getElementById('reminderDateTimesContainer');
+    if (container.querySelectorAll('.reminder-datetime-input').length === 0) {
+      addReminderDateTimeInput();
+    }
   } else if (type === 'daily') {
     document.getElementById('reminderDailyFields').style.display = 'block';
   } else if (type === 'weekly') {
@@ -8759,12 +8833,21 @@ async function saveReminder() {
     
     // Add type-specific fields
     if (type === 'once') {
-      const dateTime = document.getElementById('reminderDateTime').value;
-      if (!dateTime) {
-        alert('Please select a date and time');
+      const dateTimeInputs = document.querySelectorAll('.reminder-datetime-input');
+      const dateTimes = Array.from(dateTimeInputs)
+        .map(input => input.value)
+        .filter(value => value.trim() !== '')
+        .map(value => new Date(value).toISOString());
+      
+      if (dateTimes.length === 0) {
+        alert('Please select at least one date and time');
         return;
       }
-      reminder.dateTime = new Date(dateTime).toISOString();
+      
+      // Store as array for multiple date/times
+      reminder.dateTimes = dateTimes;
+      // Also keep first one for backward compatibility
+      reminder.dateTime = dateTimes[0];
     } else if (type === 'daily') {
       const time = document.getElementById('reminderDailyTime').value;
       if (!time) {
@@ -8927,6 +9010,11 @@ function setupReminderUI() {
   
   if (typeSelect) {
     typeSelect.addEventListener('change', updateReminderTypeFields);
+  }
+  
+  const addDateTimeBtn = document.getElementById('addReminderDateTimeBtn');
+  if (addDateTimeBtn) {
+    addDateTimeBtn.addEventListener('click', () => addReminderDateTimeInput());
   }
   
   reminderUISetup = true;

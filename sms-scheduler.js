@@ -70,11 +70,25 @@ class SMSScheduler {
     let nextTime = null;
 
     if (reminder.type === 'once') {
-      // One-time reminder at specific date/time
-      nextTime = new Date(reminder.dateTime);
-      if (nextTime <= now) {
-        return null; // Already passed
+      // One-time reminder at specific date/time(s)
+      // Support both old format (single dateTime) and new format (dateTimes array)
+      const dateTimes = reminder.dateTimes || (reminder.dateTime ? [reminder.dateTime] : []);
+      
+      if (dateTimes.length === 0) {
+        return null; // No date/times specified
       }
+      
+      // Find the next upcoming date/time
+      const upcomingTimes = dateTimes
+        .map(dt => new Date(dt))
+        .filter(dt => dt > now)
+        .sort((a, b) => a - b);
+      
+      if (upcomingTimes.length === 0) {
+        return null; // All date/times have passed
+      }
+      
+      nextTime = upcomingTimes[0]; // Get the earliest upcoming date/time
     } else if (reminder.type === 'daily') {
       // Daily reminder at specific time
       const [hours, minutes] = reminder.time.split(':').map(Number);
@@ -180,6 +194,11 @@ class SMSScheduler {
     // Cancel existing timer if any
     this.cancelReminder(reminder.id);
 
+    // Store the scheduled time for "once" type reminders with multiple date/times
+    if (reminder.type === 'once' && reminder.dateTimes && Array.isArray(reminder.dateTimes)) {
+      reminder._scheduledTime = nextTime.toISOString();
+    }
+
     // Schedule new timer
     const timer = setTimeout(() => {
       this.executeReminder(reminder);
@@ -235,9 +254,40 @@ class SMSScheduler {
         if (reminder.type !== 'once') {
           this.scheduleReminder(reminder);
         } else {
-          // One-time reminder - mark as completed
-          reminder.enabled = false;
-          this.cancelReminder(reminder.id);
+          // One-time reminder - remove the executed date/time
+          const now = new Date();
+          if (reminder.dateTimes && Array.isArray(reminder.dateTimes)) {
+            // Remove the date/time that was scheduled (stored in _scheduledTime)
+            if (reminder._scheduledTime) {
+              const scheduledTime = new Date(reminder._scheduledTime);
+              reminder.dateTimes = reminder.dateTimes.filter(dt => {
+                const dtDate = new Date(dt);
+                // Remove if it matches the scheduled time (within 1 minute tolerance)
+                const timeDiff = Math.abs(dtDate.getTime() - scheduledTime.getTime());
+                return timeDiff > 60 * 1000;
+              });
+              delete reminder._scheduledTime;
+            } else {
+              // Fallback: remove date/times that are in the past (within 2 minute tolerance)
+              reminder.dateTimes = reminder.dateTimes.filter(dt => {
+                const dtDate = new Date(dt);
+                return dtDate.getTime() > now.getTime() + 2 * 60 * 1000;
+              });
+            }
+            
+            // If there are more date/times remaining, schedule the next one
+            if (reminder.dateTimes.length > 0) {
+              this.scheduleReminder(reminder);
+            } else {
+              // All date/times completed - mark as disabled
+              reminder.enabled = false;
+              this.cancelReminder(reminder.id);
+            }
+          } else {
+            // Old format (single dateTime) - mark as completed
+            reminder.enabled = false;
+            this.cancelReminder(reminder.id);
+          }
         }
         
         // Save updated reminder
