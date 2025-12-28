@@ -2405,7 +2405,7 @@ async function confirmTradeExecution() {
         takeProfit
       });
       
-      // Send SMS notification for position opened
+      // Send SMS notification for position opened (skip for manual trades from trade modal)
       await sendPositionOpenedSMS({
         symbol,
         type,
@@ -2414,7 +2414,7 @@ async function confirmTradeExecution() {
         price: result.data.price || result.data.open_price,
         stopLoss,
         takeProfit
-      });
+      }, { skipManualTradeAlerts: true });
       
       // Record the trade in overtrade control after successful execution
       const tradeDataToRecord = { symbol, type, volume, stopLoss, takeProfit, action: 'executeOrder' };
@@ -8505,8 +8505,15 @@ async function sendPendingOrderExecutionSMS(positionData) {
 }
 
 // Helper function to send SMS notification when position is opened
-async function sendPositionOpenedSMS(positionData) {
+async function sendPositionOpenedSMS(positionData, options = {}) {
   console.log('🔍 [SMS DEBUG] sendPositionOpenedSMS called with data:', positionData);
+  console.log('🔍 [SMS DEBUG] Options:', options);
+  
+  // Skip SMS alerts for manual trades from trade modal if requested
+  if (options.skipManualTradeAlerts) {
+    console.log('❌ [SMS DEBUG] Skipping SMS alert for manual trade from trade modal');
+    return;
+  }
   
   try {
     // Check API availability
