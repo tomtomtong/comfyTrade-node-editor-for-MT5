@@ -1,0 +1,20 @@
+{
+  "name": "mt5-trader-web",
+  "version": "1.0.0",
+  "description": "MT5 Trading Strategy Builder - Web Version",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.18.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "twilio": "^5.10.5"
+  }
+}
