@@ -154,6 +154,7 @@ async function loadAllSettingsOnStartup() {
       loadVolumeControlSettings();
       loadTwilioSettings();
       await loadAiAnalysisSettings();
+      await loadTrailingStopSettings();
       
       // Ensure control systems are properly initialized
       if (window.overtradeControl) {
@@ -1076,6 +1077,9 @@ async function handleRefreshClosedPositions() {
 async function loadGeneralSettings() {
   // Load simulator mode settings
   await loadSimulatorSettings();
+  
+  // Load trailing stop settings
+  await loadTrailingStopSettings();
 }
 
 // Simulator Mode Functions
@@ -1295,6 +1299,76 @@ async function resetSimulator() {
       }
     }
   );
+}
+
+// Trailing Stop Settings Functions
+async function loadTrailingStopSettings() {
+  try {
+    if (!window.settingsManager) return;
+    
+    // Load trailing stop interval (default to 5 minutes = 300 seconds)
+    const trailingStopInterval = window.settingsManager.get('general.trailingStopInterval') || 300;
+    
+    document.getElementById('settingsTrailingStopInterval').value = trailingStopInterval.toString();
+    
+    // Update status display
+    updateTrailingStopStatusDisplay();
+    
+    console.log('Trailing stop settings loaded');
+  } catch (error) {
+    console.error('Error loading trailing stop settings:', error);
+  }
+}
+
+async function saveTrailingStopSettings() {
+  try {
+    if (!window.settingsManager) return;
+    
+    const trailingStopInterval = parseInt(document.getElementById('settingsTrailingStopInterval').value);
+    
+    // Save to settings
+    await window.settingsManager.set('general.trailingStopInterval', trailingStopInterval);
+    
+    // Update trailing stop manager if it exists
+    if (window.trailingStopManager) {
+      await window.trailingStopManager.updateInterval(trailingStopInterval);
+      showMessage(`Trailing stop interval updated to ${trailingStopInterval === 60 ? '1 minute' : trailingStopInterval < 60 ? `${trailingStopInterval} seconds` : `${Math.round(trailingStopInterval / 60)} minutes`}`, 'success');
+    }
+    
+    console.log('Trailing stop settings saved');
+  } catch (error) {
+    console.error('Error saving trailing stop settings:', error);
+  }
+}
+
+function updateTrailingStopStatusDisplay() {
+  if (window.trailingStopManager) {
+    window.trailingStopManager.updateUIStatus();
+  }
+}
+
+// Update trailing stop status every 30 seconds when settings modal is open
+let trailingStopStatusInterval = null;
+
+function startTrailingStopStatusUpdater() {
+  if (trailingStopStatusInterval) {
+    clearInterval(trailingStopStatusInterval);
+  }
+  
+  // Update immediately
+  updateTrailingStopStatusDisplay();
+  
+  // Update every 30 seconds
+  trailingStopStatusInterval = setInterval(() => {
+    const settingsModal = document.getElementById('settingsModal');
+    if (settingsModal && settingsModal.classList.contains('show')) {
+      updateTrailingStopStatusDisplay();
+    } else {
+      // Stop updating if modal is closed
+      clearInterval(trailingStopStatusInterval);
+      trailingStopStatusInterval = null;
+    }
+  }, 30000);
 }
 
 async function handleExecuteTrade() {
@@ -4730,10 +4804,24 @@ function createTrailingStopModal() {
           
           <div style="margin-bottom: 15px; padding: 10px; background-color: rgba(255, 152, 0, 0.1); border-left: 3px solid #FF9800; border-radius: 4px; font-size: 12px; color: #FFA500;">
             <strong>ℹ️ How it works:</strong><br>
-            Trailing stop will automatically adjust SL (and optionally TP) every 5 minutes based on price movement.<br>
+            Trailing stop will automatically adjust SL (and optionally TP) based on price movement.<br>
             For BUY: SL moves up as price increases (never down).<br>
             For SELL: SL moves down as price decreases (never up).<br>
             Only moves in favorable direction (never against your position).
+          </div>
+          
+          <div class="form-group">
+            <label>Check Frequency:</label>
+            <select id="trailingCheckFrequency">
+              <option value="60">Every 1 minute</option>
+              <option value="120">Every 2 minutes</option>
+              <option value="300" selected>Every 5 minutes</option>
+              <option value="600">Every 10 minutes</option>
+              <option value="900">Every 15 minutes</option>
+              <option value="1800">Every 30 minutes</option>
+              <option value="3600">Every 1 hour</option>
+            </select>
+            <small style="color: #888; font-size: 11px;">How often to check and adjust trailing stops</small>
           </div>
           
           <div class="form-group">
@@ -4796,6 +4884,7 @@ async function handleEnableTrailing() {
   const maxSL = maxSLInput === '' ? null : (parseFloat(maxSLInput) || null);
   const maxTPInput = document.getElementById('trailingMaxTP').value.trim();
   const maxTP = maxTPInput === '' ? null : (parseFloat(maxTPInput) || null);
+  const checkFrequency = parseInt(document.getElementById('trailingCheckFrequency').value) || 300;
 
   // Validate that SL distance is set (required)
   if (slDistance === 0 && slDistancePercent === 0) {
@@ -4821,6 +4910,14 @@ async function handleEnableTrailing() {
     return;
   }
 
+  // Save the frequency setting globally
+  if (window.settingsManager) {
+    await window.settingsManager.set('general.trailingStopInterval', checkFrequency);
+    
+    // Update the trailing stop manager interval
+    await window.trailingStopManager.updateInterval(checkFrequency);
+  }
+
   hideTrailingStopModal();
   showMessage('Enabling trailing stop...', 'info');
 
@@ -4835,7 +4932,10 @@ async function handleEnableTrailing() {
   });
 
   if (result.success) {
-    showMessage('Trailing stop enabled! SL and TP will adjust every 5 minutes.', 'success');
+    const frequencyText = checkFrequency < 60 ? `${checkFrequency} seconds` : 
+                         checkFrequency < 3600 ? `${Math.round(checkFrequency / 60)} minutes` : 
+                         `${Math.round(checkFrequency / 3600)} hours`;
+    showMessage(`Trailing stop enabled! SL and TP will adjust every ${frequencyText}.`, 'success');
     handleRefreshPositions();
   } else {
     showMessage('Failed to enable trailing stop: ' + result.message, 'error');
@@ -7550,6 +7650,10 @@ async function showSettingsModal() {
   loadVolumeControlSettings();
   loadTwilioSettings();
   await loadAiAnalysisSettings();
+  await loadTrailingStopSettings();
+  
+  // Start trailing stop status updater
+  startTrailingStopStatusUpdater();
   
   // Store original settings state for comparison
   storeOriginalSettingsState();
@@ -7741,6 +7845,9 @@ function setupSettingsChangeTracking() {
   
   // Track changes in AI Analysis settings
   setupAiAnalysisChangeTracking();
+  
+  // Track changes in trailing stop settings
+  setupTrailingStopChangeTracking();
 }
 
 function markSettingsAsChanged() {
@@ -7883,6 +7990,9 @@ async function saveAllSettings() {
   
   // Save AI Analysis settings
   saveAiAnalysisSettings();
+  
+  // Save trailing stop settings
+  await saveTrailingStopSettings();
   
   // Reset unsaved changes flag
   settingsHasUnsavedChanges = false;
@@ -8142,6 +8252,7 @@ async function loadSettingsFromFile(file) {
         loadVolumeControlSettings();
         loadTwilioSettings();
         await loadAiAnalysisSettings();
+        await loadTrailingStopSettings();
         
         console.log('✅ Settings loaded successfully from file:', file.name);
         showMessage('Settings loaded successfully', 'success');
@@ -9376,6 +9487,21 @@ function setupAiAnalysisChangeTracking() {
   ];
   
   aiInputs.forEach(inputId => {
+    const element = document.getElementById(inputId);
+    if (element) {
+      element.addEventListener('change', markSettingsAsChanged);
+      element.addEventListener('input', markSettingsAsChanged);
+    }
+  });
+}
+
+// Add trailing stop settings to the change tracking
+function setupTrailingStopChangeTracking() {
+  const trailingStopInputs = [
+    'settingsTrailingStopInterval'
+  ];
+  
+  trailingStopInputs.forEach(inputId => {
     const element = document.getElementById(inputId);
     if (element) {
       element.addEventListener('change', markSettingsAsChanged);

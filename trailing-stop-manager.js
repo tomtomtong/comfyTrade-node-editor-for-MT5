@@ -7,7 +7,8 @@ class TrailingStopManager {
   constructor() {
     this.trailingPositions = new Map(); // ticket -> {settings, lastPrice, lastAdjustment}
     this.intervalId = null;
-    this.updateInterval = 5 * 60 * 1000; // 5 minutes in milliseconds
+    this.updateInterval = 5 * 60 * 1000; // Default: 5 minutes in milliseconds
+    this.lastCheckTime = null;
     this.loadSettings();
     this.start();
   }
@@ -19,6 +20,10 @@ class TrailingStopManager {
     try {
       if (window.settingsManager) {
         const trailingData = window.settingsManager.get('trailing_stops') || {};
+        
+        // Load interval setting (default to 5 minutes if not set)
+        const intervalSeconds = window.settingsManager.get('general.trailingStopInterval') || 300;
+        this.updateInterval = intervalSeconds * 1000; // Convert to milliseconds
         
         // Restore trailing positions
         if (trailingData.positions && Array.isArray(trailingData.positions)) {
@@ -294,6 +299,9 @@ class TrailingStopManager {
    * Adjust SL/TP for all trailing positions
    */
   async adjustAllPositions() {
+    // Update last check time
+    this.lastCheckTime = new Date();
+    
     // Use global isConnected flag from renderer instead of mt5API.isConnected()
     // Default to false if window.isConnected is undefined (renderer.js not loaded yet)
     const isConnected = window.isConnected !== undefined ? window.isConnected : false;
@@ -359,6 +367,10 @@ class TrailingStopManager {
 
       // Save updated settings
       await this.saveSettings();
+      
+      // Update UI status if available
+      this.updateUIStatus();
+      
       return { adjusted: adjustedCount, failed };
     } catch (error) {
       console.error('Error adjusting trailing positions:', error);
@@ -377,13 +389,14 @@ class TrailingStopManager {
     // Load settings first
     await this.loadSettings();
 
-    // Run immediately on start, then every 5 minutes
+    // Run immediately on start, then at the configured interval
     this.adjustAllPositions();
     this.intervalId = setInterval(() => {
       this.adjustAllPositions();
     }, this.updateInterval);
 
-    console.log('Trailing stop manager started (updates every 5 minutes)');
+    const intervalMinutes = Math.round(this.updateInterval / 60000);
+    console.log(`Trailing stop manager started (updates every ${intervalMinutes} minute${intervalMinutes !== 1 ? 's' : ''})`);
   }
 
   /**
@@ -394,6 +407,82 @@ class TrailingStopManager {
       clearInterval(this.intervalId);
       this.intervalId = null;
       console.log('Trailing stop manager stopped');
+    }
+  }
+
+  /**
+   * Restart with new interval
+   */
+  async restart() {
+    this.stop();
+    await this.start();
+  }
+
+  /**
+   * Update interval setting
+   */
+  async updateInterval(intervalSeconds) {
+    this.updateInterval = intervalSeconds * 1000;
+    await this.restart();
+  }
+
+  /**
+   * Get current interval in seconds
+   */
+  getCurrentInterval() {
+    return Math.round(this.updateInterval / 1000);
+  }
+
+  /**
+   * Get status information
+   */
+  getStatus() {
+    return {
+      isRunning: this.intervalId !== null,
+      intervalSeconds: this.getCurrentInterval(),
+      activePositions: this.trailingPositions.size,
+      lastCheck: this.lastCheckTime,
+      nextCheck: this.intervalId ? new Date(Date.now() + this.updateInterval) : null
+    };
+  }
+
+  /**
+   * Update UI status elements if they exist
+   */
+  updateUIStatus() {
+    const status = this.getStatus();
+    
+    // Update status indicator
+    const statusElement = document.getElementById('trailingStopStatus');
+    if (statusElement) {
+      statusElement.textContent = status.isRunning ? 'Active' : 'Stopped';
+      statusElement.className = `status-indicator ${status.isRunning ? 'active' : 'inactive'}`;
+    }
+
+    // Update active positions count
+    const activeCountElement = document.getElementById('trailingStopActiveCount');
+    if (activeCountElement) {
+      activeCountElement.textContent = status.activePositions;
+    }
+
+    // Update last check time
+    const lastCheckElement = document.getElementById('trailingStopLastCheck');
+    if (lastCheckElement) {
+      if (status.lastCheck) {
+        lastCheckElement.textContent = status.lastCheck.toLocaleTimeString();
+      } else {
+        lastCheckElement.textContent = 'Never';
+      }
+    }
+
+    // Update next check time
+    const nextCheckElement = document.getElementById('trailingStopNextCheck');
+    if (nextCheckElement) {
+      if (status.nextCheck) {
+        nextCheckElement.textContent = status.nextCheck.toLocaleTimeString();
+      } else {
+        nextCheckElement.textContent = '-';
+      }
     }
   }
 

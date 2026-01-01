@@ -700,6 +700,45 @@
             </div>
           </div>
         </div>
+
+        <div class="form-group trailing-stop-section" style="display: none;">
+          <h3 style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">📈 Trailing Stop Settings</h3>
+          <div class="form-group">
+            <label>Check Interval:</label>
+            <select id="settingsTrailingStopInterval">
+              <option value="30">30 seconds</option>
+              <option value="60">1 minute</option>
+              <option value="120">2 minutes</option>
+              <option value="300" selected>5 minutes</option>
+              <option value="600">10 minutes</option>
+              <option value="900">15 minutes</option>
+              <option value="1800">30 minutes</option>
+              <option value="3600">1 hour</option>
+            </select>
+            <small>How often to check and adjust trailing stops for all positions</small>
+          </div>
+          
+          <div class="trailing-stop-status">
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="label">Status:</span>
+                <span id="trailingStopStatus" class="status-indicator">Active</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Active Positions:</span>
+                <span id="trailingStopActiveCount">0</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Last Check:</span>
+                <span id="trailingStopLastCheck">Never</span>
+              </div>
+              <div class="status-item">
+                <span class="label">Next Check:</span>
+                <span id="trailingStopNextCheck">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       
