@@ -39,6 +39,14 @@ let appSettings = {
   aiAnalysis: {}
 };
 
+// Visitor tracking
+let visitorStats = {
+  totalVisitors: 0,
+  uniqueVisitors: new Set(),
+  dailyVisitors: {},
+  lastReset: new Date().toDateString()
+};
+
 let simulatorState = {
   enabled: true,
   balance: 10000,
@@ -81,6 +89,24 @@ async function loadSettings() {
   } catch (err) {
     console.log('No existing settings, using defaults');
   }
+  
+  // Load visitor stats
+  try {
+    const visitorData = await fs.readFile(path.join(__dirname, 'data', 'visitor_stats.json'), 'utf8');
+    const loadedStats = JSON.parse(visitorData);
+    visitorStats.totalVisitors = loadedStats.totalVisitors || 0;
+    visitorStats.dailyVisitors = loadedStats.dailyVisitors || {};
+    visitorStats.lastReset = loadedStats.lastReset || new Date().toDateString();
+    
+    // Reset daily count if it's a new day
+    const today = new Date().toDateString();
+    if (visitorStats.lastReset !== today) {
+      visitorStats.dailyVisitors = {};
+      visitorStats.lastReset = today;
+    }
+  } catch (err) {
+    console.log('No existing visitor stats, starting fresh');
+  }
 }
 
 // Save settings to file
@@ -96,7 +122,59 @@ async function saveSettings() {
   }
 }
 
+// Save visitor stats to file
+async function saveVisitorStats() {
+  try {
+    await fs.mkdir(path.join(__dirname, 'data'), { recursive: true });
+    const statsToSave = {
+      totalVisitors: visitorStats.totalVisitors,
+      dailyVisitors: visitorStats.dailyVisitors,
+      lastReset: visitorStats.lastReset
+    };
+    await fs.writeFile(
+      path.join(__dirname, 'data', 'visitor_stats.json'),
+      JSON.stringify(statsToSave, null, 2)
+    );
+  } catch (err) {
+    console.error('Error saving visitor stats:', err);
+  }
+}
+
+// Track visitor
+function trackVisitor(req) {
+  const ip = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+  const userAgent = req.get('User-Agent') || '';
+  const visitorId = `${ip}_${userAgent}`;
+  
+  // Check if this is a unique visitor (not seen today)
+  const today = new Date().toDateString();
+  if (!visitorStats.dailyVisitors[today]) {
+    visitorStats.dailyVisitors[today] = new Set();
+  }
+  
+  if (!visitorStats.dailyVisitors[today].has(visitorId)) {
+    visitorStats.totalVisitors++;
+    visitorStats.dailyVisitors[today].add(visitorId);
+    saveVisitorStats();
+  }
+}
+
 // API Routes
+
+// Visitor stats endpoint
+app.get('/api/visitor-stats', (req, res) => {
+  const today = new Date().toDateString();
+  const todayVisitors = visitorStats.dailyVisitors[today] ? visitorStats.dailyVisitors[today].size : 0;
+  
+  res.json({
+    success: true,
+    data: {
+      totalVisitors: visitorStats.totalVisitors,
+      todayVisitors: todayVisitors,
+      lastUpdated: new Date().toISOString()
+    }
+  });
+});
 
 // Settings endpoints
 app.get('/api/settings/:filename', async (req, res) => {
@@ -388,6 +466,7 @@ app.get('/api/twilio/config', (req, res) => {
 
 // Serve the main app
 app.get('/', (req, res) => {
+  trackVisitor(req);
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

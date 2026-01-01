@@ -157,6 +157,20 @@ class NodeEditor {
   }
 
   onWheel(e) {
+    // Check if the mouse is over the positions panel area
+    const bottomPanel = document.querySelector('.bottom-panel');
+    if (bottomPanel) {
+      const bottomPanelRect = bottomPanel.getBoundingClientRect();
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      
+      // If mouse is over the bottom panel, allow normal scrolling
+      if (mouseX >= bottomPanelRect.left && mouseX <= bottomPanelRect.right &&
+          mouseY >= bottomPanelRect.top && mouseY <= bottomPanelRect.bottom) {
+        return; // Don't prevent default, allow normal scrolling
+      }
+    }
+    
     e.preventDefault();
     
     // Get mouse position in canvas coordinates BEFORE zoom

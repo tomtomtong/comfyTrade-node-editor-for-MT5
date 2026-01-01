@@ -307,6 +307,33 @@
       </div>
     </aside>
 
+    <!-- Visitor Stats Banner -->
+    <div class="visitor-stats-banner">
+      <div class="visitor-stats-content">
+        <div class="visitor-stat">
+          <span class="visitor-icon">👥</span>
+          <div class="visitor-info">
+            <span class="visitor-count" id="totalVisitors">Loading...</span>
+            <span class="visitor-label">Total Visitors</span>
+          </div>
+        </div>
+        <div class="visitor-stat">
+          <span class="visitor-icon">📅</span>
+          <div class="visitor-info">
+            <span class="visitor-count" id="todayVisitors">Loading...</span>
+            <span class="visitor-label">Today</span>
+          </div>
+        </div>
+        <div class="visitor-stat">
+          <span class="visitor-icon">🌟</span>
+          <div class="visitor-info">
+            <span class="visitor-count">Free & Open Source</span>
+            <span class="visitor-label">MIT License</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Top Toolbar -->
     <nav class="toolbar" role="navigation" aria-label="Main toolbar">
       <div class="toolbar-left">
@@ -654,6 +681,42 @@
   <script src="api.js"></script>
   <script src="node-editor.js"></script>
   <script src="app.js"></script>
+  
+  <!-- Visitor Stats Script -->
+  <script>
+    // Load visitor stats
+    async function loadVisitorStats() {
+      try {
+        const response = await fetch('/api/visitor-stats');
+        const result = await response.json();
+        
+        if (result.success) {
+          const totalElement = document.getElementById('totalVisitors');
+          const todayElement = document.getElementById('todayVisitors');
+          
+          if (totalElement) {
+            totalElement.textContent = result.data.totalVisitors.toLocaleString();
+          }
+          if (todayElement) {
+            todayElement.textContent = result.data.todayVisitors.toLocaleString();
+          }
+        }
+      } catch (error) {
+        console.log('Could not load visitor stats:', error);
+        // Fallback display
+        const totalElement = document.getElementById('totalVisitors');
+        const todayElement = document.getElementById('todayVisitors');
+        if (totalElement) totalElement.textContent = '---';
+        if (todayElement) todayElement.textContent = '---';
+      }
+    }
+    
+    // Load stats when page loads
+    document.addEventListener('DOMContentLoaded', loadVisitorStats);
+    
+    // Refresh stats every 30 seconds
+    setInterval(loadVisitorStats, 30000);
+  </script>
   
   <!-- Google Analytics Event Tracking -->
   <script>

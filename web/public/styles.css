@@ -175,6 +175,55 @@ body {
   color: #000000;
 }
 
+/* Visitor Stats Banner */
+.visitor-stats-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.visitor-stats-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.visitor-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.visitor-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.visitor-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.visitor-count {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.visitor-label {
+  font-size: 12px;
+  opacity: 0.9;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* Toolbar */
 .toolbar {
   display: flex;
@@ -443,7 +492,7 @@ body {
 
 /* Bottom Panel */
 .bottom-panel {
-  height: 250px;
+  height: 180px;
   background: #1a1a1a;
   border-top: 1px solid #333;
   overflow-y: auto;
@@ -761,7 +810,7 @@ body {
   }
   
   .bottom-panel {
-    height: 220px;
+    height: 150px;
   }
 }
 
@@ -804,7 +853,7 @@ body {
   }
   
   .bottom-panel {
-    height: 200px;
+    height: 130px;
   }
 }
 
@@ -1053,6 +1102,22 @@ body {
   
   .demo-warning-text {
     font-size: 13px;
+  }
+  
+  .visitor-stats-content {
+    gap: 20px;
+  }
+  
+  .visitor-stat {
+    gap: 8px;
+  }
+  
+  .visitor-count {
+    font-size: 16px;
+  }
+  
+  .visitor-label {
+    font-size: 11px;
   }
   
   .about-modal {
