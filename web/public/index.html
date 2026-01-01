@@ -1,28 +1,249 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ComfyTrade - Open source MT5 node-based trading strategy builder. Visual drag-and-drop interface for creating trading strategies without coding.">
-  <meta name="keywords" content="MT5, MetaTrader 5, trading, strategy builder, node editor, forex, open source">
-  <meta property="og:title" content="ComfyTrade - MT5 Node Editor Demo">
-  <meta property="og:description" content="Try the web demo of ComfyTrade, an open source visual trading strategy builder for MetaTrader 5">
+  
+  <!-- Primary SEO Meta Tags -->
+  <title>ComfyTrade - Free Open Source MT5 Node-Based Trading Strategy Builder | Visual Forex Automation</title>
+  <meta name="title" content="ComfyTrade - Free Open Source MT5 Node-Based Trading Strategy Builder | Visual Forex Automation">
+  <meta name="description" content="ComfyTrade is a free, open-source visual trading strategy builder for MetaTrader 5. Create automated forex trading strategies with drag-and-drop nodes - no coding required. Features backtesting, risk management, and real-time alerts.">
+  <meta name="keywords" content="MT5, MetaTrader 5, trading bot, strategy builder, node editor, forex automation, algorithmic trading, open source trading, visual programming, trading strategy, forex robot, EA builder, expert advisor, backtesting, paper trading, risk management, trading alerts, ComfyTrade">
+  <meta name="author" content="ComfyTrade Community">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow">
+  <link rel="canonical" href="https://comfytrade.up.railway.app/">
+  
+  <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
-  <title>ComfyTrade - MT5 Node Editor Demo</title>
+  <meta property="og:url" content="https://comfytrade.up.railway.app/">
+  <meta property="og:title" content="ComfyTrade - Free Open Source MT5 Node-Based Trading Strategy Builder">
+  <meta property="og:description" content="Create automated forex trading strategies with drag-and-drop visual nodes. Free, open-source, no coding required. Connect to MetaTrader 5 for live trading.">
+  <meta property="og:image" content="https://comfytrade.up.railway.app/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="ComfyTrade">
+  <meta property="og:locale" content="en_US">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://comfytrade.up.railway.app/">
+  <meta name="twitter:title" content="ComfyTrade - Free Open Source MT5 Node-Based Trading Strategy Builder">
+  <meta name="twitter:description" content="Create automated forex trading strategies with drag-and-drop visual nodes. Free, open-source, no coding required.">
+  <meta name="twitter:image" content="https://comfytrade.up.railway.app/og-image.png">
+
+  <!-- Additional SEO Meta Tags -->
+  <meta name="application-name" content="ComfyTrade">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ComfyTrade">
+  
+  <!-- Structured Data for LLM and Search Engines -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ComfyTrade",
+    "alternateName": ["ComfyTrade MT5 Node Editor", "MT5 Strategy Builder"],
+    "applicationCategory": "FinanceApplication",
+    "applicationSubCategory": "Trading Software",
+    "operatingSystem": ["Windows", "macOS", "Linux"],
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "ComfyTrade is a free, open-source visual trading strategy builder for MetaTrader 5. Build automated forex trading strategies using drag-and-drop nodes without writing code. Features include backtesting, risk management, SMS/WhatsApp alerts, and real-time MT5 integration.",
+    "featureList": [
+      "Visual node-based strategy builder",
+      "MetaTrader 5 integration",
+      "Historical data backtesting",
+      "Risk management tools",
+      "SMS and WhatsApp alerts via Twilio",
+      "Paper trading simulator",
+      "Custom plugin system",
+      "Market sentiment analysis",
+      "Trade journal and analytics"
+    ],
+    "screenshot": "https://comfytrade.up.railway.app/og-image.png",
+    "softwareVersion": "1.0.0",
+    "author": {
+      "@type": "Organization",
+      "name": "ComfyTrade Community",
+      "url": "https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5"
+    },
+    "license": "https://opensource.org/licenses/MIT",
+    "downloadUrl": "https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases",
+    "installUrl": "https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases",
+    "releaseNotes": "https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases",
+    "softwareHelp": "https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5#readme",
+    "isAccessibleForFree": true,
+    "sameAs": [
+      "https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5"
+    ]
+  }
+  </script>
+
+  <!-- WebPage Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "ComfyTrade Web Demo - MT5 Node Editor",
+    "description": "Try the web demo of ComfyTrade, a free open-source visual trading strategy builder for MetaTrader 5. Build forex trading strategies with drag-and-drop nodes.",
+    "url": "https://comfytrade.up.railway.app/",
+    "mainEntity": {
+      "@type": "SoftwareApplication",
+      "name": "ComfyTrade"
+    },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://comfytrade.up.railway.app/"
+      }]
+    }
+  }
+  </script>
+
+  <!-- FAQ Structured Data for LLM Discovery -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is ComfyTrade?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ComfyTrade is a free, open-source visual trading strategy builder for MetaTrader 5. It allows traders to create automated forex trading strategies using a drag-and-drop node-based interface without writing any code."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is ComfyTrade free to use?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, ComfyTrade is completely free and open-source under the MIT license. You can download, use, modify, and distribute it without any cost."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What platforms does ComfyTrade support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ComfyTrade desktop application runs on Windows, macOS, and Linux. There is also a web demo available for trying the node editor in your browser."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need coding skills to use ComfyTrade?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No coding skills are required. ComfyTrade uses a visual node-based editor where you drag and drop nodes to build trading strategies. Simply connect triggers, indicators, logic gates, and trade execution nodes to create your strategy."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What features does ComfyTrade offer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ComfyTrade offers: visual node-based strategy building, MetaTrader 5 integration for live trading, historical backtesting, paper trading simulator, risk management tools (volume limits, overtrade protection), SMS/WhatsApp alerts via Twilio, market sentiment analysis, trade journal, and a plugin system for custom nodes."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I connect ComfyTrade to MetaTrader 5?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The desktop version of ComfyTrade connects to MetaTrader 5 through a Python bridge using the official MT5 Python API. Simply have MT5 running, click Connect in ComfyTrade, and it will automatically establish the connection for real-time trading and data access."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- Google Analytics 4 -->
+  <script src="ga-config.js"></script>
+  <script>
+    // Enhanced tracking function
+    function trackEvent(eventName, parameters = {}) {
+      if (typeof gtag === 'function') {
+        gtag('event', eventName, {
+          event_category: 'ComfyTrade Demo',
+          event_label: parameters.label || '',
+          value: parameters.value || 0,
+          ...parameters
+        });
+      }
+    }
+    
+    // Track page load
+    window.addEventListener('load', () => {
+      trackEvent('page_view', { 
+        label: 'demo_loaded',
+        page_title: document.title,
+        page_location: window.location.href
+      });
+    });
+    
+    // Track user engagement time
+    let startTime = Date.now();
+    window.addEventListener('beforeunload', () => {
+      const engagementTime = Math.round((Date.now() - startTime) / 1000);
+      trackEvent('user_engagement', {
+        label: 'session_duration',
+        value: engagementTime
+      });
+    });
+  </script>
+
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 </head>
 <body>
+  <!-- Hidden SEO Content for LLMs and Search Engines -->
+  <div class="seo-content" style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+    <h1>ComfyTrade - Open Source MT5 Node-Based Trading Strategy Builder</h1>
+    <p>ComfyTrade is a free, open-source Electron desktop application for building visual trading strategies for MetaTrader 5 (MT5). Create automated forex trading bots without coding using our intuitive drag-and-drop node editor.</p>
+    
+    <h2>Key Features</h2>
+    <ul>
+      <li>Visual Node Editor: Build trading strategies by connecting nodes - triggers, indicators (Moving Average, RSI), logic gates (AND, OR), and trade execution</li>
+      <li>MetaTrader 5 Integration: Direct connection to MT5 for real-time trading, price data, and account management</li>
+      <li>Backtesting: Import historical data from MT5 or CSV files to test your strategies</li>
+      <li>Paper Trading Simulator: Practice trading with simulated positions using real market data</li>
+      <li>Risk Management: Volume limits, overtrade protection, pip-based loss calculations</li>
+      <li>Alerts: SMS and WhatsApp notifications via Twilio for trade events</li>
+      <li>Plugin System: Extend functionality with custom nodes</li>
+      <li>Market Sentiment Analysis: Integrate news and sentiment data</li>
+    </ul>
+    
+    <h2>Supported Trading Instruments</h2>
+    <p>Forex pairs (EURUSD, GBPUSD, USDJPY, etc.), Gold (XAUUSD), Indices, Cryptocurrencies, and any instrument available in your MT5 broker.</p>
+    
+    <h2>Technology Stack</h2>
+    <p>Built with Electron, Node.js, Python, and the official MetaTrader 5 Python API. Open source under MIT license.</p>
+    
+    <h2>Download</h2>
+    <p>Download the full desktop version from GitHub: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases</p>
+  </div>
+
   <div class="app-container">
     <!-- Large Promotional Header -->
-    <div class="promo-header">
+    <header class="promo-header" role="banner">
       <div class="promo-main">
         <h1 class="promo-title">ComfyTrade - Open Source MT5 Node Editor</h1>
         <p class="promo-subtitle">Visual Trading Strategy Builder • No Coding Required • Free & Open Source</p>
         <div class="promo-cta-large">
-          <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5" target="_blank" class="cta-btn cta-btn-github">
+          <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5" target="_blank" rel="noopener noreferrer" class="cta-btn cta-btn-github">
             <span class="cta-icon">⭐</span>
             <span class="cta-text">
               <strong>View Full Project on GitHub</strong>
@@ -38,111 +259,111 @@
           </a>
         </div>
       </div>
-    </div>
+    </header>
     
     <!-- Demo Warning Banner -->
-    <div class="demo-warning">
+    <aside class="demo-warning" role="alert">
       <div class="demo-warning-content">
         <span class="demo-warning-icon">⚠️</span>
         <div class="demo-warning-text">
           <strong>LIMITED WEB DEMO</strong> - This is a simplified demo with simulated data only. 
-          <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases" target="_blank" class="demo-download-link">
+          <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases" target="_blank" rel="noopener noreferrer" class="demo-download-link">
             Download the full desktop version
           </a> for real MT5 trading, backtesting, alerts, and advanced features.
         </div>
       </div>
-    </div>
+    </aside>
 
     <!-- Top Toolbar -->
-    <div class="toolbar">
+    <nav class="toolbar" role="navigation" aria-label="Main toolbar">
       <div class="toolbar-left">
-        <h1>ComfyTrade <span class="version-badge">WEB DEMO</span></h1>
-        <button id="connectBtn" class="btn btn-primary">Connect Demo</button>
-        <button id="showLogBtn" class="btn btn-secondary">Show Log</button>
-        <button id="toggleBottomPanelBtn" class="btn btn-secondary">📊 Positions</button>
+        <h2>ComfyTrade <span class="version-badge">WEB DEMO</span></h2>
+        <button id="connectBtn" class="btn btn-primary" aria-label="Connect to demo trading">Connect Demo</button>
+        <button id="showLogBtn" class="btn btn-secondary" aria-label="Show console log">Show Log</button>
+        <button id="toggleBottomPanelBtn" class="btn btn-secondary" aria-label="Toggle positions panel">📊 Positions</button>
       </div>
       <div class="toolbar-right">
-        <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5" target="_blank" class="btn btn-github-toolbar">
+        <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5" target="_blank" rel="noopener noreferrer" class="btn btn-github-toolbar" aria-label="View project on GitHub">
           ⭐ GitHub Project
         </a>
-        <button id="aboutBtn" class="btn btn-info">ℹ️ Full Version Info</button>
-        <button id="tradeBtn" class="btn btn-success">New Trade</button>
-        <button id="settingsBtn" class="btn btn-secondary">⚙ Settings</button>
-        <button id="helpBtn" class="btn btn-secondary">❓ Help</button>
-        <button id="runStrategyBtn" class="btn btn-success">▶ Run Strategy</button>
-        <button id="stopStrategyBtn" class="btn btn-danger" style="display: none;">⏹ Stop</button>
-        <button id="saveGraphBtn" class="btn btn-secondary">Save</button>
-        <button id="loadGraphBtn" class="btn btn-secondary">Load</button>
-        <button id="clearGraphBtn" class="btn btn-danger">Clear</button>
+        <button id="aboutBtn" class="btn btn-info" aria-label="About full version">ℹ️ Full Version Info</button>
+        <button id="tradeBtn" class="btn btn-success" aria-label="Open new trade">New Trade</button>
+        <button id="settingsBtn" class="btn btn-secondary" aria-label="Open settings">⚙ Settings</button>
+        <button id="helpBtn" class="btn btn-secondary" aria-label="Get help">❓ Help</button>
+        <button id="runStrategyBtn" class="btn btn-success" aria-label="Run trading strategy">▶ Run Strategy</button>
+        <button id="stopStrategyBtn" class="btn btn-danger" style="display: none;" aria-label="Stop trading strategy">⏹ Stop</button>
+        <button id="saveGraphBtn" class="btn btn-secondary" aria-label="Save strategy graph">Save</button>
+        <button id="loadGraphBtn" class="btn btn-secondary" aria-label="Load strategy graph">Load</button>
+        <button id="clearGraphBtn" class="btn btn-danger" aria-label="Clear canvas">Clear</button>
       </div>
-    </div>
+    </nav>
 
     <!-- Main Layout -->
-    <div class="main-layout">
+    <main class="main-layout" role="main">
       <div class="top-section">
         <!-- Left Sidebar - Node Palette -->
-        <div class="sidebar left-sidebar">
+        <aside class="sidebar left-sidebar" role="complementary" aria-label="Node library">
           <h3>Node Library</h3>
           
-          <div class="node-category">
+          <section class="node-category">
             <h4>Triggers</h4>
-            <button class="node-btn trigger-btn" data-type="trigger">⚡ Trigger</button>
-          </div>
+            <button class="node-btn trigger-btn" data-type="trigger" aria-label="Add trigger node">⚡ Trigger</button>
+          </section>
 
-          <div class="node-category">
+          <section class="node-category">
             <h4>Data</h4>
-            <button class="node-btn signal-btn" data-type="string-input">📝 String Input</button>
-            <button class="node-btn signal-btn" data-type="string-output">📄 String Output</button>
-            <button class="node-btn signal-btn" data-type="mt5-data">📊 MT5 Data</button>
-          </div>
+            <button class="node-btn signal-btn" data-type="string-input" aria-label="Add string input node">📝 String Input</button>
+            <button class="node-btn signal-btn" data-type="string-output" aria-label="Add string output node">📄 String Output</button>
+            <button class="node-btn signal-btn" data-type="mt5-data" aria-label="Add MT5 data node">📊 MT5 Data</button>
+          </section>
 
-          <div class="node-category">
+          <section class="node-category">
             <h4>Indicators</h4>
-            <button class="node-btn" data-type="indicator-ma">Moving Average</button>
-            <button class="node-btn" data-type="indicator-rsi">RSI</button>
-          </div>
+            <button class="node-btn" data-type="indicator-ma" aria-label="Add Moving Average indicator">Moving Average</button>
+            <button class="node-btn" data-type="indicator-rsi" aria-label="Add RSI indicator">RSI</button>
+          </section>
 
-          <div class="node-category">
+          <section class="node-category">
             <h4>Logic</h4>
-            <button class="node-btn" data-type="conditional-check">Conditional Check</button>
-            <button class="node-btn" data-type="logic-and">AND Gate</button>
-            <button class="node-btn" data-type="logic-or">OR Gate</button>
-          </div>
+            <button class="node-btn" data-type="conditional-check" aria-label="Add conditional check node">Conditional Check</button>
+            <button class="node-btn" data-type="logic-and" aria-label="Add AND gate">AND Gate</button>
+            <button class="node-btn" data-type="logic-or" aria-label="Add OR gate">OR Gate</button>
+          </section>
 
-          <div class="node-category">
+          <section class="node-category">
             <h4>Trading</h4>
-            <button class="node-btn" data-type="trade-signal">Open Position</button>
-            <button class="node-btn" data-type="close-position">Close Position</button>
-            <button class="node-btn" data-type="modify-position">Modify Position</button>
-          </div>
+            <button class="node-btn" data-type="trade-signal" aria-label="Add open position node">Open Position</button>
+            <button class="node-btn" data-type="close-position" aria-label="Add close position node">Close Position</button>
+            <button class="node-btn" data-type="modify-position" aria-label="Add modify position node">Modify Position</button>
+          </section>
 
-          <div class="node-category">
+          <section class="node-category">
             <h4>Control</h4>
-            <button class="node-btn control-btn" data-type="end-strategy">🏁 End Strategy</button>
-          </div>
-        </div>
+            <button class="node-btn control-btn" data-type="end-strategy" aria-label="Add end strategy node">🏁 End Strategy</button>
+          </section>
+        </aside>
 
         <!-- Center - Node Editor Canvas -->
-        <div class="editor-container">
-          <canvas id="nodeCanvas"></canvas>
+        <section class="editor-container" aria-label="Strategy canvas">
+          <canvas id="nodeCanvas" aria-label="Node editor canvas for building trading strategies"></canvas>
           <div class="canvas-hint">
             Click nodes from the left panel to add them to the canvas<br>
             Connect outputs to inputs to create execution flows<br>
             <strong>Pan:</strong> Space+Drag or Right Mouse | <strong>Zoom:</strong> Mouse Wheel<br>
             <strong>Hotkeys:</strong> Ctrl+Z (Undo) | Delete (Remove node)
           </div>
-        </div>
+        </section>
 
         <!-- Right Sidebar -->
-        <div class="sidebar right-sidebar">
-          <div class="properties-panel">
+        <aside class="sidebar right-sidebar" role="complementary" aria-label="Properties and account info">
+          <section class="properties-panel">
             <h3>Properties</h3>
             <div id="nodeProperties">
               <p class="no-selection">Select a node to edit properties</p>
             </div>
-          </div>
+          </section>
 
-          <div class="account-panel">
+          <section class="account-panel">
             <h3>Account Info</h3>
             <div class="info-grid">
               <div class="info-item">
@@ -158,104 +379,106 @@
                 <span id="profit" class="profit">-</span>
               </div>
             </div>
-            <button id="refreshAccountBtn" class="btn btn-secondary btn-small">Refresh</button>
-          </div>
-        </div>
+            <button id="refreshAccountBtn" class="btn btn-secondary btn-small" aria-label="Refresh account info">Refresh</button>
+          </section>
+        </aside>
       </div>
 
       <!-- Bottom Panel - Positions -->
-      <div class="bottom-panel">
+      <section class="bottom-panel" aria-label="Trading positions">
         <div class="positions-panel">
-          <div class="positions-tabs">
-            <button class="positions-tab-btn active" data-tab="open">Open Positions</button>
-            <button class="positions-tab-btn" data-tab="closed">Closed Positions</button>
+          <div class="positions-tabs" role="tablist">
+            <button class="positions-tab-btn active" data-tab="open" role="tab" aria-selected="true" aria-controls="openPositionsTab">Open Positions</button>
+            <button class="positions-tab-btn" data-tab="closed" role="tab" aria-selected="false" aria-controls="closedPositionsTab">Closed Positions</button>
           </div>
           
-          <div id="openPositionsTab" class="positions-tab active">
+          <div id="openPositionsTab" class="positions-tab active" role="tabpanel" aria-labelledby="open-tab">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <h3 style="margin: 0;">Open Positions</h3>
-              <button id="refreshPositionsBtn" class="btn btn-secondary btn-small">Refresh</button>
+              <button id="refreshPositionsBtn" class="btn btn-secondary btn-small" aria-label="Refresh open positions">Refresh</button>
             </div>
             <div id="positionsList" class="positions-list">
               <p class="no-data">No open positions</p>
             </div>
           </div>
           
-          <div id="closedPositionsTab" class="positions-tab">
+          <div id="closedPositionsTab" class="positions-tab" role="tabpanel" aria-labelledby="closed-tab">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <h3 style="margin: 0;">Closed Positions</h3>
-              <button id="refreshClosedBtn" class="btn btn-secondary btn-small">Refresh</button>
+              <button id="refreshClosedBtn" class="btn btn-secondary btn-small" aria-label="Refresh closed positions">Refresh</button>
             </div>
             <div id="closedPositionsList" class="positions-list">
               <p class="no-data">No closed positions</p>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
 
     <!-- Trade Modal -->
-    <div id="tradeModal" class="modal">
+    <dialog id="tradeModal" class="modal" aria-labelledby="tradeModalTitle">
       <div class="modal-content trade-modal">
-        <h2>Execute Trade</h2>
-        <div class="form-group">
-          <label>Symbol:</label>
-          <select id="tradeSymbol">
-            <option value="EURUSD">EURUSD</option>
-            <option value="GBPUSD">GBPUSD</option>
-            <option value="USDJPY">USDJPY</option>
-            <option value="AUDUSD">AUDUSD</option>
-            <option value="USDCAD">USDCAD</option>
-            <option value="XAUUSD">XAUUSD (Gold)</option>
-            <option value="BTCUSD">BTCUSD (Bitcoin)</option>
-          </select>
-        </div>
-        <div class="form-group" id="currentPriceGroup">
-          <label>Current Price:</label>
-          <div class="current-price-display">
-            <div class="price-info">
-              <span class="price-label">Bid:</span>
-              <span id="currentBid" class="price-value">-</span>
-            </div>
-            <div class="price-info">
-              <span class="price-label">Ask:</span>
-              <span id="currentAsk" class="price-value">-</span>
+        <h2 id="tradeModalTitle">Execute Trade</h2>
+        <form id="tradeForm">
+          <div class="form-group">
+            <label for="tradeSymbol">Symbol:</label>
+            <select id="tradeSymbol" name="symbol" required>
+              <option value="EURUSD">EURUSD</option>
+              <option value="GBPUSD">GBPUSD</option>
+              <option value="USDJPY">USDJPY</option>
+              <option value="AUDUSD">AUDUSD</option>
+              <option value="USDCAD">USDCAD</option>
+              <option value="XAUUSD">XAUUSD (Gold)</option>
+              <option value="BTCUSD">BTCUSD (Bitcoin)</option>
+            </select>
+          </div>
+          <div class="form-group" id="currentPriceGroup">
+            <label>Current Price:</label>
+            <div class="current-price-display">
+              <div class="price-info">
+                <span class="price-label">Bid:</span>
+                <span id="currentBid" class="price-value">-</span>
+              </div>
+              <div class="price-info">
+                <span class="price-label">Ask:</span>
+                <span id="currentAsk" class="price-value">-</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label>Order Type:</label>
-          <select id="tradeType">
-            <option value="BUY">Buy</option>
-            <option value="SELL">Sell</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Volume:</label>
-          <input type="number" id="tradeVolume" step="0.01" min="0.01" value="0.1">
-        </div>
-        <div class="form-group">
-          <label>Stop Loss (optional):</label>
-          <input type="number" id="tradeStopLoss" step="0.00001" placeholder="0 = no SL">
-        </div>
-        <div class="form-group">
-          <label>Take Profit (optional):</label>
-          <input type="number" id="tradeTakeProfit" step="0.00001" placeholder="0 = no TP">
-        </div>
-        <div class="modal-buttons">
-          <button id="confirmTradeBtn" class="btn btn-primary">Execute Trade</button>
-          <button id="cancelTradeBtn" class="btn btn-secondary">Cancel</button>
-        </div>
+          <div class="form-group">
+            <label for="tradeType">Order Type:</label>
+            <select id="tradeType" name="orderType" required>
+              <option value="BUY">Buy</option>
+              <option value="SELL">Sell</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tradeVolume">Volume:</label>
+            <input type="number" id="tradeVolume" name="volume" step="0.01" min="0.01" value="0.1" required>
+          </div>
+          <div class="form-group">
+            <label for="tradeStopLoss">Stop Loss (optional):</label>
+            <input type="number" id="tradeStopLoss" name="stopLoss" step="0.00001" placeholder="0 = no SL">
+          </div>
+          <div class="form-group">
+            <label for="tradeTakeProfit">Take Profit (optional):</label>
+            <input type="number" id="tradeTakeProfit" name="takeProfit" step="0.00001" placeholder="0 = no TP">
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" id="confirmTradeBtn" class="btn btn-primary">Execute Trade</button>
+            <button type="button" id="cancelTradeBtn" class="btn btn-secondary">Cancel</button>
+          </div>
+        </form>
       </div>
-    </div>
+    </dialog>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
+    <dialog id="settingsModal" class="modal" aria-labelledby="settingsModalTitle">
       <div class="modal-content">
-        <h2>Settings</h2>
+        <h2 id="settingsModalTitle">Settings</h2>
         <div class="settings-content">
           <div class="form-group">
-            <label>Initial Balance:</label>
+            <label for="initialBalance">Initial Balance:</label>
             <input type="number" id="initialBalance" value="10000" step="1000">
           </div>
           <button id="resetSimulatorBtn" class="btn btn-warning">Reset Simulator</button>
@@ -264,13 +487,13 @@
           <button id="closeSettingsBtn" class="btn btn-primary">Close</button>
         </div>
       </div>
-    </div>
+    </dialog>
 
     <!-- Log Modal -->
-    <div id="logModal" class="modal">
+    <dialog id="logModal" class="modal" aria-labelledby="logModalTitle">
       <div class="modal-content log-modal">
-        <h2>Console Log</h2>
-        <div id="logContent" class="log-content">
+        <h2 id="logModalTitle">Console Log</h2>
+        <div id="logContent" class="log-content" role="log" aria-live="polite">
           <p class="no-log">No log entries yet.</p>
         </div>
         <div class="modal-buttons">
@@ -278,12 +501,12 @@
           <button id="closeLogBtn" class="btn btn-primary">Close</button>
         </div>
       </div>
-    </div>
+    </dialog>
 
     <!-- About Modal -->
-    <div id="aboutModal" class="modal">
+    <dialog id="aboutModal" class="modal" aria-labelledby="aboutModalTitle">
       <div class="modal-content about-modal">
-        <h2>Get the Full ComfyTrade Desktop Version</h2>
+        <h2 id="aboutModalTitle">Get the Full ComfyTrade Desktop Version</h2>
         <div class="about-content">
           
           <div class="about-highlight-box">
@@ -291,7 +514,7 @@
             <p>You're currently using a simplified browser version with simulated data. The full desktop application offers significantly more features and real MT5 integration.</p>
           </div>
           
-          <div class="about-section">
+          <section class="about-section">
             <h3>✨ What You Get in the Full Desktop Version</h3>
             <ul class="feature-list-large">
               <li><strong>✅ Real MT5 Integration</strong> - Connect directly to your MetaTrader 5 terminal for live trading</li>
@@ -304,19 +527,19 @@
               <li><strong>✅ Trade Journal & Analytics</strong> - Track performance, analyze trades, and improve your strategy</li>
               <li><strong>✅ Cross-Platform Desktop App</strong> - Works on Windows, Mac, and Linux</li>
             </ul>
-          </div>
+          </section>
           
-          <div class="about-section">
+          <section class="about-section">
             <h3>📥 Download & Install</h3>
             <div class="cta-buttons-large">
-              <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases" target="_blank" class="btn-mega btn-mega-primary">
+              <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases" target="_blank" rel="noopener noreferrer" class="btn-mega btn-mega-primary">
                 <span class="btn-mega-icon">⬇️</span>
                 <div class="btn-mega-content">
                   <strong>Download Full Version</strong>
                   <small>Get the latest release for Windows, Mac, or Linux</small>
                 </div>
               </a>
-              <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5" target="_blank" class="btn-mega btn-mega-secondary">
+              <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5" target="_blank" rel="noopener noreferrer" class="btn-mega btn-mega-secondary">
                 <span class="btn-mega-icon">⭐</span>
                 <div class="btn-mega-content">
                   <strong>View on GitHub</strong>
@@ -324,9 +547,9 @@
                 </div>
               </a>
             </div>
-          </div>
-          
-          <div class="about-section">
+          </section>
+
+          <section class="about-section">
             <h3>💬 Need Help or Have Questions?</h3>
             <div class="contact-grid">
               <a href="mailto:tomtomtongtong@gmail.com" class="contact-card">
@@ -336,14 +559,14 @@
                   <span>tomtomtongtong@gmail.com</span>
                 </div>
               </a>
-              <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/issues" target="_blank" class="contact-card">
+              <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/issues" target="_blank" rel="noopener noreferrer" class="contact-card">
                 <span class="contact-card-icon">🐛</span>
                 <div class="contact-card-content">
                   <strong>Report Issues</strong>
                   <span>Bug reports & feature requests</span>
                 </div>
               </a>
-              <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/discussions" target="_blank" class="contact-card">
+              <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/discussions" target="_blank" rel="noopener noreferrer" class="contact-card">
                 <span class="contact-card-icon">💡</span>
                 <div class="contact-card-content">
                   <strong>Community Discussions</strong>
@@ -351,25 +574,118 @@
                 </div>
               </a>
             </div>
-          </div>
+          </section>
           
-          <div class="about-footer-large">
+          <footer class="about-footer-large">
             <p class="about-footer-main">Open Source • MIT License • Free Forever</p>
             <p class="about-footer-sub">Made with ❤️ by the ComfyTrade community</p>
-          </div>
+          </footer>
         </div>
         <div class="modal-buttons">
           <button id="closeAboutBtn" class="btn btn-primary">Close</button>
         </div>
       </div>
-    </div>
+    </dialog>
 
     <!-- Message Box -->
-    <div id="messageBox" class="message-box"></div>
+    <div id="messageBox" class="message-box" role="alert" aria-live="assertive"></div>
   </div>
+
+  <!-- Footer with SEO content -->
+  <footer class="site-footer" style="background:#0d0d1a;color:#888;padding:20px;text-align:center;font-size:12px;">
+    <p>ComfyTrade - Free Open Source MT5 Node-Based Trading Strategy Builder</p>
+    <p>Build automated forex trading strategies visually without coding. Connect to MetaTrader 5 for live trading.</p>
+    <nav aria-label="Footer links">
+      <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5" target="_blank" rel="noopener noreferrer" style="color:#4a9eff;margin:0 10px;">GitHub</a>
+      <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases" target="_blank" rel="noopener noreferrer" style="color:#4a9eff;margin:0 10px;">Download</a>
+      <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5#readme" target="_blank" rel="noopener noreferrer" style="color:#4a9eff;margin:0 10px;">Documentation</a>
+      <a href="mailto:tomtomtongtong@gmail.com" style="color:#4a9eff;margin:0 10px;">Contact</a>
+    </nav>
+    <p style="margin-top:10px;">© 2024 ComfyTrade. MIT License. Free and Open Source.</p>
+  </footer>
 
   <script src="api.js"></script>
   <script src="node-editor.js"></script>
   <script src="app.js"></script>
+  
+  <!-- Google Analytics Event Tracking -->
+  <script>
+    // Track demo interactions when elements are available
+    document.addEventListener('DOMContentLoaded', function() {
+      // Track button clicks
+      const trackButton = (id, eventName, label) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.addEventListener('click', () => {
+            if (typeof trackEvent === 'function') {
+              trackEvent(eventName, { label: label });
+            }
+          });
+        }
+      };
+      
+      // Track key demo interactions
+      trackButton('connectBtn', 'demo_connect', 'connect_demo');
+      trackButton('tradeBtn', 'demo_trade', 'open_trade_modal');
+      trackButton('runStrategyBtn', 'demo_strategy', 'run_strategy');
+      trackButton('aboutBtn', 'demo_about', 'view_full_version_info');
+      trackButton('saveGraphBtn', 'demo_save', 'save_strategy');
+      trackButton('loadGraphBtn', 'demo_load', 'load_strategy');
+      trackButton('clearGraphBtn', 'demo_clear', 'clear_canvas');
+      
+      // Track external links
+      const trackExternalLink = (selector, eventName, label) => {
+        document.querySelectorAll(selector).forEach(link => {
+          link.addEventListener('click', () => {
+            if (typeof trackEvent === 'function') {
+              trackEvent(eventName, { 
+                label: label,
+                link_url: link.href 
+              });
+            }
+          });
+        });
+      };
+      
+      trackExternalLink('a[href*="github.com"]', 'external_link', 'github_click');
+      trackExternalLink('a[href*="releases"]', 'external_link', 'download_click');
+      trackExternalLink('a[href^="mailto:"]', 'external_link', 'email_click');
+      
+      // Track node additions (if node editor is available)
+      document.querySelectorAll('.node-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (typeof trackEvent === 'function') {
+            trackEvent('demo_node_add', { 
+              label: btn.getAttribute('data-type') || 'unknown_node'
+            });
+          }
+        });
+      });
+      
+      // Track modal opens
+      const trackModal = (modalId, eventName) => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                if (modal.style.display !== 'none' && modal.style.display !== '') {
+                  if (typeof trackEvent === 'function') {
+                    trackEvent('modal_open', { label: eventName });
+                  }
+                }
+              }
+            });
+          });
+          observer.observe(modal, { attributes: true });
+        }
+      };
+      
+      trackModal('tradeModal', 'trade_modal');
+      trackModal('aboutModal', 'about_modal');
+      trackModal('settingsModal', 'settings_modal');
+      trackModal('logModal', 'log_modal');
+    });
+  </script>
 </body>
 </html>

@@ -12,7 +12,22 @@ const HOST = '0.0.0.0'; // Important: bind to all interfaces for Railway
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve .well-known directory for AI discovery
+app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-known')));
+
+// Serve static files with proper MIME types
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.txt')) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    } else if (filePath.endsWith('.xml')) {
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    } else if (filePath.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+  }
+}));
 
 // In-memory storage for demo (in production, use a database)
 let appSettings = {

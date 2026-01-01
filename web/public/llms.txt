@@ -1,0 +1,80 @@
+# ComfyTrade - MT5 Node-Based Trading Strategy Builder
+
+> ComfyTrade is a free, open-source visual trading strategy builder for MetaTrader 5. Build automated forex trading strategies using drag-and-drop nodes without writing code.
+
+## What is ComfyTrade?
+
+ComfyTrade is an Electron desktop application that provides a node-based visual editor for creating automated trading strategies for MetaTrader 5 (MT5). It allows traders to build, test, and execute trading strategies without any programming knowledge.
+
+## Key Features
+
+- **Visual Node Editor**: Drag-and-drop interface with nodes for triggers, indicators (MA, RSI), logic gates (AND, OR), and trade execution
+- **MetaTrader 5 Integration**: Direct connection to MT5 for real-time trading, price data, and account management
+- **Historical Backtesting**: Import data from MT5 or CSV files to test strategies against historical data
+- **Paper Trading Simulator**: Practice with simulated positions using real market data
+- **Risk Management**: Volume limits, overtrade protection, pip-based loss calculations
+- **Alerts**: SMS and WhatsApp notifications via Twilio
+- **Plugin System**: Extend with custom nodes
+- **Market Sentiment Analysis**: Integrate news and sentiment data
+
+## Supported Instruments
+
+Forex pairs (EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD), Gold (XAUUSD), Indices, Cryptocurrencies, and any instrument available in MT5.
+
+## Technology Stack
+
+- Frontend: Electron, HTML/CSS/JavaScript, Canvas API, Chart.js
+- Backend: Node.js, Python 3.8+, MetaTrader5 Python API
+- Communication: WebSocket (port 8765)
+
+## Platforms
+
+Windows, macOS, Linux (desktop application)
+Web demo available at: https://comfytrade.up.railway.app/
+
+## License
+
+MIT License - Free and open source
+
+## Links
+
+- GitHub: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5
+- Download: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases
+- Web Demo: https://comfytrade.up.railway.app/
+- Contact: tomtomtongtong@gmail.com
+
+## How to Use
+
+1. Download the desktop version from GitHub releases
+2. Install dependencies: `npm install` and `pip install -r requirements.txt`
+3. Start the application: `npm start`
+4. Connect to MetaTrader 5 (must be running)
+5. Build strategies by dragging nodes onto the canvas
+6. Connect nodes to create execution flows
+7. Run the strategy to execute trades automatically
+
+## Node Types
+
+- **Trigger**: Starts strategy execution
+- **MT5 Data**: Fetches price data from MT5
+- **Moving Average**: Calculates MA indicator
+- **RSI**: Calculates RSI indicator
+- **Conditional Check**: Compares values
+- **AND/OR Gates**: Logic operations
+- **Open Position**: Executes buy/sell orders
+- **Close Position**: Closes existing positions
+- **End Strategy**: Stops execution
+
+## FAQ
+
+Q: Is ComfyTrade free?
+A: Yes, completely free and open-source under MIT license.
+
+Q: Do I need coding skills?
+A: No, the visual node editor requires no programming knowledge.
+
+Q: What brokers work with ComfyTrade?
+A: Any broker that supports MetaTrader 5.
+
+Q: Can I backtest strategies?
+A: Yes, import historical data from MT5 or CSV files for backtesting.
