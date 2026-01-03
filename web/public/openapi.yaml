@@ -1,23 +1,23 @@
 openapi: 3.0.0
 info:
-  title: ComfyTrade API
-  description: API for ComfyTrade - Free open-source visual trading strategy builder for MetaTrader 5
+  title: AI Trade Agent API
+  description: API for AI Trade Agent - Free open-source visual trading strategy builder for MetaTrader 5
   version: 1.0.0
   contact:
-    name: ComfyTrade Support
+    name: AI Trade Agent Support
     email: tomtomtongtong@gmail.com
     url: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5
   license:
     name: MIT
     url: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/blob/main/LICENSE
 servers:
-  - url: https://comfytrade.app
-    description: ComfyTrade Web Demo
+  - url: https://ai-trade-agent.com
+    description: AI Trade Agent Web Demo
 paths:
   /:
     get:
-      summary: ComfyTrade Web Demo
-      description: Access the web demo of ComfyTrade node-based trading strategy builder
+      summary: AI Trade Agent Web Demo
+      description: Access the web demo of AI Trade Agent node-based trading strategy builder
       responses:
         '200':
           description: Web demo interface

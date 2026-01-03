@@ -15,7 +15,7 @@ This guide explains how to set up Google Analytics 4 (GA4) tracking for the Comf
 1. Create a property name (e.g., "ComfyTrade Web Demo")
 2. Select your time zone and currency
 3. Choose "Web" as the platform
-4. Enter your website URL: `https://comfytrade.app`
+4. Enter your website URL: `https://ai-trade-agent.com`
 5. Enter stream name: "ComfyTrade Demo"
 
 ## Step 3: Get Your Measurement ID

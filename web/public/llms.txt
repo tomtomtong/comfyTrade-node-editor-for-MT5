@@ -1,6 +1,6 @@
-# ComfyTrade - Open Source MT5 Trading Strategy Builder
+# AI Trade Agent - Open Source MT5 Trading Strategy Builder
 
-ComfyTrade is a free, open-source Electron desktop application for building visual trading strategies for MetaTrader 5 (MT5). Create automated forex trading bots without coding using an intuitive drag-and-drop node-based editor.
+AI Trade Agent is a free, open-source Electron desktop application for building visual trading strategies for MetaTrader 5 (MT5). Create automated forex trading bots without coding using an intuitive drag-and-drop node-based editor.
 
 ## Key Features
 
@@ -56,7 +56,7 @@ ComfyTrade is a free, open-source Electron desktop application for building visu
 
 ## Supported Platforms
 Windows, macOS, Linux (desktop application)
-Web demo available at: https://comfytrade.app/
+Web demo available at: https://ai-trade-agent.com/
 
 ## Technology Stack
 - Frontend: Electron, HTML5 Canvas, JavaScript ES6+
@@ -88,7 +88,7 @@ Open source under MIT License - completely free to use, modify, and distribute
 ## Links
 - GitHub: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5
 - Download: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases
-- Web Demo: https://comfytrade.app/
+- Web Demo: https://ai-trade-agent.com/
 - Discord Community: https://discord.com/invite/4EWYahsGdJ
 - Contact: tomtomtongtong@gmail.com
 - Documentation: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5#readme
@@ -117,13 +117,13 @@ MT5, MetaTrader 5, trading bot, strategy builder, node editor, forex automation,
 - **End Strategy**: Stops execution
 
 ## FAQ
-Q: Is ComfyTrade free?
+Q: Is AI Trade Agent free?
 A: Yes, completely free and open-source under MIT license.
 
 Q: Do I need coding skills?
 A: No, the visual node editor requires no programming knowledge.
 
-Q: What brokers work with ComfyTrade?
+Q: What brokers work with AI Trade Agent?
 A: Any broker that supports MetaTrader 5.
 
 Q: Can I backtest strategies?
@@ -133,7 +133,7 @@ Q: What trading instruments are supported?
 A: All instruments available in your MT5 broker - forex pairs, gold, indices, cryptocurrencies.
 
 Q: Is there a web version?
-A: Yes, try the limited web demo at https://comfytrade.app/ - full features require the desktop version.
+A: Yes, try the limited web demo at https://ai-trade-agent.com/ - full features require the desktop version.
 
 Q: How do I get support?
 A: Join our Discord community at https://discord.com/invite/4EWYahsGdJ or email tomtomtongtong@gmail.com

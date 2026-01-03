@@ -3,30 +3,30 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
-    <loc>https://comfytrade.app/</loc>
+    <loc>https://ai-trade-agent.com/</loc>
     <lastmod>2024-01-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://comfytrade.app/og-image.png</image:loc>
+      <image:loc>https://ai-trade-agent.com/og-image.png</image:loc>
       <image:title>ComfyTrade Node Editor Interface</image:title>
       <image:caption>Visual trading strategy builder with drag-and-drop nodes for MetaTrader 5</image:caption>
     </image:image>
   </url>
   <url>
-    <loc>https://comfytrade.app/llms.txt</loc>
+    <loc>https://ai-trade-agent.com/llms.txt</loc>
     <lastmod>2024-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://comfytrade.app/openapi.yaml</loc>
+    <loc>https://ai-trade-agent.com/openapi.yaml</loc>
     <lastmod>2024-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://comfytrade.app/.well-known/ai-plugin.json</loc>
+    <loc>https://ai-trade-agent.com/.well-known/ai-plugin.json</loc>
     <lastmod>2024-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

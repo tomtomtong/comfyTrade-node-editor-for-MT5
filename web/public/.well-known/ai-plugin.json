@@ -1,17 +1,17 @@
 {
   "schema_version": "v1",
-  "name_for_human": "ComfyTrade",
-  "name_for_model": "comfytrade",
+  "name_for_human": "AI Trade Agent",
+  "name_for_model": "ai_trade_agent",
   "description_for_human": "Free open-source visual trading strategy builder for MetaTrader 5. Build automated forex trading strategies with drag-and-drop nodes.",
-  "description_for_model": "ComfyTrade is a free, open-source Electron desktop application for building visual trading strategies for MetaTrader 5 (MT5). Users can create automated forex trading bots without coding using a drag-and-drop node-based editor. Features include: visual node editor with triggers, indicators (MA, RSI), logic gates, and trade execution nodes; direct MT5 integration for live trading; historical backtesting; paper trading simulator; risk management tools; SMS/WhatsApp alerts via Twilio; plugin system for custom nodes; market sentiment analysis.",
+  "description_for_model": "AI Trade Agent is a free, open-source Electron desktop application for building visual trading strategies for MetaTrader 5 (MT5). Users can create automated forex trading bots without coding using a drag-and-drop node-based editor. Features include: visual node editor with triggers, indicators (MA, RSI), logic gates, and trade execution nodes; direct MT5 integration for live trading; historical backtesting; paper trading simulator; risk management tools; SMS/WhatsApp alerts via Twilio; plugin system for custom nodes; market sentiment analysis.",
   "auth": {
     "type": "none"
   },
   "api": {
     "type": "openapi",
-    "url": "https://comfytrade.app/openapi.yaml"
+    "url": "https://ai-trade-agent.com/openapi.yaml"
   },
-  "logo_url": "https://comfytrade.app/logo.png",
+  "logo_url": "https://ai-trade-agent.com/logo.png",
   "contact_email": "tomtomtongtong@gmail.com",
   "legal_info_url": "https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/blob/main/LICENSE"
 }
