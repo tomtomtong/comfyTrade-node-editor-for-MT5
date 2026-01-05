@@ -421,7 +421,7 @@ class TrailingStopManager {
   /**
    * Update interval setting
    */
-  async updateInterval(intervalSeconds) {
+  async setUpdateInterval(intervalSeconds) {
     this.updateInterval = intervalSeconds * 1000;
     await this.restart();
   }
@@ -431,6 +431,13 @@ class TrailingStopManager {
    */
   getCurrentInterval() {
     return Math.round(this.updateInterval / 1000);
+  }
+
+  /**
+   * Check if the manager is fully initialized
+   */
+  isInitialized() {
+    return this.intervalId !== null && typeof this.updateInterval === 'number';
   }
 
   /**
@@ -523,17 +530,21 @@ if (typeof window !== 'undefined') {
   // Wait for settings manager to be available
   function initTrailingManager() {
     if (window.settingsManager) {
-      window.trailingStopManager = new TrailingStopManager();
+      if (!window.trailingStopManager) {
+        window.trailingStopManager = new TrailingStopManager();
+        console.log('TrailingStopManager initialized');
+      }
       
       // Clean up when positions are refreshed
       const originalRefresh = window.handleRefreshPositions;
-      if (originalRefresh) {
+      if (originalRefresh && !window.handleRefreshPositions._trailingCleanupAdded) {
         window.handleRefreshPositions = async function() {
           await originalRefresh();
-          if (window.trailingStopManager) {
+          if (window.trailingStopManager && typeof window.trailingStopManager.cleanup === 'function') {
             await window.trailingStopManager.cleanup();
           }
         };
+        window.handleRefreshPositions._trailingCleanupAdded = true;
       }
     } else {
       // Retry after a short delay

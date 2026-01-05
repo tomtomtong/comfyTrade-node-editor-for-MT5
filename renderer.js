@@ -4915,7 +4915,7 @@ async function handleEnableTrailing() {
     await window.settingsManager.set('general.trailingStopInterval', checkFrequency);
     
     // Update the trailing stop manager interval
-    await window.trailingStopManager.updateInterval(checkFrequency);
+    await window.trailingStopManager.setUpdateInterval(checkFrequency);
   }
 
   hideTrailingStopModal();
