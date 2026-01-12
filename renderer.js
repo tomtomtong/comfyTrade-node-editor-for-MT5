@@ -2364,13 +2364,20 @@ async function confirmTradeExecution() {
   }
   
   // Read Stop Loss, Take Profit, and Trading Reason from confirmation modal input fields
-  // Allow empty values - they will be treated as 0 (no SL/TP)
+  // Both SL and TP are now required fields
   const confirmStopLossInput = document.getElementById('confirmTradeStopLoss').value.trim();
   const confirmTakeProfitInput = document.getElementById('confirmTradeTakeProfit').value.trim();
   const confirmTradingReasonInput = document.getElementById('confirmTradeTradingReason').value.trim();
   const stopLoss = confirmStopLossInput === '' ? 0 : (parseFloat(confirmStopLossInput) || 0);
   const takeProfit = confirmTakeProfitInput === '' ? 0 : (parseFloat(confirmTakeProfitInput) || 0);
   const tradingReason = confirmTradingReasonInput || '';
+  
+  // Require Stop Loss to be set before executing
+  if (stopLoss <= 0) {
+    showMessage('Stop Loss is required - please enter a valid SL value', 'error');
+    document.getElementById('confirmTradeStopLoss').focus();
+    return;
+  }
   
   // Require Take Profit to be set before executing
   if (takeProfit <= 0) {
