@@ -7,7 +7,6 @@ let logEntries = [];
 let isStrategyRunning = false;
 let strategyStopRequested = false;
 let currentPositions = []; // Store current positions for dropdown selection
-let positionsSortOrder = 'none'; // 'none', 'profit-desc', 'profit-asc'
 
 // Override console methods to capture logs
 const originalConsole = {
@@ -351,7 +350,6 @@ function setupEventListeners() {
   
   // Pending orders controls
   document.getElementById('refreshPositionsBtn').addEventListener('click', handleRefreshPositions);
-  document.getElementById('sortPositionsBtn').addEventListener('click', handleSortPositions);
   document.getElementById('refreshPendingOrdersBtn').addEventListener('click', handleRefreshPendingOrders);
   document.getElementById('refreshScheduledActionsBtn').addEventListener('click', updateScheduledActionsDisplay);
   
@@ -2638,86 +2636,6 @@ async function handleRefreshPositions() {
     
     // Update trade journal with current position data
   }
-}
-
-function handleSortPositions() {
-  // Cycle through sort orders: none -> profit desc -> profit asc -> none
-  switch (positionsSortOrder) {
-    case 'none':
-      positionsSortOrder = 'profit-desc';
-      break;
-    case 'profit-desc':
-      positionsSortOrder = 'profit-asc';
-      break;
-    case 'profit-asc':
-      positionsSortOrder = 'none';
-      break;
-  }
-  
-  // Update button text to show current sort
-  const sortBtn = document.getElementById('sortPositionsBtn');
-  switch (positionsSortOrder) {
-    case 'profit-desc':
-      sortBtn.textContent = 'P&L ↓';
-      sortBtn.title = 'Sorted by Profit/Loss (High to Low) - Click to sort Low to High';
-      break;
-    case 'profit-asc':
-      sortBtn.textContent = 'P&L ↑';
-      sortBtn.title = 'Sorted by Profit/Loss (Low to High) - Click to clear sort';
-      break;
-    case 'none':
-      sortBtn.textContent = 'Sort P&L';
-      sortBtn.title = 'Sort by Profit/Loss';
-      break;
-  }
-  
-  // Re-display positions with new sort order
-  displayPositions(currentPositions);
-}
-
-function displayPositions(positions) {
-  const container = document.getElementById('positionsList');
-
-  if (positions.length === 0) {
-    container.innerHTML = '<p class="no-data">No open positions</p>';
-    return;
-  }
-
-  // Sort positions based on current sort order
-  let sortedPositions = [...positions];
-  if (positionsSortOrder === 'profit-desc') {
-    sortedPositions.sort((a, b) => b.profit - a.profit);
-  } else if (positionsSortOrder === 'profit-asc') {
-    sortedPositions.sort((a, b) => a.profit - b.profit);
-  }
-
-  container.innerHTML = sortedPositions.map(pos => {
-    const isTrailing = window.trailingStopManager && window.trailingStopManager.isTrailingEnabled(pos.ticket);
-    return `
-    <div class="position-item ${pos.type.toLowerCase()}">
-      <div class="position-header">
-        <span>${pos.symbol} ${pos.type}</span>
-        <span class="${pos.profit >= 0 ? 'profit positive' : 'profit negative'}">
-          ${pos.profit.toFixed(2)}
-        </span>
-      </div>
-      <div class="position-details">
-        Vol: ${pos.volume} | Entry: ${pos.open_price.toFixed(5)} | Current: ${pos.current_price.toFixed(5)}
-      </div>
-      <div class="position-details">
-        SL: ${(pos.stop_loss && pos.stop_loss > 0) ? pos.stop_loss.toFixed(5) : 'None'} | TP: ${(pos.take_profit && pos.take_profit > 0) ? pos.take_profit.toFixed(5) : 'None'}
-        ${isTrailing ? ' <span style="color: #FFA500; font-weight: bold;">🔄 TRAILING</span>' : ''}
-      </div>
-      <div class="position-actions">
-        <button class="btn btn-small btn-primary" onclick="showModifyModal(${pos.ticket}, ${pos.stop_loss}, ${pos.take_profit})">Modify</button>
-        <button class="btn btn-small ${isTrailing ? 'btn-warning' : 'btn-secondary'}" onclick="toggleTrailingStop(${pos.ticket})" title="Toggle Trailing Stop Loss">
-          ${isTrailing ? '🔄 Trail ON' : '⏸ Trail'}
-        </button>
-        <button class="btn btn-small btn-danger" onclick="closePosition(${pos.ticket})">Close</button>
-      </div>
-    </div>
-  `;
-  }).join('');
 }
 
 // Track pending orders to detect when they execute
