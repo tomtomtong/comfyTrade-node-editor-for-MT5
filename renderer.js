@@ -918,6 +918,12 @@ function stopPriceAutoRefresh() {
   }
 }
 
+// RSI settings - persisted during session
+let rsiSettings = {
+  timeframe: 'H1',
+  period: 14
+};
+
 // RSI Graph Handler for Trade Modal
 async function handleShowRsiGraph() {
   // Get the current symbol from the symbol input
@@ -933,26 +939,26 @@ async function handleShowRsiGraph() {
     return;
   }
   
-  showMessage(`Generating RSI graph for ${symbol}...`, 'info');
+  showMessage(`Generating RSI(${rsiSettings.period}) graph for ${symbol} on ${rsiSettings.timeframe}...`, 'info');
   
   try {
     const result = await window.mt5API.getRSIGraph({
       symbol: symbol.toUpperCase(),
-      period: 14,
+      period: rsiSettings.period,
       bars: 500,
-      timeframe: 'H1',
+      timeframe: rsiSettings.timeframe,
       showGraph: true
     });
     
     if (result.success && result.data) {
       const rsiData = result.data;
       
-      // Show the RSI graph modal
-      showRsiGraphModal(symbol, 14, rsiData);
+      // Show the RSI graph modal with timeframe selector
+      showRsiGraphModal(symbol, rsiSettings.period, rsiData, rsiSettings.timeframe);
       
       const statusEmoji = rsiData.status === 'OVERBOUGHT' ? '🔴' : 
                          rsiData.status === 'OVERSOLD' ? '🟢' : '⚪';
-      showMessage(`RSI(14): ${rsiData.current_rsi?.toFixed(2)} - ${statusEmoji} ${rsiData.status}`, 'success');
+      showMessage(`RSI(${rsiSettings.period}): ${rsiData.current_rsi?.toFixed(2)} - ${statusEmoji} ${rsiData.status}`, 'success');
     } else {
       showMessage(`RSI Graph failed: ${result.error || 'Unknown error'}`, 'error');
     }
@@ -977,24 +983,24 @@ async function handleModifyRsiGraph() {
     return;
   }
   
-  showMessage(`Generating RSI graph for ${symbol}...`, 'info');
+  showMessage(`Generating RSI(${rsiSettings.period}) graph for ${symbol} on ${rsiSettings.timeframe}...`, 'info');
   
   try {
     const result = await window.mt5API.getRSIGraph({
       symbol: symbol.toUpperCase(),
-      period: 14,
+      period: rsiSettings.period,
       bars: 500,
-      timeframe: 'H1',
+      timeframe: rsiSettings.timeframe,
       showGraph: true
     });
     
     if (result.success && result.data) {
       const rsiData = result.data;
-      showRsiGraphModal(symbol, 14, rsiData);
+      showRsiGraphModal(symbol, rsiSettings.period, rsiData, rsiSettings.timeframe);
       
       const statusEmoji = rsiData.status === 'OVERBOUGHT' ? '🔴' : 
                          rsiData.status === 'OVERSOLD' ? '🟢' : '⚪';
-      showMessage(`RSI(14): ${rsiData.current_rsi?.toFixed(2)} - ${statusEmoji} ${rsiData.status}`, 'success');
+      showMessage(`RSI(${rsiSettings.period}): ${rsiData.current_rsi?.toFixed(2)} - ${statusEmoji} ${rsiData.status}`, 'success');
     } else {
       showMessage(`RSI Graph failed: ${result.error || 'Unknown error'}`, 'error');
     }
@@ -1005,7 +1011,11 @@ async function handleModifyRsiGraph() {
 }
 
 // RSI Graph Modal Display
-function showRsiGraphModal(symbol, period, rsiData) {
+function showRsiGraphModal(symbol, period, rsiData, timeframe = 'H1') {
+  // Remove existing modal if any
+  const existingModal = document.getElementById('rsiGraphModal');
+  if (existingModal) existingModal.remove();
+  
   // Create modal overlay
   const overlay = document.createElement('div');
   overlay.id = 'rsiGraphModal';
@@ -1046,8 +1056,9 @@ function showRsiGraphModal(symbol, period, rsiData) {
   `;
 
   const title = document.createElement('h3');
+  title.id = 'rsiGraphTitle';
   title.style.cssText = 'margin: 0; color: #fff;';
-  title.textContent = `RSI(${period}) - ${symbol}`;
+  title.textContent = `RSI(${period}) - ${symbol} - ${timeframe}`;
 
   const closeBtn = document.createElement('button');
   closeBtn.style.cssText = `
@@ -1065,6 +1076,161 @@ function showRsiGraphModal(symbol, period, rsiData) {
   header.appendChild(title);
   header.appendChild(closeBtn);
 
+  // Controls row (timeframe and period selectors)
+  const controls = document.createElement('div');
+  controls.style.cssText = `
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+  `;
+
+  // Timeframe selector
+  const tfLabel = document.createElement('label');
+  tfLabel.style.cssText = 'color: #888; font-size: 13px;';
+  tfLabel.textContent = 'Timeframe:';
+  
+  const tfSelect = document.createElement('select');
+  tfSelect.id = 'rsiTimeframeSelect';
+  tfSelect.style.cssText = `
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  `;
+  
+  const timeframes = [
+    { value: 'M1', label: 'M1 (1 min)' },
+    { value: 'M5', label: 'M5 (5 min)' },
+    { value: 'M15', label: 'M15 (15 min)' },
+    { value: 'M30', label: 'M30 (30 min)' },
+    { value: 'H1', label: 'H1 (1 hour)' },
+    { value: 'H4', label: 'H4 (4 hours)' },
+    { value: 'D1', label: 'D1 (Daily)' },
+    { value: 'W1', label: 'W1 (Weekly)' }
+  ];
+  
+  timeframes.forEach(tf => {
+    const option = document.createElement('option');
+    option.value = tf.value;
+    option.textContent = tf.label;
+    if (tf.value === timeframe) option.selected = true;
+    tfSelect.appendChild(option);
+  });
+
+  // Period selector
+  const periodLabel = document.createElement('label');
+  periodLabel.style.cssText = 'color: #888; font-size: 13px; margin-left: 10px;';
+  periodLabel.textContent = 'Period:';
+  
+  const periodInput = document.createElement('input');
+  periodInput.id = 'rsiPeriodInput';
+  periodInput.type = 'number';
+  periodInput.min = '2';
+  periodInput.max = '100';
+  periodInput.value = period;
+  periodInput.style.cssText = `
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 6px 10px;
+    border-radius: 4px;
+    width: 60px;
+    font-size: 13px;
+  `;
+
+  // Refresh button
+  const refreshBtn = document.createElement('button');
+  refreshBtn.style.cssText = `
+    background: #4CAF50;
+    border: none;
+    color: white;
+    padding: 6px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-left: auto;
+  `;
+  refreshBtn.textContent = '🔄 Refresh';
+  refreshBtn.onclick = async () => {
+    const newTimeframe = tfSelect.value;
+    const newPeriod = parseInt(periodInput.value) || 14;
+    
+    // Update global settings
+    rsiSettings.timeframe = newTimeframe;
+    rsiSettings.period = newPeriod;
+    
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '⏳ Loading...';
+    
+    try {
+      const result = await window.mt5API.getRSIGraph({
+        symbol: symbol.toUpperCase(),
+        period: newPeriod,
+        bars: 500,
+        timeframe: newTimeframe,
+        showGraph: true
+      });
+      
+      if (result.success && result.data) {
+        // Update title
+        document.getElementById('rsiGraphTitle').textContent = `RSI(${newPeriod}) - ${symbol} - ${newTimeframe}`;
+        
+        // Update RSI value display
+        const newRsiData = result.data;
+        const statusColor = newRsiData.status === 'OVERBOUGHT' ? '#ff5722' : 
+                           newRsiData.status === 'OVERSOLD' ? '#4CAF50' : '#9e9e9e';
+        
+        document.getElementById('rsiValueDisplay').innerHTML = `
+          <span style="color: #888;">Current RSI:</span>
+          <span style="color: ${statusColor}; font-size: 24px; font-weight: bold; margin-left: 10px;">
+            ${newRsiData.current_rsi?.toFixed(2) || 'N/A'}
+          </span>
+        `;
+        
+        document.getElementById('rsiStatusDisplay').innerHTML = `
+          <span style="color: #888;">Status:</span>
+          <span style="
+            background: ${statusColor};
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin-left: 10px;
+            font-weight: bold;
+          ">${newRsiData.status || 'N/A'}</span>
+        `;
+        
+        // Update image
+        const imgContainer = document.getElementById('rsiImageContainer');
+        if (newRsiData.image_base64) {
+          imgContainer.innerHTML = `<img src="data:image/png;base64,${newRsiData.image_base64}" style="max-width: 100%; border-radius: 4px;" alt="RSI Graph for ${symbol}">`;
+        }
+        
+        showMessage(`RSI(${newPeriod}) on ${newTimeframe}: ${newRsiData.current_rsi?.toFixed(2)}`, 'success');
+      } else {
+        showMessage(`RSI refresh failed: ${result.error || 'Unknown error'}`, 'error');
+      }
+    } catch (error) {
+      showMessage(`RSI refresh error: ${error.message}`, 'error');
+    }
+    
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = '🔄 Refresh';
+  };
+
+  controls.appendChild(tfLabel);
+  controls.appendChild(tfSelect);
+  controls.appendChild(periodLabel);
+  controls.appendChild(periodInput);
+  controls.appendChild(refreshBtn);
+
   // RSI Info
   const info = document.createElement('div');
   info.style.cssText = `
@@ -1077,6 +1243,7 @@ function showRsiGraphModal(symbol, period, rsiData) {
   `;
 
   const rsiValue = document.createElement('div');
+  rsiValue.id = 'rsiValueDisplay';
   const statusColor = rsiData.status === 'OVERBOUGHT' ? '#ff5722' : 
                      rsiData.status === 'OVERSOLD' ? '#4CAF50' : '#9e9e9e';
   rsiValue.innerHTML = `
@@ -1087,6 +1254,7 @@ function showRsiGraphModal(symbol, period, rsiData) {
   `;
 
   const statusBadge = document.createElement('div');
+  statusBadge.id = 'rsiStatusDisplay';
   statusBadge.innerHTML = `
     <span style="color: #888;">Status:</span>
     <span style="
@@ -1104,6 +1272,7 @@ function showRsiGraphModal(symbol, period, rsiData) {
 
   // Image
   const imgContainer = document.createElement('div');
+  imgContainer.id = 'rsiImageContainer';
   imgContainer.style.cssText = 'text-align: center;';
 
   if (rsiData.image_base64) {
@@ -1118,6 +1287,7 @@ function showRsiGraphModal(symbol, period, rsiData) {
 
   // Assemble modal
   modal.appendChild(header);
+  modal.appendChild(controls);
   modal.appendChild(info);
   modal.appendChild(imgContainer);
   overlay.appendChild(modal);
