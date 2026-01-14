@@ -30,7 +30,8 @@ contextBridge.exposeInMainWorld('mt5API', {
   callLLM: (params) => ipcRenderer.invoke('mt5:callLLM', params),
   firecrawlScrape: (params) => ipcRenderer.invoke('mt5:firecrawlScrape', params),
   executePythonScript: (params) => ipcRenderer.invoke('mt5:executePythonScript', params),
-  getSentimentAnalysis: (params) => ipcRenderer.invoke('mt5:getSentimentAnalysis', params)
+  getSentimentAnalysis: (params) => ipcRenderer.invoke('mt5:getSentimentAnalysis', params),
+  getRSIGraph: (params) => ipcRenderer.invoke('mt5:getRSIGraph', params)
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {

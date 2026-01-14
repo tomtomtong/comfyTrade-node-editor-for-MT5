@@ -1733,6 +1733,151 @@ class MT5Bridge:
             "error": "Sentiment analysis is now handled in JavaScript. Please use the JavaScript implementation."
         }
     
+    def get_rsi_graph(self, symbol='EURUSD', period=14, bars=500, timeframe='H1', show_graph=True):
+        """Generate RSI graph for the specified symbol and return data with base64 image"""
+        try:
+            import pandas as pd
+            import matplotlib
+            matplotlib.use('Agg')  # Use non-interactive backend
+            import matplotlib.pyplot as plt
+            import numpy as np
+            import base64
+            from io import BytesIO
+            import os
+            
+            logger.info(f"Generating RSI graph for {symbol}, period={period}, bars={bars}, timeframe={timeframe}")
+            
+            if not self.connected_to_mt5:
+                return {"error": "Not connected to MT5"}
+            
+            # Map timeframe string to MT5 constant
+            timeframe_map = {
+                'M1': mt5.TIMEFRAME_M1,
+                'M5': mt5.TIMEFRAME_M5,
+                'M15': mt5.TIMEFRAME_M15,
+                'M30': mt5.TIMEFRAME_M30,
+                'H1': mt5.TIMEFRAME_H1,
+                'H4': mt5.TIMEFRAME_H4,
+                'D1': mt5.TIMEFRAME_D1,
+                'W1': mt5.TIMEFRAME_W1,
+            }
+            
+            mt5_timeframe = timeframe_map.get(timeframe, mt5.TIMEFRAME_H1)
+            
+            # Get historical data
+            rates = mt5.copy_rates_from_pos(symbol, mt5_timeframe, 0, bars)
+            
+            if rates is None or len(rates) == 0:
+                return {"error": f"Failed to get data for {symbol}"}
+            
+            # Convert to DataFrame
+            df = pd.DataFrame(rates)
+            df['time'] = pd.to_datetime(df['time'], unit='s')
+            
+            # Calculate RSI
+            delta = df['close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+            
+            rs = gain / loss
+            df['rsi'] = 100 - (100 / (1 + rs))
+            
+            # Get current RSI value
+            current_rsi = df['rsi'].iloc[-1]
+            
+            # Determine status
+            if current_rsi > 70:
+                status = "OVERBOUGHT"
+            elif current_rsi < 30:
+                status = "OVERSOLD"
+            else:
+                status = "NEUTRAL"
+            
+            result = {
+                "success": True,
+                "symbol": symbol,
+                "period": period,
+                "timeframe": timeframe,
+                "bars": bars,
+                "current_rsi": float(current_rsi) if not np.isnan(current_rsi) else None,
+                "status": status
+            }
+            
+            # Generate graph if requested
+            if show_graph:
+                # Create figure with subplots
+                fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10), 
+                                                gridspec_kw={'height_ratios': [2, 1]})
+                fig.suptitle(f'{symbol} - Price and RSI({period})', fontsize=16, fontweight='bold')
+                
+                # Set dark theme
+                fig.patch.set_facecolor('#1e1e1e')
+                for ax in [ax1, ax2]:
+                    ax.set_facecolor('#2a2a2a')
+                    ax.tick_params(colors='white')
+                    ax.xaxis.label.set_color('white')
+                    ax.yaxis.label.set_color('white')
+                    ax.title.set_color('white')
+                    for spine in ax.spines.values():
+                        spine.set_color('#444')
+                
+                # Plot price
+                ax1.plot(df['time'], df['close'], label='Close Price', color='#2962FF', linewidth=1.5)
+                ax1.set_ylabel('Price', fontsize=12, color='white')
+                ax1.grid(True, alpha=0.3, color='#444')
+                ax1.legend(loc='upper left', facecolor='#2a2a2a', labelcolor='white')
+                ax1.set_title('Price Chart', fontsize=12, color='white')
+                
+                # Plot RSI
+                ax2.plot(df['time'], df['rsi'], label=f'RSI({period})', color='#FF6D00', linewidth=1.5)
+                ax2.axhline(y=70, color='#ff5722', linestyle='--', alpha=0.7, label='Overbought (70)')
+                ax2.axhline(y=30, color='#4CAF50', linestyle='--', alpha=0.7, label='Oversold (30)')
+                ax2.axhline(y=50, color='gray', linestyle='-', alpha=0.3)
+                ax2.fill_between(df['time'], 30, 70, alpha=0.1, color='gray')
+                ax2.set_ylabel('RSI', fontsize=12, color='white')
+                ax2.set_xlabel('Time', fontsize=12, color='white')
+                ax2.set_ylim(0, 100)
+                ax2.grid(True, alpha=0.3, color='#444')
+                ax2.legend(loc='upper left', facecolor='#2a2a2a', labelcolor='white')
+                ax2.set_title(f'RSI Indicator (Period: {period})', fontsize=12, color='white')
+                
+                # Format x-axis
+                plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha='right', color='white')
+                plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha='right', color='white')
+                
+                plt.tight_layout()
+                
+                # Save to buffer and convert to base64
+                buffer = BytesIO()
+                plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight', 
+                           facecolor='#1e1e1e', edgecolor='none')
+                buffer.seek(0)
+                image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                plt.close(fig)
+                
+                result['image_base64'] = image_base64
+                
+                # Also save to file
+                charts_dir = os.path.join(os.path.dirname(__file__), 'charts')
+                os.makedirs(charts_dir, exist_ok=True)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f'rsi_{symbol}_{period}_{timestamp}.png'
+                filepath = os.path.join(charts_dir, filename)
+                
+                buffer.seek(0)
+                with open(filepath, 'wb') as f:
+                    f.write(buffer.getvalue())
+                
+                result['image_path'] = filepath
+                
+                logger.info(f"RSI graph generated successfully for {symbol}, saved to {filepath}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error generating RSI graph for {symbol}: {e}")
+            return {"error": str(e)}
+    
     async def handle_message(self, websocket, message):
         """Handle incoming WebSocket messages from Electron"""
         try:
@@ -1939,6 +2084,15 @@ class MT5Bridge:
                 response['data'] = {
                     "error": "Sentiment analysis is now handled in JavaScript. This action should not be sent to Python bridge."
                 }
+            
+            elif action == 'getRSIGraph':
+                symbol = data.get('symbol', 'EURUSD')
+                period = data.get('period', 14)
+                bars = data.get('bars', 500)
+                timeframe = data.get('timeframe', 'H1')
+                show_graph = data.get('showGraph', True)
+                result = self.get_rsi_graph(symbol, period, bars, timeframe, show_graph)
+                response['data'] = result
             
             else:
                 response['error'] = f"Unknown action: {action}"

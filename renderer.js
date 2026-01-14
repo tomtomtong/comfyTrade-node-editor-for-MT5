@@ -319,6 +319,9 @@ function setupEventListeners() {
   document.getElementById('confirmTradeBtn').addEventListener('click', handleExecuteTrade);
   document.getElementById('cancelTradeBtn').addEventListener('click', hideTradeModal);
   
+  // RSI Graph button in trade modal
+  document.getElementById('showRsiGraphBtn').addEventListener('click', handleShowRsiGraph);
+  
   // Execution type change handler - show/hide limit price field
   document.getElementById('executionType').addEventListener('change', (e) => {
     const limitPriceGroup = document.getElementById('limitPriceGroup');
@@ -913,6 +916,227 @@ function stopPriceAutoRefresh() {
     clearInterval(priceUpdateInterval);
     priceUpdateInterval = null;
   }
+}
+
+// RSI Graph Handler for Trade Modal
+async function handleShowRsiGraph() {
+  // Get the current symbol from the symbol input
+  const symbol = symbolInput ? symbolInput.getValue() : '';
+  
+  if (!symbol || symbol.length < 3) {
+    showMessage('Please enter a symbol first', 'warning');
+    return;
+  }
+  
+  if (!isConnected) {
+    showMessage('Please connect to MT5 first', 'warning');
+    return;
+  }
+  
+  showMessage(`Generating RSI graph for ${symbol}...`, 'info');
+  
+  try {
+    const result = await window.mt5API.getRSIGraph({
+      symbol: symbol.toUpperCase(),
+      period: 14,
+      bars: 500,
+      timeframe: 'H1',
+      showGraph: true
+    });
+    
+    if (result.success && result.data) {
+      const rsiData = result.data;
+      
+      // Show the RSI graph modal
+      showRsiGraphModal(symbol, 14, rsiData);
+      
+      const statusEmoji = rsiData.status === 'OVERBOUGHT' ? '🔴' : 
+                         rsiData.status === 'OVERSOLD' ? '🟢' : '⚪';
+      showMessage(`RSI(14): ${rsiData.current_rsi?.toFixed(2)} - ${statusEmoji} ${rsiData.status}`, 'success');
+    } else {
+      showMessage(`RSI Graph failed: ${result.error || 'Unknown error'}`, 'error');
+    }
+  } catch (error) {
+    console.error('Error generating RSI graph:', error);
+    showMessage(`RSI Graph error: ${error.message}`, 'error');
+  }
+}
+
+// RSI Graph Handler for Modify Position Modal
+async function handleModifyRsiGraph() {
+  const modal = document.getElementById('modifyModal');
+  const symbol = modal?.dataset?.symbol || '';
+  
+  if (!symbol || symbol.length < 3) {
+    showMessage('Symbol not available', 'warning');
+    return;
+  }
+  
+  if (!isConnected) {
+    showMessage('Please connect to MT5 first', 'warning');
+    return;
+  }
+  
+  showMessage(`Generating RSI graph for ${symbol}...`, 'info');
+  
+  try {
+    const result = await window.mt5API.getRSIGraph({
+      symbol: symbol.toUpperCase(),
+      period: 14,
+      bars: 500,
+      timeframe: 'H1',
+      showGraph: true
+    });
+    
+    if (result.success && result.data) {
+      const rsiData = result.data;
+      showRsiGraphModal(symbol, 14, rsiData);
+      
+      const statusEmoji = rsiData.status === 'OVERBOUGHT' ? '🔴' : 
+                         rsiData.status === 'OVERSOLD' ? '🟢' : '⚪';
+      showMessage(`RSI(14): ${rsiData.current_rsi?.toFixed(2)} - ${statusEmoji} ${rsiData.status}`, 'success');
+    } else {
+      showMessage(`RSI Graph failed: ${result.error || 'Unknown error'}`, 'error');
+    }
+  } catch (error) {
+    console.error('Error generating RSI graph:', error);
+    showMessage(`RSI Graph error: ${error.message}`, 'error');
+  }
+}
+
+// RSI Graph Modal Display
+function showRsiGraphModal(symbol, period, rsiData) {
+  // Create modal overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'rsiGraphModal';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+
+  // Create modal content
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 90%;
+    max-height: 90%;
+    overflow: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  `;
+
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
+  `;
+
+  const title = document.createElement('h3');
+  title.style.cssText = 'margin: 0; color: #fff;';
+  title.textContent = `RSI(${period}) - ${symbol}`;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.style.cssText = `
+    background: #ff5722;
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  closeBtn.textContent = 'Close';
+  closeBtn.onclick = () => overlay.remove();
+
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  // RSI Info
+  const info = document.createElement('div');
+  info.style.cssText = `
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #2a2a2a;
+    border-radius: 4px;
+  `;
+
+  const rsiValue = document.createElement('div');
+  const statusColor = rsiData.status === 'OVERBOUGHT' ? '#ff5722' : 
+                     rsiData.status === 'OVERSOLD' ? '#4CAF50' : '#9e9e9e';
+  rsiValue.innerHTML = `
+    <span style="color: #888;">Current RSI:</span>
+    <span style="color: ${statusColor}; font-size: 24px; font-weight: bold; margin-left: 10px;">
+      ${rsiData.current_rsi?.toFixed(2) || 'N/A'}
+    </span>
+  `;
+
+  const statusBadge = document.createElement('div');
+  statusBadge.innerHTML = `
+    <span style="color: #888;">Status:</span>
+    <span style="
+      background: ${statusColor};
+      color: white;
+      padding: 4px 12px;
+      border-radius: 4px;
+      margin-left: 10px;
+      font-weight: bold;
+    ">${rsiData.status || 'N/A'}</span>
+  `;
+
+  info.appendChild(rsiValue);
+  info.appendChild(statusBadge);
+
+  // Image
+  const imgContainer = document.createElement('div');
+  imgContainer.style.cssText = 'text-align: center;';
+
+  if (rsiData.image_base64) {
+    const img = document.createElement('img');
+    img.src = `data:image/png;base64,${rsiData.image_base64}`;
+    img.style.cssText = 'max-width: 100%; border-radius: 4px;';
+    img.alt = `RSI Graph for ${symbol}`;
+    imgContainer.appendChild(img);
+  } else {
+    imgContainer.innerHTML = '<p style="color: #888;">Graph image not available</p>';
+  }
+
+  // Assemble modal
+  modal.appendChild(header);
+  modal.appendChild(info);
+  modal.appendChild(imgContainer);
+  overlay.appendChild(modal);
+
+  // Close on overlay click
+  overlay.onclick = (e) => {
+    if (e.target === overlay) overlay.remove();
+  };
+
+  // Close on ESC key
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      overlay.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
+  };
+  document.addEventListener('keydown', escHandler);
+
+  document.body.appendChild(overlay);
 }
 
 // Position Tabs Management
@@ -3602,8 +3826,11 @@ function createModifyModal() {
         <input type="hidden" id="modifyTicket">
         
         <div class="trade-confirmation-modal-content">
-          <div id="modifyCurrentPrice" style="margin-bottom: 15px; padding: 10px; background-color: rgba(76, 175, 80, 0.1); border-left: 3px solid #4CAF50; border-radius: 4px;">
-            <strong style="color: #4CAF50;">Current Price:</strong> <span id="modifyCurrentPriceValue" style="color: #e0e0e0; font-size: 16px; font-weight: bold;">-</span>
+          <div id="modifyCurrentPrice" style="margin-bottom: 15px; padding: 10px; background-color: rgba(76, 175, 80, 0.1); border-left: 3px solid #4CAF50; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="color: #4CAF50;">Current Price:</strong> <span id="modifyCurrentPriceValue" style="color: #e0e0e0; font-size: 16px; font-weight: bold;">-</span>
+            </div>
+            <button id="modifyRsiGraphBtn" class="btn btn-small btn-info" title="Show RSI Graph">📈 RSI</button>
           </div>
           
           <div class="form-group">
@@ -3680,6 +3907,7 @@ function createModifyModal() {
   
   document.getElementById('confirmModifyBtn').addEventListener('click', handleModifyPosition);
   document.getElementById('cancelModifyBtn').addEventListener('click', hideModifyModal);
+  document.getElementById('modifyRsiGraphBtn').addEventListener('click', handleModifyRsiGraph);
   
   // Initialize schedule datetime to current time + 1 hour
   const scheduleDateTime = document.getElementById('modifyScheduleDateTime');
@@ -6229,6 +6457,84 @@ function updatePropertiesPanel(node) {
                    placeholder="30">
             <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
               Maximum number of articles to analyze (1-100)
+            </small>
+          </div>
+        `;
+      } else if (key === 'symbol' && node.type === 'rsi-graph') {
+        return `
+          <div class="property-item">
+            <label>Symbol:</label>
+            <input type="text" 
+                   value="${value}" 
+                   data-param="${key}"
+                   onchange="updateNodeParam('${key}', this.value.toUpperCase())"
+                   placeholder="EURUSD">
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              MT5 symbol to analyze (e.g., EURUSD, XAUUSD, US30.cash)
+            </small>
+          </div>
+        `;
+      } else if (key === 'period' && node.type === 'rsi-graph') {
+        return `
+          <div class="property-item">
+            <label>RSI Period:</label>
+            <input type="number" 
+                   value="${value}" 
+                   data-param="${key}"
+                   onchange="updateNodeParam('${key}', parseInt(this.value) || 14)"
+                   min="2"
+                   max="100"
+                   placeholder="14">
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              RSI calculation period (default: 14)
+            </small>
+          </div>
+        `;
+      } else if (key === 'bars' && node.type === 'rsi-graph') {
+        return `
+          <div class="property-item">
+            <label>Number of Bars:</label>
+            <input type="number" 
+                   value="${value}" 
+                   data-param="${key}"
+                   onchange="updateNodeParam('${key}', parseInt(this.value) || 500)"
+                   min="50"
+                   max="5000"
+                   placeholder="500">
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Number of historical bars to analyze (50-5000)
+            </small>
+          </div>
+        `;
+      } else if (key === 'timeframe' && node.type === 'rsi-graph') {
+        return `
+          <div class="property-item">
+            <label>Timeframe:</label>
+            <select data-param="${key}" onchange="updateNodeParam('${key}', this.value)">
+              <option value="M1" ${value === 'M1' ? 'selected' : ''}>M1 - 1 Minute</option>
+              <option value="M5" ${value === 'M5' ? 'selected' : ''}>M5 - 5 Minutes</option>
+              <option value="M15" ${value === 'M15' ? 'selected' : ''}>M15 - 15 Minutes</option>
+              <option value="M30" ${value === 'M30' ? 'selected' : ''}>M30 - 30 Minutes</option>
+              <option value="H1" ${value === 'H1' ? 'selected' : ''}>H1 - 1 Hour</option>
+              <option value="H4" ${value === 'H4' ? 'selected' : ''}>H4 - 4 Hours</option>
+              <option value="D1" ${value === 'D1' ? 'selected' : ''}>D1 - Daily</option>
+              <option value="W1" ${value === 'W1' ? 'selected' : ''}>W1 - Weekly</option>
+            </select>
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Timeframe for RSI calculation
+            </small>
+          </div>
+        `;
+      } else if (key === 'showGraph' && node.type === 'rsi-graph') {
+        return `
+          <div class="property-item">
+            <label>Show Graph:</label>
+            <input type="checkbox" 
+                   ${value ? 'checked' : ''} 
+                   data-param="${key}"
+                   onchange="updateNodeParam('${key}', this.checked)">
+            <small style="color: #888; font-size: 10px; display: block; margin-top: 4px;">
+              Display RSI graph in a popup when executed
             </small>
           </div>
         `;

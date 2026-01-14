@@ -690,6 +690,16 @@ class MT5Bridge {
     }
   }
 
+  async getRSIGraph(params) {
+    if (!this.connected) {
+      throw new Error('Not connected to MT5');
+    }
+
+    console.log(`Generating RSI Graph for: ${params.symbol}`);
+    const response = await this.sendMessage('getRSIGraph', params);
+    return response.data;
+  }
+
   isConnected() {
     return this.connected;
   }

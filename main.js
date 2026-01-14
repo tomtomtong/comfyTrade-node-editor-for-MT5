@@ -344,6 +344,15 @@ ipcMain.handle('mt5:getSentimentAnalysis', async (event, params) => {
     }
 });
 
+ipcMain.handle('mt5:getRSIGraph', async (event, params) => {
+    try {
+        const result = await mt5Bridge.getRSIGraph(params);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 // Handler for opening external URLs
 ipcMain.handle('electron:openExternal', async (event, url) => {
     try {

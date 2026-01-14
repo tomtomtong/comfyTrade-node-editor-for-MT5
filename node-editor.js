@@ -799,6 +799,19 @@ class NodeEditor {
         }
       },
 
+      'rsi-graph': {
+        title: 'RSI Graph',
+        inputs: ['trigger'],
+        outputs: ['string', 'trigger'],
+        params: {
+          symbol: 'EURUSD',
+          period: 14,
+          bars: 500,
+          timeframe: 'H1',
+          showGraph: true
+        }
+      },
+
     };
 
     // Return config or a default fallback for unknown types
@@ -1025,6 +1038,140 @@ class NodeEditor {
     if (hint) {
       hint.style.display = 'none';
     }
+  }
+
+  showRSIGraphModal(symbol, period, rsiData) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'rsiGraphModal';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    `;
+
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 90%;
+      max-height: 90%;
+      overflow: auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    `;
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #333;
+    `;
+
+    const title = document.createElement('h3');
+    title.style.cssText = 'margin: 0; color: #fff;';
+    title.textContent = `RSI(${period}) - ${symbol}`;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.style.cssText = `
+      background: #ff5722;
+      border: none;
+      color: white;
+      padding: 5px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    `;
+    closeBtn.textContent = 'Close';
+    closeBtn.onclick = () => overlay.remove();
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    // RSI Info
+    const info = document.createElement('div');
+    info.style.cssText = `
+      display: flex;
+      gap: 20px;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #2a2a2a;
+      border-radius: 4px;
+    `;
+
+    const rsiValue = document.createElement('div');
+    const statusColor = rsiData.status === 'OVERBOUGHT' ? '#ff5722' : 
+                       rsiData.status === 'OVERSOLD' ? '#4CAF50' : '#9e9e9e';
+    rsiValue.innerHTML = `
+      <span style="color: #888;">Current RSI:</span>
+      <span style="color: ${statusColor}; font-size: 24px; font-weight: bold; margin-left: 10px;">
+        ${rsiData.current_rsi?.toFixed(2) || 'N/A'}
+      </span>
+    `;
+
+    const statusBadge = document.createElement('div');
+    statusBadge.innerHTML = `
+      <span style="color: #888;">Status:</span>
+      <span style="
+        background: ${statusColor};
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        margin-left: 10px;
+        font-weight: bold;
+      ">${rsiData.status || 'N/A'}</span>
+    `;
+
+    info.appendChild(rsiValue);
+    info.appendChild(statusBadge);
+
+    // Image
+    const imgContainer = document.createElement('div');
+    imgContainer.style.cssText = 'text-align: center;';
+
+    if (rsiData.image_base64) {
+      const img = document.createElement('img');
+      img.src = `data:image/png;base64,${rsiData.image_base64}`;
+      img.style.cssText = 'max-width: 100%; border-radius: 4px;';
+      img.alt = `RSI Graph for ${symbol}`;
+      imgContainer.appendChild(img);
+    } else {
+      imgContainer.innerHTML = '<p style="color: #888;">Graph image not available</p>';
+    }
+
+    // Assemble modal
+    modal.appendChild(header);
+    modal.appendChild(info);
+    modal.appendChild(imgContainer);
+    overlay.appendChild(modal);
+
+    // Close on overlay click
+    overlay.onclick = (e) => {
+      if (e.target === overlay) overlay.remove();
+    };
+
+    // Close on ESC key
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+
+    document.body.appendChild(overlay);
   }
 
   removeConnection(connection) {
@@ -1760,6 +1907,8 @@ class NodeEditor {
                 stringInput = stringConnection.from.pythonOutput || '';
               } else if (stringConnection.from.type === 'sentiment-node') {
                 stringInput = stringConnection.from.sentimentOutput || '';
+              } else if (stringConnection.from.type === 'rsi-graph') {
+                stringInput = stringConnection.from.rsiOutput || '';
               }
             }
           }
@@ -2106,6 +2255,8 @@ class NodeEditor {
                   stringInput = stringConnection.from.pythonOutput || '';
                 } else if (stringConnection.from.type === 'sentiment-node') {
                   stringInput = stringConnection.from.sentimentOutput || '';
+                } else if (stringConnection.from.type === 'rsi-graph') {
+                  stringInput = stringConnection.from.rsiOutput || '';
                 }
               }
             }
@@ -2185,6 +2336,8 @@ class NodeEditor {
                   stringInput = stringConnection.from.pythonOutput || '';
                 } else if (stringConnection.from.type === 'sentiment-node') {
                   stringInput = stringConnection.from.sentimentOutput || '';
+                } else if (stringConnection.from.type === 'rsi-graph') {
+                  stringInput = stringConnection.from.rsiOutput || '';
                 }
               }
             }
@@ -2829,6 +2982,8 @@ class NodeEditor {
                 displayText = stringConnection.from.pythonOutput || 'No Python output';
               } else if (stringConnection.from.type === 'sentiment-node') {
                 displayText = stringConnection.from.sentimentOutput || 'No sentiment output';
+              } else if (stringConnection.from.type === 'rsi-graph') {
+                displayText = stringConnection.from.rsiOutput || 'No RSI data';
               } else {
                 // For other nodes, try to get a string representation
                 displayText = inputResult ? inputResult.toString() : 'No data';
@@ -2999,6 +3154,8 @@ class NodeEditor {
                   inputData = stringConnection.from.pythonOutput || '';
                 } else if (stringConnection.from.type === 'sentiment-node') {
                   inputData = stringConnection.from.sentimentOutput || '';
+                } else if (stringConnection.from.type === 'rsi-graph') {
+                  inputData = stringConnection.from.rsiOutput || '';
                 } else if (typeof inputResult === 'string') {
                   inputData = inputResult;
                 } else {
@@ -3236,6 +3393,78 @@ class NodeEditor {
             result = false; // Stop trigger flow on error
           }
           break;
+
+        case 'rsi-graph':
+          console.log('Generating RSI Graph for:', node.params.symbol);
+
+          try {
+            if (window.mt5API && window.mt5API.getRSIGraph) {
+              const rsiResult = await window.mt5API.getRSIGraph({
+                symbol: node.params.symbol,
+                period: node.params.period || 14,
+                bars: node.params.bars || 500,
+                timeframe: node.params.timeframe || 'H1',
+                showGraph: node.params.showGraph !== false
+              });
+
+              if (rsiResult.success && rsiResult.data) {
+                console.log('✓ RSI Graph generated successfully');
+
+                const rsiData = rsiResult.data;
+                
+                // Format the RSI result
+                let formattedOutput = `RSI Analysis for ${node.params.symbol}:\n\n`;
+                formattedOutput += `Current RSI(${node.params.period}): ${rsiData.current_rsi?.toFixed(2) || 'N/A'}\n`;
+                formattedOutput += `Status: ${rsiData.status || 'N/A'}\n`;
+                formattedOutput += `Timeframe: ${node.params.timeframe}\n`;
+                formattedOutput += `Bars Analyzed: ${node.params.bars}\n`;
+                
+                if (rsiData.image_path) {
+                  formattedOutput += `\nGraph saved: ${rsiData.image_path}`;
+                }
+
+                // Store the output in the node for string output connections
+                node.rsiOutput = formattedOutput;
+                node.rsiData = rsiData;
+
+                // Show the graph image if available and showGraph is enabled
+                if (node.params.showGraph && rsiData.image_base64) {
+                  // Create and show image modal
+                  this.showRSIGraphModal(node.params.symbol, node.params.period, rsiData);
+                }
+
+                if (window.showMessage) {
+                  const statusEmoji = rsiData.status === 'OVERBOUGHT' ? '🔴' : 
+                                     rsiData.status === 'OVERSOLD' ? '🟢' : '⚪';
+                  window.showMessage(`RSI(${node.params.period}): ${rsiData.current_rsi?.toFixed(2)} - ${statusEmoji} ${rsiData.status}`, 'success');
+                }
+
+                result = true; // Continue trigger flow
+              } else {
+                console.error('✗ RSI Graph generation failed:', rsiResult.error);
+                if (window.showMessage) {
+                  window.showMessage(`RSI Graph failed: ${rsiResult.error}`, 'error');
+                }
+                node.rsiOutput = 'Error: ' + (rsiResult.error || 'Unknown error');
+                result = false;
+              }
+            } else {
+              console.error('RSI Graph API not available');
+              if (window.showMessage) {
+                window.showMessage('RSI Graph API not available - check MT5 connection', 'error');
+              }
+              node.rsiOutput = 'Error: API not available';
+              result = false;
+            }
+          } catch (error) {
+            console.error('Error generating RSI Graph:', error);
+            if (window.showMessage) {
+              window.showMessage(`RSI Graph error: ${error.message}`, 'error');
+            }
+            node.rsiOutput = 'Error: ' + error.message;
+            result = false;
+          }
+          break;
       }
     }
 
@@ -3320,6 +3549,14 @@ class NodeEditor {
         if (fromOutput === 0) {
           // String output - pass the sentiment analysis output
           outputValue = node.sentimentOutput || 'No sentiment output';
+        } else if (fromOutput === 1) {
+          // Trigger output - pass the boolean result
+          outputValue = result;
+        }
+      } else if (node.type === 'rsi-graph') {
+        if (fromOutput === 0) {
+          // String output - pass the RSI analysis output
+          outputValue = node.rsiOutput || 'No RSI output';
         } else if (fromOutput === 1) {
           // Trigger output - pass the boolean result
           outputValue = result;
