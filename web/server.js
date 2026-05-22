@@ -19,7 +19,9 @@ app.use('/.well-known', express.static(path.join(__dirname, 'public', '.well-kno
 // Serve static files with proper MIME types
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.txt')) {
+    if (filePath.endsWith('llms.txt')) {
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    } else if (filePath.endsWith('.txt')) {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     } else if (filePath.endsWith('.xml')) {
       res.setHeader('Content-Type', 'application/xml; charset=utf-8');

@@ -4,8 +4,17 @@ let nodeEditor = null;
 let logEntries = [];
 let priceUpdateInterval = null;
 
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth <= 768 && window.innerHeight <= 1024);
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+  if (isMobileDevice()) {
+    document.documentElement.classList.add('is-mobile');
+    return;
+  }
   initializeNodeEditor();
   setupEventListeners();
   await loadSettings();

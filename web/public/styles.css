@@ -905,6 +905,10 @@ body {
 }
 
 @media (max-width: 768px) {
+  .web-demo-editor {
+    display: none !important;
+  }
+
   .main-layout {
     min-height: 0;
   }

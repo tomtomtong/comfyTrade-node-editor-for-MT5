@@ -1,4 +1,4 @@
-# ComfyTrade Web Demo - robots.txt
+# AI Trade Agent Web Demo - robots.txt
 # https://ai-trade-agent.com/
 
 User-agent: *
@@ -6,6 +6,9 @@ Allow: /
 
 # Sitemap location
 Sitemap: https://ai-trade-agent.com/sitemap.xml
+
+# LLM-friendly site summary (llms.txt spec: https://llmstxt.org/)
+# https://ai-trade-agent.com/llms.txt
 
 # Allow all search engines
 User-agent: Googlebot
