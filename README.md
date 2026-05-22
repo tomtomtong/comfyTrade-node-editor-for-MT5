@@ -13,7 +13,7 @@ An Electron desktop application that provides a comprehensive trading platform f
 
 **You can easily build powerful AI agents for trading with this tool!** This platform provides everything you need to create sophisticated automated trading systems without extensive coding knowledge. Watch our tutorial to see how simple it is:
 
-📹 **[Watch Tutorial: Building AI Trading Agents](https://youtu.be/M4PLVVUaQo8)**
+📹 **[Watch Tutorial: Building AI Trading Agents](https://youtu.be/M3GVP0L68rY)**
 
 💬 **[Join our Discord Community](https://discord.gg/4EWYahsGdJ)** - Get help, share strategies, and connect with other traders!
 
