@@ -56,6 +56,13 @@
       "description": "Join the ComfyTrade community for support and discussions",
       "url": "https://discord.com/invite/4EWYahsGdJ",
       "icons": [{ "src": "/favicon-32x32.png", "sizes": "32x32" }]
+    },
+    {
+      "name": "LinkedIn",
+      "short_name": "LinkedIn",
+      "description": "Connect with Tom Tong on LinkedIn",
+      "url": "https://www.linkedin.com/in/tom-tong/",
+      "icons": [{ "src": "/favicon-32x32.png", "sizes": "32x32" }]
     }
   ]
 }

@@ -90,6 +90,7 @@ Open source under MIT License - completely free to use, modify, and distribute
 - Download: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases
 - Web Demo: https://ai-trade-agent.com/
 - Discord Community: https://discord.com/invite/4EWYahsGdJ
+- LinkedIn: https://www.linkedin.com/in/tom-tong/
 - Contact: tomtomtongtong@gmail.com
 - Documentation: https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5#readme
 

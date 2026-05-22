@@ -119,6 +119,18 @@ body {
   color: #ffffff;
 }
 
+.cta-btn-linkedin {
+  background: #0a66c2;
+  color: #ffffff;
+  border-color: #0a66c2;
+}
+
+.cta-btn-linkedin:hover {
+  background: #004182;
+  border-color: #004182;
+  color: #ffffff;
+}
+
 .cta-icon {
   font-size: 28px;
   flex-shrink: 0;
@@ -404,6 +416,25 @@ body {
 
 .btn-github-toolbar:hover {
   background: #1a1e22;
+  transform: translateY(-1px);
+}
+
+.btn-linkedin-toolbar {
+  background: #0a66c2;
+  color: white;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.2s;
+  display: inline-block;
+  border: 1px solid #0a66c2;
+}
+
+.btn-linkedin-toolbar:hover {
+  background: #004182;
+  border-color: #004182;
   transform: translateY(-1px);
 }
 
@@ -1153,6 +1184,11 @@ body {
   transform: translateY(-3px);
   border-color: #667eea;
   box-shadow: 0 4px 15px rgba(102,126,234,0.3);
+}
+
+.contact-card-linkedin:hover {
+  border-color: #0a66c2;
+  box-shadow: 0 4px 15px rgba(10,102,194,0.3);
 }
 
 .contact-card-icon {
