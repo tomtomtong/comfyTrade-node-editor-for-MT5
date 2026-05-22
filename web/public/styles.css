@@ -96,17 +96,6 @@ body {
   background: #f5f5f5;
 }
 
-.cta-btn-contact {
-  background: #ffffff;
-  color: #333333;
-  border-color: #666666;
-}
-
-.cta-btn-contact:hover {
-  background: #f5f5f5;
-  border-color: #333333;
-}
-
 .cta-btn-discord {
   background: #5865f2;
   color: #ffffff;
