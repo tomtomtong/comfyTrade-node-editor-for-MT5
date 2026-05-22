@@ -420,25 +420,7 @@
       <div class="promo-main">
         <h1 class="promo-title">AI Trade Agent - Open Source MT5 Node Editor</h1>
         <p class="promo-subtitle">Visual Trading Strategy Builder • No Coding Required • Free & Open Source</p>
-        <div class="promo-video-container">
-          <div class="youtube-embed-container-promo">
-            <iframe 
-              class="youtube-embed-promo"
-              src="https://www.youtube.com/embed/M4PLVVUaQo8" 
-              title="ComfyTrade Demo Video"
-              frameborder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-              allowfullscreen>
-            </iframe>
-          </div>
-        </div>
         <div class="promo-cta-large">
-          <a href="https://www.youtube.com/watch?v=M4PLVVUaQo8&feature=youtu.be" target="_blank" rel="noopener noreferrer" class="cta-btn cta-btn-youtube">
-            <span class="cta-text">
-              <strong>Watch on YouTube</strong>
-              <small>Open in YouTube for full screen viewing</small>
-            </span>
-          </a>
           <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5" target="_blank" rel="noopener noreferrer" class="cta-btn cta-btn-github">
             <span class="cta-text">
               <strong>View Full Project on GitHub</strong>
@@ -455,6 +437,12 @@
             <span class="cta-text">
               <strong>Connect on LinkedIn</strong>
               <small>Follow Tom Tong for updates & trading tech insights</small>
+            </span>
+          </a>
+          <a href="mailto:tomtomtongtong@gmail.com" class="cta-btn cta-btn-contact">
+            <span class="cta-text">
+              <strong>Get Support</strong>
+              <small>tomtomtongtong@gmail.com</small>
             </span>
           </a>
         </div>
@@ -714,29 +702,6 @@
           </section>
           
           <section class="about-section">
-            <h3>Watch ComfyTrade in Action</h3>
-            <div class="video-section">
-              <p>See a complete walkthrough of ComfyTrade's features and capabilities:</p>
-              <div class="youtube-embed-container">
-                <iframe 
-                  class="youtube-embed"
-                  src="https://www.youtube.com/embed/M4PLVVUaQo8" 
-                  title="ComfyTrade Demo Video"
-                  frameborder="0" 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                  allowfullscreen>
-                </iframe>
-              </div>
-              <a href="https://www.youtube.com/watch?v=M4PLVVUaQo8&feature=youtu.be" target="_blank" rel="noopener noreferrer" class="btn-mega btn-mega-youtube" style="margin-top: 15px;">
-                <div class="btn-mega-content">
-                  <strong>Watch on YouTube</strong>
-                  <small>Open in YouTube for full screen viewing</small>
-                </div>
-              </a>
-            </div>
-          </section>
-          
-          <section class="about-section">
             <h3>Download & Install</h3>
             <div class="cta-buttons-large">
               <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/releases" target="_blank" rel="noopener noreferrer" class="btn-mega btn-mega-primary">
@@ -767,6 +732,12 @@
                 <div class="contact-card-content">
                   <strong>Connect on LinkedIn</strong>
                   <span>Follow Tom Tong • Updates & trading tech</span>
+                </div>
+              </a>
+              <a href="mailto:tomtomtongtong@gmail.com" class="contact-card">
+                <div class="contact-card-content">
+                  <strong>Email Support</strong>
+                  <span>tomtomtongtong@gmail.com</span>
                 </div>
               </a>
               <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5/issues" target="_blank" rel="noopener noreferrer" class="contact-card">
@@ -833,6 +804,7 @@
       <a href="https://discord.com/invite/4EWYahsGdJ" target="_blank" rel="noopener noreferrer" style="color:#4a9eff;margin:0 10px;">Discord</a>
       <a href="https://www.linkedin.com/in/tom-tong/" target="_blank" rel="noopener noreferrer" style="color:#4a9eff;margin:0 10px;">LinkedIn</a>
       <a href="https://github.com/tomtomtong/comfyTrade-node-editor-for-MT5#readme" target="_blank" rel="noopener noreferrer" style="color:#4a9eff;margin:0 10px;">Documentation</a>
+      <a href="mailto:tomtomtongtong@gmail.com" style="color:#4a9eff;margin:0 10px;">Contact</a>
     </nav>
     <p style="margin-top:10px;">© 2024 AI Trade Agent. MIT License. Free and Open Source.</p>
   </footer>
@@ -947,9 +919,9 @@
       
       trackExternalLink('a[href*="github.com"]', 'external_link', 'github_click');
       trackExternalLink('a[href*="releases"]', 'external_link', 'download_click');
-      trackExternalLink('a[href*="youtube.com"]', 'external_link', 'youtube_video_click');
       trackExternalLink('a[href*="discord.com"]', 'external_link', 'discord_click');
       trackExternalLink('a[href*="linkedin.com"]', 'external_link', 'linkedin_click');
+      trackExternalLink('a[href^="mailto:"]', 'external_link', 'email_click');
       
       // Track node additions (if node editor is available)
       document.querySelectorAll('.node-btn').forEach(btn => {
